@@ -213,6 +213,23 @@ func stageNode(s Stage) *yaml.Node {
 			m.set("expected_output", str(s.ExpectedOutput))
 		}
 		m.set("next", str(s.Next))
+	case StageParallel:
+		list := &yaml.Node{Kind: yaml.SequenceNode, Tag: "!!seq"}
+		for _, b := range s.Branches {
+			bm := newMapping()
+			if b.Name != "" {
+				bm.set("name", str(b.Name))
+			}
+			bm.set("agent", str(b.Agent))
+			if len(b.Skills) > 0 {
+				bm.set("skills", flowList(b.Skills))
+			}
+			if b.ExpectedOutput != "" {
+				bm.set("expected_output", str(b.ExpectedOutput))
+			}
+			list.Content = append(list.Content, bm.node)
+		}
+		m.set("branches", list).set("next", str(s.Next))
 	case StageHumanGate:
 		m.set("approvers", str(s.Approvers)).set("on_approve", str(s.OnApprove)).set("on_reject", str(s.OnReject))
 		if s.MaxRework > 0 {

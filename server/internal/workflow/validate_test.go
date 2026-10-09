@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-var rules = []string{"V001", "V002", "V003", "V004", "V005", "V006", "V008"}
+var rules = []string{"V001", "V002", "V003", "V004", "V005", "V006", "V008", "V009"}
 
 func TestValidAndPilot(t *testing.T) {
 	if issues := Validate(fixture(t, "valid")); len(issues) != 0 {
@@ -32,6 +32,7 @@ func TestRuleFixtures(t *testing.T) {
 		"V005": {"V005"},
 		"V006": {"V006"},
 		"V008": {"V008"},
+		"V009": {"V009"},
 	}
 	for _, rule := range rules {
 		t.Run(rule, func(t *testing.T) {

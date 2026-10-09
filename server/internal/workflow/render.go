@@ -94,6 +94,8 @@ func stageSection(def *Definition, s Stage, position int, people map[string]stri
 		}
 		out = append(out, fmt.Sprintf("- When the agent reports it is done (its reply wakes you), move the issue to %s.", code(s.Next)))
 		return out
+	case StageParallel:
+		return parallelSection(s, heading)
 	case StageHumanGate:
 		limit := "There is no rework limit on this gate."
 		if s.MaxRework > 0 {
@@ -137,6 +139,57 @@ func stageSection(def *Definition, s Stage, position int, people map[string]stri
 			"- The workflow is finished. Set the issue status to done and post a closing comment. Do nothing further.",
 		}
 	}
+}
+
+// doneSentence goes, word for word, into every sub-issue a parallel stage creates.
+// Multica wakes the leader again only when a sub-issue reaches a closed status
+// (Done or Cancelled); an agent that stops at In Review would leave the leader
+// waiting for ever.
+const doneSentence = "When your work is finished, write the result as a comment on this issue and set this issue's status to Done. " +
+	"Do not use In Review: the leader is only woken when the status is Done."
+
+func parallelSection(s Stage, heading string) []string {
+	out := []string{
+		heading + " (parallel)",
+		"",
+		"- Label: " + code(phaseLabel(s.ID)),
+		fmt.Sprintf("- This stage runs %d branches at the same time. In the step that records the move, create one sub-issue of this issue "+
+			"for EACH branch below, all at once so the agents start together, and assign each sub-issue to its branch's agent. "+
+			"Do not reassign this issue and create no other sub-issues.", len(s.Branches)),
+		"- Put this sentence, word for word, in the description of every sub-issue: " + code(doneSentence),
+		"- Branches:",
+	}
+	for i, b := range s.Branches {
+		out = append(out, fmt.Sprintf("  %d. Title %s, agent %s.", i+1, code(inline(stageTitle(s)+": "+branchTitle(b))), code(inline(b.Agent))))
+		if len(b.Skills) > 0 {
+			names := make([]string, len(b.Skills))
+			for j, sk := range b.Skills {
+				names[j] = code(inline(sk))
+			}
+			out = append(out, "     Tell the agent to use: "+strings.Join(names, ", ")+".")
+		}
+		if strings.TrimSpace(b.ExpectedOutput) != "" {
+			out = append(out, "     Put the expected output in the sub-issue description:")
+			for _, l := range quote(b.ExpectedOutput) {
+				out = append(out, "   "+l)
+			}
+		}
+	}
+	return append(out,
+		"- Keep this issue assigned to the squad and in this stage. Every time one of the sub-issues is closed you may be woken; "+
+			"if any sub-issue of this visit is still open, change nothing and stop.",
+		"- If the issue returns to this stage later (rework), create a new set of sub-issues and ignore the earlier ones.",
+		fmt.Sprintf("- When every sub-issue of this visit is Done, read the last comment of each, then move the issue to %s. "+
+			"The comment that records the move also lists each branch's result in a line or two.", code(s.Next)),
+		"- If a sub-issue was cancelled, or its agent says it could not do the work, do not move the issue: say so in a comment and ask a human what to do.",
+	)
+}
+
+func branchTitle(b Branch) string {
+	if b.Name != "" {
+		return b.Name
+	}
+	return b.Agent
 }
 
 // Labels lists the labels a workflow implies, in a stable order, so a person

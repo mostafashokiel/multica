@@ -16,6 +16,7 @@ const (
 	CodeLoops        = "V005" // every loop passes through a gate with max_rework
 	CodeApprovers    = "V006" // every gate's approver group exists and is non-empty
 	CodeCondition    = "V008" // `when` parses
+	CodeBranches     = "V009" // a parallel stage has 2 to MaxBranches branches
 	maxStageIDLength = 40
 )
 
@@ -29,7 +30,7 @@ func ValidID(s string) bool { return len(s) <= maxStageIDLength && kebab.MatchSt
 // order: same definition, same list.
 func Validate(def *Definition) []Issue {
 	var issues []Issue
-	for _, rule := range []func(*Definition) []Issue{v001, v002, v003, v004, v005, v006, v008} {
+	for _, rule := range []func(*Definition) []Issue{v001, v002, v003, v004, v005, v006, v008, v009} {
 		issues = append(issues, rule(def)...)
 	}
 	return issues
@@ -87,7 +88,7 @@ type reference struct{ field, target string }
 
 func references(s Stage) []reference {
 	switch s.Type {
-	case StageAgent:
+	case StageAgent, StageParallel:
 		return []reference{{"next", s.Next}}
 	case StageHumanGate:
 		return []reference{{"on_approve", s.OnApprove}, {"on_reject", s.OnReject}}
@@ -323,6 +324,20 @@ func v008(def *Definition) []Issue {
 		if _, err := ParseCondition(s.When); err != nil {
 			issues = append(issues, Issue{Code: CodeCondition, StageID: s.ID, Field: "when",
 				Message: fmt.Sprintf("Condition %q: %s (column %d)", s.ID, err.Message, err.Column)})
+		}
+	}
+	return issues
+}
+
+func v009(def *Definition) []Issue {
+	var issues []Issue
+	for _, s := range def.Stages {
+		if s.Type != StageParallel {
+			continue
+		}
+		if n := len(s.Branches); n < 2 || n > MaxBranches {
+			issues = append(issues, Issue{Code: CodeBranches, StageID: s.ID, Field: "branches",
+				Message: fmt.Sprintf("Parallel stage %q has %d branches; it needs from 2 to %d", s.ID, n, MaxBranches)})
 		}
 	}
 	return issues

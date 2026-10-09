@@ -48,11 +48,14 @@ If the block is right, the problem is elsewhere: the issue is missing the
   lowercase kebab-case) and **immutable versions**. Saving never edits a version;
   it adds the next one. Restoring an old version adds a new version with the old
   content.
-- A definition has four stage types: `agent` (delegate work to an agent by @mention), `human_gate`
+- A definition has five stage types: `agent` (delegate work to an agent by @mention), `parallel`
+  (two to eight branches, each a sub-issue assigned to an agent, all started together; the stage ends
+  when every sub-issue is Done, so each agent must finish its sub-issue as Done and not In Review),
+  `human_gate`
   (wait for a listed approver's decision, with an optional `max_rework` and
   `escalate_after_hours`), `condition` (branch on the issue's labels) and `end`.
 - A version can be saved with problems, but only a version that passes validation
-  can be rendered or applied. Validation codes are `V001`-`V008` (there is no
+  can be rendered or applied. Validation codes are `V001`-`V009` (there is no
   `V007`).
 - The text a leader follows is generated from the definition. The same version
   always renders to the same text.

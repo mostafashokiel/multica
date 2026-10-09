@@ -1,0 +1,30 @@
+apiVersion: composer.noqodi/v1
+kind: Workflow
+metadata:
+  id: world-clock
+  version: 1
+  description: Check two clocks at once, then report.
+approvers:
+  lead: ['user:u1']
+start: clocks
+stages:
+  - id: clocks
+    type: parallel
+    name: Check the clocks
+    branches:
+      - name: New York
+        agent: Check time in NYC
+        skills: [clock]
+        expected_output: |-
+          The local time and date.
+          One line.
+      - agent: Check Time at Cairo
+    next: sign-off
+  - id: sign-off
+    type: human_gate
+    approvers: lead
+    on_approve: done
+    on_reject: clocks
+    max_rework: 2
+  - id: done
+    type: end

@@ -19,6 +19,7 @@ const (
 // Stage types.
 const (
 	StageAgent     = "agent"
+	StageParallel  = "parallel"
 	StageHumanGate = "human_gate"
 	StageCondition = "condition"
 	StageEnd       = "end"
@@ -48,6 +49,18 @@ type Target struct {
 	SquadLeader string
 }
 
+// MaxBranches is the most branches a parallel stage may have.
+const MaxBranches = 8
+
+// Branch is one piece of work a parallel stage hands to an agent. Branches run at
+// the same time; the stage is finished when every branch is.
+type Branch struct {
+	Name           string // optional; the sub-issue title uses it, else the agent's name
+	Agent          string
+	Skills         []string
+	ExpectedOutput string
+}
+
 // Stage is one step. Only the fields of its Type are used.
 type Stage struct {
 	ID   string
@@ -59,6 +72,9 @@ type Stage struct {
 	Skills         []string
 	ExpectedOutput string
 	Next           string
+
+	// parallel (also uses Next)
+	Branches []Branch
 
 	// human_gate
 	Approvers          string // approver group name
@@ -77,7 +93,7 @@ type Stage struct {
 // (next, on_approve, then/else); Reject edges are the rework loops.
 func (s Stage) Targets() (forward, reject []string) {
 	switch s.Type {
-	case StageAgent:
+	case StageAgent, StageParallel:
 		return []string{s.Next}, nil
 	case StageHumanGate:
 		return []string{s.OnApprove}, []string{s.OnReject}
@@ -88,7 +104,7 @@ func (s Stage) Targets() (forward, reject []string) {
 }
 
 // Issue is one problem found while parsing or validating, with a stable code.
-// Parse problems carry no code; validation rules use V001..V008 (there is no
+// Parse problems carry no code; validation rules use V001..V009 (there is no
 // V007).
 type Issue struct {
 	Code    string `json:"code,omitempty"`

@@ -325,6 +325,10 @@ var stageKeys = map[string]struct{ allowed, required []string }{
 		allowed:  []string{"id", "type", "name", "agent", "skills", "expected_output", "next"},
 		required: []string{"id", "type", "agent", "next"},
 	},
+	StageParallel: {
+		allowed:  []string{"id", "type", "name", "branches", "next"},
+		required: []string{"id", "type", "branches", "next"},
+	},
 	StageHumanGate: {
 		allowed:  []string{"id", "type", "name", "approvers", "on_approve", "on_reject", "max_rework", "escalate_after_hours"},
 		required: []string{"id", "type", "approvers", "on_approve", "on_reject"},
@@ -360,7 +364,7 @@ func (p *parser) stage(n *yaml.Node, path string) Stage {
 	keys, known := stageKeys[typ]
 	if !ok || !known {
 		if ok {
-			p.add(join(path, "type"), typeNode, "unknown stage type %q (use agent, human_gate, condition or end)", typ)
+			p.add(join(path, "type"), typeNode, "unknown stage type %q (use agent, parallel, human_gate, condition or end)", typ)
 		}
 		return s
 	}
@@ -391,6 +395,9 @@ func (p *parser) stage(n *yaml.Node, path string) Stage {
 	if v, ok := f["skills"]; ok {
 		s.Skills, _ = p.strList(v, join(path, "skills"), true)
 	}
+	if v, ok := f["branches"]; ok {
+		s.Branches = p.branches(v, join(path, "branches"))
+	}
 	if v, ok := f["max_rework"]; ok {
 		s.MaxRework, _ = p.positiveInt(v, join(path, "max_rework"))
 	}
@@ -398,4 +405,33 @@ func (p *parser) stage(n *yaml.Node, path string) Stage {
 		s.EscalateAfterHours, _ = p.positiveInt(v, join(path, "escalate_after_hours"))
 	}
 	return s
+}
+
+func (p *parser) branches(n *yaml.Node, path string) []Branch {
+	if n.Kind != yaml.SequenceNode {
+		p.add(path, n, "expected a list")
+		return nil
+	}
+	out := make([]Branch, 0, len(n.Content))
+	for i, item := range n.Content {
+		at := index(path, i)
+		var b Branch
+		f := p.fields(item, at, []string{"name", "agent", "skills", "expected_output"}, []string{"agent"})
+		if f != nil {
+			if v, ok := f["name"]; ok {
+				b.Name, _ = p.str(v, join(at, "name"))
+			}
+			if v, ok := f["agent"]; ok {
+				b.Agent, _ = p.str(v, join(at, "agent"))
+			}
+			if v, ok := f["expected_output"]; ok {
+				b.ExpectedOutput, _ = p.str(v, join(at, "expected_output"))
+			}
+			if v, ok := f["skills"]; ok {
+				b.Skills, _ = p.strList(v, join(at, "skills"), true)
+			}
+		}
+		out = append(out, b)
+	}
+	return out
 }

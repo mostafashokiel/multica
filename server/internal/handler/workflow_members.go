@@ -52,12 +52,21 @@ type WorkflowMemberResponse struct {
 func workflowAgentRefs(def *workflow.Definition) []string {
 	var out []string
 	seen := map[string]bool{}
-	for _, s := range def.Stages {
-		if s.Type != workflow.StageAgent || s.Agent == "" || seen[s.Agent] {
-			continue
+	add := func(agent string) {
+		if agent != "" && !seen[agent] {
+			seen[agent] = true
+			out = append(out, agent)
 		}
-		seen[s.Agent] = true
-		out = append(out, s.Agent)
+	}
+	for _, s := range def.Stages {
+		switch s.Type {
+		case workflow.StageAgent:
+			add(s.Agent)
+		case workflow.StageParallel:
+			for _, b := range s.Branches {
+				add(b.Agent)
+			}
+		}
 	}
 	return out
 }
