@@ -1,0 +1,53 @@
+---
+title: Workflows
+description: Define the stages an issue moves through, including human approvals, and hand them to a squad leader to follow.
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+
+A workflow is a named, versioned list of stages that work moves through: an agent does a step, a person approves, a condition picks a branch, and an end stage finishes. It describes the process once, in one place, and lets a [squad](/squads) leader carry issues through it.
+
+<Callout type="info">
+Workflows are behind the `workflows_v1` feature flag, off by default. On a self-hosted deployment, turn it on with `FF_WORKFLOWS_V1=true`. With the flag off, nothing about the Workflows pages or API shows up.
+</Callout>
+
+A workflow does not run by itself and Multica has no separate engine for it. **Applying** a workflow writes a briefing into the squad leader's instructions, and the leader follows it. The pages show what the leader has recorded; they do not enforce it.
+
+## Stages
+
+| Stage | What it does |
+|---|---|
+| **Agent** | An agent does the work. The leader delegates to it by `@`-mention and waits for its reply. |
+| **Human gate** | One or more people decide. The workflow names an approver group, an optional rework limit, and an optional time after which the leader asks again. |
+| **Condition** | Picks the next stage from the issue's labels, for example `has_label("pci-scope")`. |
+| **End** | Finishes the workflow. |
+
+A gate has two exits: approve and reject. A reject loops back to an earlier stage, up to its rework limit.
+
+## Designing a workflow
+
+Open **Workflows** in the sidebar. Owners and admins can create and edit; everyone else can read.
+
+- Drag stage types from the palette onto the canvas, connect them by dragging between handles, and edit the selected stage in the side panel. Agents and people are picked from your workspace.
+- The server checks the workflow as you edit and lists every problem; a version with problems can be saved but not applied.
+- Each save is a new immutable version. A save made from an out-of-date version is refused as a conflict instead of overwriting someone else's work. Old versions can be restored as new ones.
+
+## Applying a workflow to a squad
+
+Choose **Apply to squad** on a workflow page. The dialog shows the exact briefing the leader will get and the labels it uses. Applying:
+
+- writes the briefing between two marker lines in the squad's instructions and leaves the rest of the text alone; applying the same version again changes nothing;
+- adds the agents the stages name, and the people in the approver groups, to the squad's members, and tells you about any it could not find;
+- warns you when an approver cannot wake the leader or reach an agent, because that agent is private to someone else. Multica checks access as the person whose comment started the chain, so every agent in the workflow must be runnable by every approver. See [Agents](/agents).
+
+Applying does not create labels. Create `wf:<key>` and one `phase:<stage>` label per stage first; the dialog lists them.
+
+## Running an issue through a workflow
+
+Give the issue the `wf:<key>` label and assign it to a squad that follows the workflow. The leader sets the issue's `phase:` label to the current stage, delegates agent stages by `@`-mention, and moves the issue on when the agent replies. The issue stays assigned to the squad throughout.
+
+At a human gate the leader mentions the approvers and waits. An approver decides by replying on the issue in their own words, with no label and no mention of the squad. The leader acts only on a comment from a listed approver: a clear approval moves the issue on, a clear refusal sends it back with the reason, and anything else gets one clarifying question.
+
+## Pipeline
+
+**Pipeline** in the sidebar shows one workflow's issues by stage, with a column per stage. Filter by squad, or by issues assigned to no squad. Human gates say who they are waiting for. Issues with no phase label, several, or one that matches no stage are listed separately so they are easy to fix.

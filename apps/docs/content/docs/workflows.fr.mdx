@@ -1,0 +1,53 @@
+---
+title: Workflows
+description: Définissez les étapes qu'une tâche traverse, y compris les validations humaines, et confiez-les à un chef de squad pour qu'il les suive.
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+
+Un workflow est une liste nommée et versionnée d'étapes que le travail traverse : un agent réalise une étape, une personne valide, une condition choisit une branche et une étape de fin conclut. Il décrit le processus une seule fois, au même endroit, et permet au chef d'un [squad](/squads) de mener les tâches jusqu'au bout.
+
+<Callout type="info">
+Les workflows sont derrière le drapeau de fonctionnalité `workflows_v1`, désactivé par défaut. Sur un déploiement auto-hébergé, activez-le avec `FF_WORKFLOWS_V1=true`. Tant qu'il est désactivé, ni les pages Workflows ni l'API n'apparaissent.
+</Callout>
+
+Un workflow ne s'exécute pas tout seul et Multica n'a pas de moteur dédié. **Appliquer** un workflow écrit une consigne dans les instructions du chef du squad, et le chef la suit. Les pages montrent ce que le chef a enregistré ; elles ne l'imposent pas.
+
+## Étapes
+
+| Étape | Rôle |
+|---|---|
+| **Agent** | Un agent fait le travail. Le chef le lui confie par mention `@` et attend sa réponse. |
+| **Validation humaine** | Une ou plusieurs personnes décident. Le workflow nomme un groupe d'approbateurs, une limite de reprises facultative et un délai facultatif après lequel le chef relance. |
+| **Condition** | Choisit l'étape suivante d'après les étiquettes de la tâche, par exemple `has_label("pci-scope")`. |
+| **Fin** | Termine le workflow. |
+
+Une validation a deux sorties : approuver et rejeter. Un rejet renvoie à une étape antérieure, jusqu'à la limite de reprises.
+
+## Concevoir un workflow
+
+Ouvrez **Workflows** dans la barre latérale. Les propriétaires et les administrateurs peuvent créer et modifier ; les autres peuvent seulement lire.
+
+- Faites glisser les types d'étape de la palette vers le canevas, reliez-les en faisant glisser d'une poignée à l'autre, et modifiez l'étape sélectionnée dans le panneau latéral. Les agents et les personnes se choisissent dans votre espace de travail.
+- Pendant la modification, le serveur vérifie le workflow et liste tous les problèmes ; une version avec des problèmes peut être enregistrée mais pas appliquée.
+- Chaque enregistrement crée une nouvelle version immuable. Un enregistrement fait à partir d'une version périmée est refusé comme un conflit au lieu d'écraser le travail d'un autre. Les anciennes versions peuvent être restaurées comme nouvelles versions.
+
+## Appliquer un workflow à un squad
+
+Choisissez **Appliquer à un squad** sur la page d'un workflow. La boîte de dialogue montre la consigne exacte que le chef recevra et les étiquettes utilisées. L'application :
+
+- écrit la consigne entre deux lignes de repère dans les instructions du squad et laisse le reste du texte intact ; appliquer à nouveau la même version ne change rien ;
+- ajoute aux membres du squad les agents que nomment les étapes et les personnes des groupes d'approbateurs, et signale ceux qu'elle n'a pas trouvés ;
+- avertit lorsqu'un approbateur ne peut pas réveiller le chef ou atteindre un agent, parce que cet agent est privé à quelqu'un d'autre. Multica vérifie l'accès au nom de la personne dont le commentaire a lancé la chaîne : chaque agent du workflow doit donc pouvoir être exécuté par chaque approbateur. Voir [Agents](/agents).
+
+L'application ne crée pas d'étiquettes. Créez d'abord `wf:<key>` et une étiquette `phase:<stage>` par étape ; la boîte de dialogue les liste.
+
+## Faire passer une tâche dans un workflow
+
+Donnez à la tâche l'étiquette `wf:<key>` et assignez-la à un squad qui suit le workflow. Le chef positionne l'étiquette `phase:` de la tâche sur l'étape courante, délègue les étapes d'agent par mention `@` et fait avancer la tâche lorsque l'agent répond. La tâche reste assignée au squad tout du long.
+
+À une validation humaine, le chef mentionne les approbateurs et attend. Un approbateur décide en répondant sur la tâche avec ses propres mots, sans étiquette ni mention du squad. Le chef n'agit que sur le commentaire d'un approbateur listé : une approbation claire fait avancer la tâche, un refus clair la renvoie avec le motif, et tout le reste donne lieu à une seule question de précision.
+
+## Pipeline
+
+**Pipeline** dans la barre latérale montre les tâches d'un workflow par étape, avec une colonne par étape. Filtrez par squad, ou par tâches non assignées à un squad. Les validations humaines indiquent qui elles attendent. Les tâches sans étiquette de phase, avec plusieurs, ou avec une étiquette qui ne correspond à aucune étape sont listées à part pour être corrigées facilement.
