@@ -32,6 +32,7 @@ vi.mock("@multica/core/paths", () => ({
   useWorkspacePaths: () => ({
     workflows: () => "/acme/workflows",
     workflowDetail: (id: string) => `/acme/workflows/${id}`,
+    workflowEdit: (id: string) => `/acme/workflows/${id}/edit`,
     squadDetail: (id: string) => `/acme/squads/${id}`,
   }),
 }));
@@ -687,5 +688,41 @@ describe("Diagram tab", () => {
 
     await waitFor(() => expect(screen.getByTestId("diagram")).toHaveAttribute("data-stages", "a,z"));
     expect(screen.getByText("Viewing version 1")).toBeInTheDocument();
+  });
+});
+
+describe("Edit", () => {
+  it("opens the designer for owners and admins on an active workflow", async () => {
+    for (const role of ["owner", "admin"]) {
+      member.role = role;
+      vi.mocked(api.getWorkflow).mockResolvedValue({ workflow, version: version(2, { definition: PILOT }) });
+      const view = renderPage();
+      const button = await screen.findByRole("button", { name: "Edit" });
+      button.click();
+      expect(push).toHaveBeenLastCalledWith("/acme/workflows/wf-1/edit");
+      view.unmount();
+    }
+  });
+
+  it("is not offered to a member, nor for an archived workflow", async () => {
+    member.role = "member";
+    vi.mocked(api.getWorkflow).mockResolvedValue({ workflow, version: version(2, { definition: PILOT }) });
+    const first = renderPage();
+    await screen.findByTestId("diagram");
+    expect(screen.queryByRole("button", { name: "Edit" })).toBeNull();
+    first.unmount();
+
+    member.role = "owner";
+    vi.mocked(api.getWorkflow).mockResolvedValue({ workflow: { ...workflow, status: "archived" }, version: version(2, { definition: PILOT }) });
+    renderPage();
+    await screen.findByTestId("diagram");
+    expect(screen.queryByRole("button", { name: "Edit" })).toBeNull();
+  });
+
+  it("is offered even when the version has problems: that is when you need it", async () => {
+    vi.mocked(api.getWorkflow).mockResolvedValue({ workflow, version: version(2, { definition: PILOT, issues: [{ code: "V004", message: "x" }] }) });
+    renderPage();
+    expect(await screen.findByRole("button", { name: "Edit" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Apply to squad" })).toBeNull();
   });
 });

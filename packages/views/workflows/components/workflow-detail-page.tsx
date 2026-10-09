@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { CircleAlert, CircleCheck, Send, Workflow } from "lucide-react";
+import { CircleAlert, CircleCheck, Pencil, Send, Workflow } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { ApiError } from "@multica/core/api";
 import { useWorkspaceId } from "@multica/core/hooks";
@@ -50,7 +50,7 @@ export function WorkflowDetailPage() {
   const { t } = useT("workflows");
   const wsId = useWorkspaceId();
   const p = useWorkspacePaths();
-  const { pathname } = useNavigation();
+  const { pathname, push } = useNavigation();
   const id = pathname.split("/").pop() ?? "";
 
   const [tab, setTab] = useState<DetailTab>("diagram");
@@ -80,6 +80,7 @@ export function WorkflowDetailPage() {
   // Applying rewrites who approves what: owners and admins only, only an active
   // workflow, only a version that passes validation (the server enforces all
   // three; the button just does not offer what would be refused).
+  const canManage = (role === "owner" || role === "admin") && workflow?.status === "active";
   const canApply =
     (role === "owner" || role === "admin") &&
     workflow?.status === "active" &&
@@ -108,6 +109,12 @@ export function WorkflowDetailPage() {
       }
       actions={
         <>
+          {canManage && workflow ? (
+            <Button size="sm" variant="outline" onClick={() => push(p.workflowEdit(workflow.id))}>
+              <Pencil aria-hidden="true" className="size-3.5" />
+              {t(($) => $.page.edit_button)}
+            </Button>
+          ) : null}
           {canApply ? (
             <Button size="sm" variant="outline" onClick={() => setApplyOpen(true)}>
               <Send aria-hidden="true" className="size-3.5" />

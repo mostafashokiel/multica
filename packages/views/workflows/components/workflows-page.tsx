@@ -1,8 +1,9 @@
 "use client";
 
-import { Workflow } from "lucide-react";
+import { Plus, Workflow } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useWorkspaceId } from "@multica/core/hooks";
+import { useCurrentMember } from "@multica/core/permissions";
 import { useWorkspacePaths } from "@multica/core/paths";
 import { workflowListOptions } from "@multica/core/workflows";
 import type { Workflow as WorkflowRow } from "@multica/core/types";
@@ -16,8 +17,9 @@ import {
   ListGridRow,
   LIST_GRID_BOTTOM_CLEARANCE,
 } from "@multica/ui/components/ui/list-grid";
-import { CollectionPageHeader, CollectionPageState } from "../../layout/collection-page";
-import { useRowLink } from "../../navigation";
+import { Button } from "@multica/ui/components/ui/button";
+import { CollectionPageHeader, CollectionPageHeaderAction, CollectionPageState } from "../../layout/collection-page";
+import { useNavigation, useRowLink } from "../../navigation";
 import { useT } from "../../i18n";
 import { useTimeAgo } from "../../i18n/use-time-ago";
 import {
@@ -36,6 +38,11 @@ export function WorkflowsPage() {
   const { t } = useT("workflows");
   const wsId = useWorkspaceId();
   const { data: workflows = [], isLoading, error } = useQuery(workflowListOptions(wsId));
+  const p = useWorkspacePaths();
+  const { push } = useNavigation();
+  // Only owners and admins can create workflows; nobody else is offered the button.
+  const { role } = useCurrentMember(wsId);
+  const canCreate = (role === "owner" || role === "admin") && !error;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -43,6 +50,11 @@ export function WorkflowsPage() {
         icon={Workflow}
         title={t(($) => $.page.title)}
         count={workflows.length}
+        actions={
+          canCreate ? (
+            <CollectionPageHeaderAction icon={Plus} label={t(($) => $.page.new_button)} onClick={() => push(p.workflowNew())} />
+          ) : null
+        }
       />
       {error ? (
         isWorkflowsDisabled(error) ? (
@@ -56,7 +68,15 @@ export function WorkflowsPage() {
         <CollectionPageState
           icon={Workflow}
           title={t(($) => $.page.empty)}
-          description={t(($) => $.page.empty_description)}
+          description={canCreate ? t(($) => $.page.empty_description_create) : t(($) => $.page.empty_description)}
+          actions={
+            canCreate ? (
+              <Button size="sm" onClick={() => push(p.workflowNew())}>
+                <Plus aria-hidden="true" className="size-3.5" />
+                {t(($) => $.page.new_button)}
+              </Button>
+            ) : undefined
+          }
         />
       ) : (
         <WorkflowTable workflows={workflows} />

@@ -15,8 +15,13 @@ vi.mock("@multica/core/hooks", () => ({ useWorkspaceId: () => "ws" }));
 vi.mock("@multica/core/paths", () => ({
   useWorkspacePaths: () => ({
     workflows: () => "/acme/workflows",
+    workflowNew: () => "/acme/workflows/new",
     workflowDetail: (id: string) => `/acme/workflows/${id}`,
   }),
+}));
+const member = vi.hoisted(() => ({ role: "owner" as string | null }));
+vi.mock("@multica/core/permissions", () => ({
+  useCurrentMember: () => ({ role: member.role, userId: "u", member: null, isLoading: false }),
 }));
 
 const push = vi.fn();
@@ -61,6 +66,7 @@ function renderPage() {
 
 beforeEach(() => {
   push.mockReset();
+  member.role = "owner";
   vi.mocked(api.listWorkflows).mockReset();
 });
 
@@ -87,12 +93,45 @@ describe("WorkflowsPage", () => {
     expect(push).toHaveBeenCalledWith("/acme/workflows/wf-1");
   });
 
-  it("says there are no workflows yet, and who can create one", async () => {
+  it("offers owners and admins a way to create the first workflow", async () => {
+    vi.mocked(api.listWorkflows).mockResolvedValue({ workflows: [] });
+    renderPage();
+
+    expect(await screen.findByText("No workflows yet.")).toBeInTheDocument();
+    expect(screen.getByText(/Create the first one in the designer/)).toBeInTheDocument();
+    // The header action and the empty state's own button.
+    const buttons = screen.getAllByRole("button", { name: "New workflow" });
+    expect(buttons.length).toBeGreaterThan(0);
+    buttons[buttons.length - 1]!.click();
+    expect(push).toHaveBeenCalledWith("/acme/workflows/new");
+  });
+
+  it("tells anyone else to ask an owner or admin, and offers no create button", async () => {
+    member.role = "member";
     vi.mocked(api.listWorkflows).mockResolvedValue({ workflows: [] });
     renderPage();
 
     expect(await screen.findByText("No workflows yet.")).toBeInTheDocument();
     expect(screen.getByText(/Ask a workspace owner or admin/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "New workflow" })).toBeNull();
+  });
+
+  it("puts New workflow in the header for owners and admins only", async () => {
+    vi.mocked(api.listWorkflows).mockResolvedValue({ workflows: [workflow()] });
+    for (const [role, shown] of [["owner", true], ["admin", true], ["member", false]] as const) {
+      member.role = role;
+      const view = renderPage();
+      await screen.findByText("SDLC pilot");
+      expect(screen.queryByRole("button", { name: "New workflow" }) !== null, role).toBe(shown);
+      view.unmount();
+    }
+  });
+
+  it("offers no create button when the list could not be loaded", async () => {
+    vi.mocked(api.listWorkflows).mockRejectedValue(new ApiError("boom", 500, "Server Error"));
+    renderPage();
+    await screen.findByText("Couldn't load workflows.");
+    expect(screen.queryByRole("button", { name: "New workflow" })).toBeNull();
   });
 
   it("says the feature is off, not that loading failed, on a 403", async () => {
