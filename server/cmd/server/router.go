@@ -2101,6 +2101,8 @@ func NewRouterWithOptions(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus
 					r.Post("/versions", h.SaveWorkflowVersion)
 					r.Get("/versions/{version}", h.GetWorkflowVersion)
 					r.Post("/versions/{version}/restore", h.RestoreWorkflowVersion)
+					r.Post("/render", h.RenderWorkflow)
+					r.Post("/apply", h.ApplyWorkflow)
 				})
 			})
 
