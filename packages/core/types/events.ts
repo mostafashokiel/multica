@@ -70,6 +70,9 @@ export type WSEventType =
   | "squad:created"
   | "squad:updated"
   | "squad:deleted"
+  | "workflow:created"
+  | "workflow:updated"
+  | "workflow:version_created"
   | "label:created"
   | "label:updated"
   | "label:deleted"
@@ -640,6 +643,9 @@ export interface WSEventPayloadMap {
   "squad:created": unknown;
   "squad:updated": unknown;
   "squad:deleted": unknown;
+  "workflow:created": unknown;
+  "workflow:updated": unknown;
+  "workflow:version_created": unknown;
   "label:created": unknown;
   "label:updated": unknown;
   "label:deleted": unknown;

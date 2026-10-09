@@ -14,6 +14,7 @@ import { issueKeys } from "../issues/queries";
 import { projectKeys } from "../projects/queries";
 import { pinKeys } from "../pins/queries";
 import { autopilotKeys } from "../autopilots/queries";
+import { workflowKeys } from "../workflows/queries";
 import { runtimeKeys } from "../runtimes/queries";
 import { labelKeys } from "../labels/queries";
 import { propertyKeys } from "../properties/queries";
@@ -842,6 +843,12 @@ export function useRealtimeSync(
           // squad:deleted triggers assignee transfer — refresh issues too.
           qc.invalidateQueries({ queryKey: issueKeys.all(wsId) });
         }
+      },
+      // workflow:created / updated / version_created: every cached workflow
+      // projection (list, detail, versions, audit) is keyed under all(wsId).
+      workflow: () => {
+        const wsId = getCurrentWsId();
+        if (wsId) qc.invalidateQueries({ queryKey: workflowKeys.all(wsId) });
       },
       label: () => {
         // Label catalogs are independently scoped to issues, agents, and

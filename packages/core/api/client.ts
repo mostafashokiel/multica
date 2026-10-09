@@ -121,6 +121,20 @@ import type {
   CreateQuickActionRequest,
   UpdateQuickActionRequest,
   ListQuickActionsResponse,
+  ListWorkflowAuditResponse,
+  ListWorkflowSquadsResponse,
+  WorkflowPipeline,
+  ListWorkflowVersionsResponse,
+  ListWorkflowsResponse,
+  ApplyWorkflowRequest,
+  RenderWorkflowRequest,
+  CreateWorkflowRequest,
+  SaveWorkflowVersionRequest,
+  ValidateWorkflowResult,
+  WorkflowApplyResult,
+  WorkflowRender,
+  WorkflowVersion,
+  WorkflowWithVersion,
   UpdatePropertyRequest,
   ListPropertiesResponse,
   IssuePropertiesResponse,
@@ -412,6 +426,25 @@ import {
   IssuePropertiesResponseSchema,
   QuickActionSchema,
   ListQuickActionsResponseSchema,
+  ListWorkflowAuditResponseSchema,
+  ListWorkflowVersionsResponseSchema,
+  ListWorkflowsResponseSchema,
+  WorkflowVersionSchema,
+  WorkflowWithVersionSchema,
+  WorkflowRenderSchema,
+  ValidateWorkflowResultSchema,
+  EMPTY_VALIDATE_WORKFLOW_RESULT,
+  WorkflowApplyResultSchema,
+  EMPTY_WORKFLOW_RENDER,
+  EMPTY_WORKFLOW_APPLY_RESULT,
+  EMPTY_LIST_WORKFLOW_SQUADS_RESPONSE,
+  EMPTY_WORKFLOW_PIPELINE,
+  WorkflowPipelineSchema,
+  ListWorkflowSquadsResponseSchema,
+  EMPTY_LIST_WORKFLOW_AUDIT_RESPONSE,
+  EMPTY_LIST_WORKFLOW_VERSIONS_RESPONSE,
+  EMPTY_LIST_WORKFLOWS_RESPONSE,
+  EMPTY_WORKFLOW_WITH_VERSION,
   QuickActionRenderSchema,
   EMPTY_QUICK_ACTION,
   EMPTY_LIST_QUICK_ACTIONS_RESPONSE,
@@ -4220,6 +4253,147 @@ export class ApiClient {
     }
     return parseWithFallback(raw, ListQuickActionsResponseSchema, EMPTY_LIST_QUICK_ACTIONS_RESPONSE, {
       endpoint: "GET /api/quick-actions",
+    });
+  }
+
+  // ---- Workflows (flag `workflows_v1`) -------------------------------------
+  // With the flag off every endpoint answers 403 `workflows_disabled`; that
+  // is left to throw so the page can say the feature is not enabled.
+
+  async listWorkflows(): Promise<ListWorkflowsResponse> {
+    let raw: unknown;
+    try {
+      raw = await this.fetch<unknown>(`/api/workflows`);
+    } catch (error) {
+      // A backend that predates workflows has no such route.
+      if (error instanceof Error && "status" in error && (error as { status?: number }).status === 404) {
+        return EMPTY_LIST_WORKFLOWS_RESPONSE;
+      }
+      throw error;
+    }
+    return parseWithFallback(raw, ListWorkflowsResponseSchema, EMPTY_LIST_WORKFLOWS_RESPONSE, {
+      endpoint: "GET /api/workflows",
+    });
+  }
+
+  /** A workflow and its latest version (YAML text, validation issues). */
+  async getWorkflow(id: string): Promise<WorkflowWithVersion> {
+    const raw = await this.fetch<unknown>(`/api/workflows/${encodeURIComponent(id)}`);
+    return parseWithFallback(raw, WorkflowWithVersionSchema, EMPTY_WORKFLOW_WITH_VERSION, {
+      endpoint: "GET /api/workflows/{id}",
+    });
+  }
+
+  async listWorkflowVersions(id: string): Promise<ListWorkflowVersionsResponse> {
+    const raw = await this.fetch<unknown>(`/api/workflows/${encodeURIComponent(id)}/versions`);
+    return parseWithFallback(raw, ListWorkflowVersionsResponseSchema, EMPTY_LIST_WORKFLOW_VERSIONS_RESPONSE, {
+      endpoint: "GET /api/workflows/{id}/versions",
+    });
+  }
+
+  async getWorkflowVersion(id: string, version: number): Promise<WorkflowVersion | null> {
+    const raw = await this.fetch<unknown>(
+      `/api/workflows/${encodeURIComponent(id)}/versions/${encodeURIComponent(String(version))}`,
+    );
+    return parseWithFallback(raw, WorkflowVersionSchema.nullable(), null, {
+      endpoint: "GET /api/workflows/{id}/versions/{version}",
+    });
+  }
+
+  async listWorkflowAudit(id: string): Promise<ListWorkflowAuditResponse> {
+    const raw = await this.fetch<unknown>(`/api/workflows/${encodeURIComponent(id)}/audit`);
+    return parseWithFallback(raw, ListWorkflowAuditResponseSchema, EMPTY_LIST_WORKFLOW_AUDIT_RESPONSE, {
+      endpoint: "GET /api/workflows/{id}/audit",
+    });
+  }
+
+  /** The active squads whose instructions carry this workflow, and how current each is. */
+  async listWorkflowSquads(id: string): Promise<ListWorkflowSquadsResponse> {
+    const raw = await this.fetch<unknown>(`/api/workflows/${encodeURIComponent(id)}/squads`);
+    return parseWithFallback(raw, ListWorkflowSquadsResponseSchema, EMPTY_LIST_WORKFLOW_SQUADS_RESPONSE, {
+      endpoint: "GET /api/workflows/{id}/squads",
+    });
+  }
+
+  /**
+   * The workflow's issues by stage, read from the wf:/phase: labels the squad leader keeps.
+   * `squad` keeps the issues assigned to that squad, or `"none"` those assigned to no squad.
+   */
+  async getWorkflowPipeline(id: string, opts: { squad?: string } = {}): Promise<WorkflowPipeline> {
+    const query = opts.squad ? `?squad=${encodeURIComponent(opts.squad)}` : "";
+    const raw = await this.fetch<unknown>(`/api/workflows/${encodeURIComponent(id)}/pipeline${query}`);
+    return parseWithFallback(raw, WorkflowPipelineSchema, EMPTY_WORKFLOW_PIPELINE, {
+      endpoint: "GET /api/workflows/{id}/pipeline",
+    });
+  }
+
+  /** Check a definition's text without saving it; returns the problems and the canonical text. */
+  async validateWorkflow(definition: string): Promise<ValidateWorkflowResult> {
+    const raw = await this.fetch<unknown>(`/api/workflows/validate`, {
+      method: "POST",
+      body: JSON.stringify({ definition }),
+    });
+    return parseWithFallback(raw, ValidateWorkflowResultSchema, EMPTY_VALIDATE_WORKFLOW_RESULT, {
+      endpoint: "POST /api/workflows/validate",
+    });
+  }
+
+  /** Create a workflow and its first version. Owners and admins only. */
+  async createWorkflow(data: CreateWorkflowRequest): Promise<WorkflowWithVersion> {
+    const raw = await this.fetch<unknown>(`/api/workflows`, { method: "POST", body: JSON.stringify(data) });
+    return parseWithFallback(raw, WorkflowWithVersionSchema, EMPTY_WORKFLOW_WITH_VERSION, {
+      endpoint: "POST /api/workflows",
+    });
+  }
+
+  /**
+   * Save the next version. A newer one saved since `base_version` answers 409
+   * `version_conflict` (with `latest_version`) and writes nothing.
+   */
+  async saveWorkflowVersion(id: string, data: SaveWorkflowVersionRequest): Promise<WorkflowWithVersion> {
+    const raw = await this.fetch<unknown>(`/api/workflows/${encodeURIComponent(id)}/versions`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+    return parseWithFallback(raw, WorkflowWithVersionSchema, EMPTY_WORKFLOW_WITH_VERSION, {
+      endpoint: "POST /api/workflows/{id}/versions",
+    });
+  }
+
+  /** Save an old version's content as the newest version. */
+  async restoreWorkflowVersion(id: string, version: number): Promise<WorkflowWithVersion> {
+    const raw = await this.fetch<unknown>(
+      `/api/workflows/${encodeURIComponent(id)}/versions/${encodeURIComponent(String(version))}/restore`,
+      { method: "POST" },
+    );
+    return parseWithFallback(raw, WorkflowWithVersionSchema, EMPTY_WORKFLOW_WITH_VERSION, {
+      endpoint: "POST /api/workflows/{id}/versions/{version}/restore",
+    });
+  }
+
+  /** Preview the briefing a version would give a squad leader. Writes nothing. */
+  async renderWorkflow(id: string, data: RenderWorkflowRequest): Promise<WorkflowRender> {
+    const raw = await this.fetch<unknown>(`/api/workflows/${encodeURIComponent(id)}/render`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+    return parseWithFallback(raw, WorkflowRenderSchema, EMPTY_WORKFLOW_RENDER, {
+      endpoint: "POST /api/workflows/{id}/render",
+    });
+  }
+
+  /**
+   * Write a version's briefing into a squad's instructions. Owners and admins
+   * only. A squad already following another workflow answers 409
+   * `squad_has_workflow` unless `replace` is set.
+   */
+  async applyWorkflow(id: string, data: ApplyWorkflowRequest): Promise<WorkflowApplyResult> {
+    const raw = await this.fetch<unknown>(`/api/workflows/${encodeURIComponent(id)}/apply`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+    return parseWithFallback(raw, WorkflowApplyResultSchema, EMPTY_WORKFLOW_APPLY_RESULT, {
+      endpoint: "POST /api/workflows/{id}/apply",
     });
   }
 
