@@ -14,7 +14,10 @@ export const WORKFLOW_KIND = "Workflow";
 /** The server refuses larger definitions; the editor refuses to read them. */
 export const MAX_WORKFLOW_SOURCE_BYTES = 1 << 20;
 
-export type StageType = "agent" | "human_gate" | "condition" | "end";
+export type StageType = "agent" | "parallel" | "human_gate" | "condition" | "end";
+
+/** The most branches a parallel stage may have; the server refuses more. */
+export const MAX_BRANCHES = 8;
 
 interface StageBase {
   id: string;
@@ -25,6 +28,19 @@ export interface AgentStage extends StageBase {
   agent: string;
   skills?: string[];
   expected_output?: string;
+  next: string;
+}
+/** One piece of work a parallel stage hands to an agent. All branches run at the same time. */
+export interface Branch {
+  /** Optional; the sub-issue's title uses it, else the agent's name. */
+  name?: string;
+  agent: string;
+  skills?: string[];
+  expected_output?: string;
+}
+export interface ParallelStage extends StageBase {
+  type: "parallel";
+  branches: Branch[];
   next: string;
 }
 export interface HumanGateStage extends StageBase {
@@ -44,7 +60,7 @@ export interface ConditionStage extends StageBase {
 export interface EndStage extends StageBase {
   type: "end";
 }
-export type Stage = AgentStage | HumanGateStage | ConditionStage | EndStage;
+export type Stage = AgentStage | ParallelStage | HumanGateStage | ConditionStage | EndStage;
 
 export interface WorkflowDefinition {
   apiVersion: string;
@@ -68,6 +84,21 @@ const StageSchema = z.discriminatedUnion("type", [
     agent: ref,
     skills: z.array(z.string()).optional(),
     expected_output: z.string().optional(),
+    next: ref,
+  }),
+  z.object({
+    ...stageBase,
+    type: z.literal("parallel"),
+    branches: z
+      .array(
+        z.object({
+          name: z.string().optional(),
+          agent: ref,
+          skills: z.array(z.string()).optional(),
+          expected_output: z.string().optional(),
+        }),
+      )
+      .default([]),
     next: ref,
   }),
   z.object({
@@ -146,6 +177,15 @@ export function parseDefinitionText(text: string): ParsedDefinition {
   return { ok: true, definition: { ...result.data, approvers } as WorkflowDefinition };
 }
 
+function orderedBranch(branch: Branch): Record<string, unknown> {
+  return {
+    ...(branch.name === undefined ? {} : { name: branch.name }),
+    agent: branch.agent,
+    ...(branch.skills === undefined || branch.skills.length === 0 ? {} : { skills: branch.skills }),
+    ...(branch.expected_output === undefined ? {} : { expected_output: branch.expected_output }),
+  };
+}
+
 function orderedStage(stage: Stage): Record<string, unknown> {
   const head = { id: stage.id, type: stage.type, ...(stage.name === undefined ? {} : { name: stage.name }) };
   switch (stage.type) {
@@ -155,6 +195,12 @@ function orderedStage(stage: Stage): Record<string, unknown> {
         agent: stage.agent,
         ...(stage.skills === undefined || stage.skills.length === 0 ? {} : { skills: stage.skills }),
         ...(stage.expected_output === undefined ? {} : { expected_output: stage.expected_output }),
+        next: stage.next,
+      };
+    case "parallel":
+      return {
+        ...head,
+        branches: stage.branches.map(orderedBranch),
         next: stage.next,
       };
     case "human_gate":

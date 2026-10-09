@@ -1,4 +1,4 @@
-import { Bot, Flag, Split, UserCheck, type LucideIcon } from "lucide-react";
+import { Bot, Columns3, Flag, Split, UserCheck, type LucideIcon } from "lucide-react";
 import { cn } from "@multica/ui/lib/utils";
 import type { StageType } from "@multica/core/workflows";
 
@@ -6,6 +6,7 @@ import type { StageType } from "@multica/core/workflows";
 // work an agent does, the person with a check is a human decision. Colours match each type's accent.
 const ICON: Record<StageType, { icon: LucideIcon; tone: string }> = {
   agent: { icon: Bot, tone: "text-brand" },
+  parallel: { icon: Columns3, tone: "text-brand" },
   human_gate: { icon: UserCheck, tone: "text-warning" },
   condition: { icon: Split, tone: "text-info" },
   end: { icon: Flag, tone: "text-muted-foreground" },

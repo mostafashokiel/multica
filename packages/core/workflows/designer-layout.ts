@@ -1,4 +1,4 @@
-import type { StageType, WorkflowDefinition } from "./definition";
+import type { Stage, WorkflowDefinition } from "./definition";
 import { STAGE_HANDLES, handleTarget, type Positions } from "./designer-model";
 
 /**
@@ -28,7 +28,7 @@ export interface LayoutOptions {
 
 export function autoLayout(
   def: WorkflowDefinition,
-  sizeOf: (type: StageType) => Size,
+  sizeOf: (stage: Stage) => Size,
   options: LayoutOptions = {},
 ): Positions {
   const { gapX = 56, gapY = 60, originX = 40, originY = 40 } = options;
@@ -109,7 +109,7 @@ export function autoLayout(
   const layerCount = Math.max(...ids.map((id) => layer.get(id) ?? 0)) + 1;
   const rows: string[][] = Array.from({ length: layerCount }, () => []);
   for (const id of ids) (rows[layer.get(id) ?? 0] as string[]).push(id);
-  const sizes = new Map(ids.map((id) => [id, sizeOf((stages[index.get(id) as number] as { type: StageType }).type)]));
+  const sizes = new Map(ids.map((id) => [id, sizeOf(stages[index.get(id) as number] as Stage)]));
   const rowWidth = (row: string[]) => row.reduce((sum, id) => sum + (sizes.get(id)?.width ?? 0), 0) + Math.max(0, row.length - 1) * gapX;
   const widest = Math.max(...rows.map(rowWidth));
 
@@ -154,7 +154,7 @@ export function readLayout(layout: unknown): Positions {
 export function resolvePositions(
   def: WorkflowDefinition,
   layout: unknown,
-  sizeOf: (type: StageType) => Size,
+  sizeOf: (stage: Stage) => Size,
 ): Positions {
   const saved = readLayout(layout);
   if (def.stages.length > 0 && def.stages.every((s) => saved[s.id] !== undefined)) {

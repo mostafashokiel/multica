@@ -132,3 +132,32 @@ describe("stringifyDefinition", () => {
     }
   });
 });
+
+describe("parallel stages", () => {
+  // parallel.yaml is the server's canonical text for a workflow with a parallel stage.
+  it("reads the branches the server writes, in order, with their optional fields", () => {
+    const def = parsed(goFile("parallel.yaml"));
+    expect(def.stages[0]).toEqual({
+      id: "clocks",
+      type: "parallel",
+      name: "Check the clocks",
+      branches: [
+        { name: "New York", agent: "Check time in NYC", skills: ["clock"], expected_output: "The local time and date.\nOne line." },
+        { agent: "Check Time at Cairo" },
+      ],
+      next: "sign-off",
+    });
+  });
+
+  it("writes text the editor reads back unchanged", () => {
+    const def = parsed(goFile("parallel.yaml"));
+    expect(parsed(stringifyDefinition(def))).toEqual(def);
+  });
+
+  it("tolerates an unfinished stage: no branches yet, no next stage", () => {
+    const def = parsed(
+      stringifyDefinition({ ...emptyDefinition(), metadata: { id: "x", version: 1 }, start: "p", stages: [{ id: "p", type: "parallel", branches: [], next: "" }] }),
+    );
+    expect(def.stages[0]).toEqual({ id: "p", type: "parallel", branches: [], next: "" });
+  });
+});

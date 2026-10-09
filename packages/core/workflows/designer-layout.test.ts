@@ -1,10 +1,11 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { parseDefinitionText, type StageType, type WorkflowDefinition } from "./definition";
+import { parseDefinitionText, type Stage, type StageType, type WorkflowDefinition } from "./definition";
 import { autoLayout, readLayout, resolvePositions, type Size } from "./designer-layout";
 import { addStage, connect, emptyDefinition, renameStage, setStart } from "./designer-model";
 
-const size = (type: StageType): Size => (type === "end" ? { width: 80, height: 80 } : { width: 200, height: 70 });
+const size = (stage: Stage): Size =>
+  stage.type === "end" ? { width: 80, height: 80 } : { width: 200, height: stage.type === "parallel" ? 70 + 20 * stage.branches.length : 70 };
 const pilot = (): WorkflowDefinition => {
   const r = parseDefinitionText(
     readFileSync(new URL("../../../server/internal/workflow/testdata/pilot.canonical.yaml", import.meta.url), "utf8"),
@@ -38,6 +39,14 @@ describe("autoLayout", () => {
     expect(new Set([p.a!.x, p.b!.x, p.c!.x]).size).toBe(1);
   });
 
+  it("leaves room for a parallel stage's extra height, so the next stage does not overlap it", () => {
+    const d = build(["p", "after"], [["p", "next", "after"]], { p: "parallel" });
+    const p = autoLayout(d, size);
+    const tall = size(d.stages[0]!).height;
+    expect(tall).toBeGreaterThan(70);
+    expect(p.after!.y).toBeGreaterThanOrEqual(p.p!.y + tall);
+  });
+
   it("puts the two branches of a condition side by side with a gap, centred under it", () => {
     const d = build(["c", "yes", "no"], [["c", "then", "yes"], ["c", "else", "no"]], { c: "condition" });
     const p = autoLayout(d, size);
@@ -57,7 +66,7 @@ describe("autoLayout", () => {
     const d = pilot();
     const p = autoLayout(d, size);
     expect(Object.keys(p).sort()).toEqual(d.stages.map((s) => s.id).sort());
-    const boxes = d.stages.map((s) => ({ id: s.id, ...p[s.id]!, ...size(s.type) }));
+    const boxes = d.stages.map((s) => ({ id: s.id, ...p[s.id]!, ...size(s) }));
     for (const a of boxes) for (const b of boxes) {
       if (a.id >= b.id) continue;
       expect(a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height, `${a.id} overlaps ${b.id}`).toBe(false);
@@ -96,11 +105,11 @@ describe("autoLayout", () => {
   it("never overlaps boxes or produces a bad coordinate, whatever the graph", () => {
     let seed = 987654;
     const rand = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
-    const types: StageType[] = ["agent", "human_gate", "condition", "end"];
+    const types: StageType[] = ["agent", "parallel", "human_gate", "condition", "end"];
     for (let round = 0; round < 200; round++) {
       const n = 1 + Math.floor(rand() * 10);
       const ids = Array.from({ length: n }, (_, i) => `s${i}`);
-      const kinds = Object.fromEntries(ids.map((id) => [id, types[Math.floor(rand() * 4)] as StageType]));
+      const kinds = Object.fromEntries(ids.map((id) => [id, types[Math.floor(rand() * types.length)] as StageType]));
       let d = build(ids, [], kinds);
       for (const id of ids) {
         for (const h of ["next", "approve", "reject", "then", "else"] as const) {
@@ -110,7 +119,7 @@ describe("autoLayout", () => {
       d = setStart(d, ids[Math.floor(rand() * n)] as string);
       const p = autoLayout(d, size);
       expect(Object.keys(p)).toHaveLength(n);
-      const boxes = d.stages.map((s) => ({ id: s.id, ...p[s.id]!, ...size(s.type) }));
+      const boxes = d.stages.map((s) => ({ id: s.id, ...p[s.id]!, ...size(s) }));
       for (const b of boxes) expect(Number.isFinite(b.x) && Number.isFinite(b.y)).toBe(true);
       for (const a of boxes) for (const b of boxes) {
         if (a.id >= b.id) continue;

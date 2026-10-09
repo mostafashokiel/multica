@@ -1,5 +1,5 @@
-import type { Stage, StageType, WorkflowDefinition } from "./definition";
-import { WORKFLOW_API_VERSION, WORKFLOW_KIND } from "./definition";
+import type { Branch, Stage, StageType, WorkflowDefinition } from "./definition";
+import { MAX_BRANCHES, WORKFLOW_API_VERSION, WORKFLOW_KIND } from "./definition";
 
 /**
  * Editing of a workflow definition for the designer. Every function returns a new
@@ -11,15 +11,17 @@ export type Handle = "next" | "approve" | "reject" | "then" | "else";
 
 export const STAGE_HANDLES: Record<StageType, readonly Handle[]> = {
   agent: ["next"],
+  parallel: ["next"],
   human_gate: ["approve", "reject"],
   condition: ["then", "else"],
   end: [],
 };
 
-export const STAGE_TYPES: readonly StageType[] = ["agent", "human_gate", "condition", "end"];
+export const STAGE_TYPES: readonly StageType[] = ["agent", "parallel", "human_gate", "condition", "end"];
 
 const ID_PREFIX: Record<StageType, string> = {
   agent: "agent",
+  parallel: "parallel",
   human_gate: "gate",
   condition: "condition",
   end: "end",
@@ -47,6 +49,7 @@ export function stageById(def: WorkflowDefinition, id: string): Stage | undefine
 export function handleTarget(stage: Stage, handle: Handle): string {
   switch (stage.type) {
     case "agent":
+    case "parallel":
       return handle === "next" ? stage.next : "";
     case "human_gate":
       return handle === "approve" ? stage.on_approve : handle === "reject" ? stage.on_reject : "";
@@ -60,6 +63,7 @@ export function handleTarget(stage: Stage, handle: Handle): string {
 function withHandleTarget(stage: Stage, handle: Handle, target: string): Stage {
   switch (stage.type) {
     case "agent":
+    case "parallel":
       return handle === "next" ? { ...stage, next: target } : stage;
     case "human_gate":
       if (handle === "approve") return { ...stage, on_approve: target };
@@ -102,6 +106,9 @@ function blankStage(type: StageType, id: string): Stage {
   switch (type) {
     case "agent":
       return { id, type, agent: "", next: "" };
+    case "parallel":
+      // Two empty branches: fewer is not a parallel stage, and the server asks for at least two.
+      return { id, type, branches: [{ agent: "" }, { agent: "" }], next: "" };
     case "human_gate":
       return { id, type, approvers: "", on_approve: "", on_reject: "" };
     case "condition":
@@ -201,6 +208,8 @@ export function updateStage(def: WorkflowDefinition, id: string, edit: StageEdit
           ...("skills" in edit ? { skills: edit.skills === undefined || edit.skills.length === 0 ? undefined : edit.skills } : {}),
           ...("expected_output" in edit ? { expected_output: optionalText(edit.expected_output ?? "") } : {}),
         });
+      case "parallel":
+        return omitUndefined({ ...stage, ...common });
       case "human_gate":
         return omitUndefined({
           ...stage,
@@ -215,6 +224,42 @@ export function updateStage(def: WorkflowDefinition, id: string, edit: StageEdit
         return omitUndefined({ ...stage, ...common });
     }
   });
+}
+
+/** Fields of one branch of a parallel stage. Empty text clears an optional field. */
+export interface BranchEdit {
+  name?: string;
+  agent?: string;
+  skills?: string[] | undefined;
+  expected_output?: string;
+}
+
+function withBranches(def: WorkflowDefinition, id: string, fn: (branches: Branch[]) => Branch[]): WorkflowDefinition {
+  return mapStages(def, (stage) => (stage.id === id && stage.type === "parallel" ? { ...stage, branches: fn(stage.branches) } : stage));
+}
+
+/** Add an empty branch at the end. Refused (nothing changes) at the limit. */
+export function addBranch(def: WorkflowDefinition, id: string): WorkflowDefinition {
+  return withBranches(def, id, (branches) => (branches.length >= MAX_BRANCHES ? branches : [...branches, { agent: "" }]));
+}
+
+export function removeBranch(def: WorkflowDefinition, id: string, index: number): WorkflowDefinition {
+  return withBranches(def, id, (branches) => branches.filter((_, i) => i !== index));
+}
+
+export function updateBranch(def: WorkflowDefinition, id: string, index: number, edit: BranchEdit): WorkflowDefinition {
+  return withBranches(def, id, (branches) =>
+    branches.map((branch, i) => {
+      if (i !== index) return branch;
+      return omitUndefined({
+        ...branch,
+        ...("name" in edit ? { name: optionalText(edit.name ?? "") } : {}),
+        ...(edit.agent === undefined ? {} : { agent: edit.agent }),
+        ...("skills" in edit ? { skills: edit.skills === undefined || edit.skills.length === 0 ? undefined : edit.skills } : {}),
+        ...("expected_output" in edit ? { expected_output: optionalText(edit.expected_output ?? "") } : {}),
+      });
+    }),
+  );
 }
 
 export interface MetadataEdit {

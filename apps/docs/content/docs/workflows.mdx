@@ -18,6 +18,7 @@ A workflow does not run by itself and Multica has no separate engine for it. **A
 | Stage | What it does |
 |---|---|
 | **Agent** | An agent does the work. The leader delegates to it by `@`-mention and waits for its reply. |
+| **Parallel** | Two to eight agents work at the same time. The leader creates one sub-issue per branch, each assigned to its agent, and moves the issue on when every sub-issue is Done. |
 | **Human gate** | One or more people decide. The workflow names an approver group, an optional rework limit, and an optional time after which the leader asks again. |
 | **Condition** | Picks the next stage from the issue's labels, for example `has_label("pci-scope")`. |
 | **End** | Finishes the workflow. |
@@ -47,6 +48,8 @@ Applying does not create labels. Create `wf:<key>` and one `phase:<stage>` label
 Give the issue the `wf:<key>` label and assign it to a squad that follows the workflow. The leader sets the issue's `phase:` label to the current stage, delegates agent stages by `@`-mention, and moves the issue on when the agent replies. The issue stays assigned to the squad throughout.
 
 At a human gate the leader mentions the approvers and waits. An approver decides by replying on the issue in their own words, with no label and no mention of the squad. The leader acts only on a comment from a listed approver: a clear approval moves the issue on, a clear refusal sends it back with the reason, and anything else gets one clarifying question.
+
+At a parallel stage the leader creates one sub-issue for each branch and assigns it to the branch's agent, so they all start together. Each agent must finish its sub-issue as **Done**: Multica wakes the leader again only when a sub-issue is Done or Cancelled, so an agent that stops at In Review leaves the leader waiting. The briefing says so in every sub-issue. When the last one is Done, the leader reads the results and moves the issue on. A cancelled sub-issue or an agent that cannot do its work stops the stage until a person decides.
 
 ## Pipeline
 

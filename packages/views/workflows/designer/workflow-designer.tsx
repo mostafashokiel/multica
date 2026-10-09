@@ -33,6 +33,8 @@ import {
   redo,
   removeApproverGroup,
   removeStage,
+  addBranch,
+  removeBranch,
   renameApproverGroup,
   renamePositions,
   renameStage,
@@ -43,6 +45,7 @@ import {
   resolvePositions,
   undo,
   updateMetadata,
+  updateBranch,
   updateStage,
   useCreateWorkflow,
   useRestoreWorkflowVersion,
@@ -582,6 +585,9 @@ function DesignerInner({ workflowId, initial, onCreated }: WorkflowDesignerProps
               stage={selectedStage}
               onEdit={(partial, key) => edit((s) => ({ ...s, definition: updateStage(s.definition, selectedStage.id, partial) }), key)}
               onRename={(next) => renameSelected(selectedStage.id, next)}
+              onBranchAdd={() => edit((s) => ({ ...s, definition: addBranch(s.definition, selectedStage.id) }))}
+              onBranchRemove={(index) => edit((s) => ({ ...s, definition: removeBranch(s.definition, selectedStage.id, index) }))}
+              onBranchEdit={(index, partial, key) => edit((s) => ({ ...s, definition: updateBranch(s.definition, selectedStage.id, index, partial) }), key)}
               onSetStart={() => edit((s) => ({ ...s, definition: setStart(s.definition, selectedStage.id) }))}
               onDisconnect={(handle) => edit((s) => ({ ...s, definition: disconnect(s.definition, selectedStage.id, handle) }))}
               onDelete={() => deleteStages([selectedStage.id])}
@@ -619,6 +625,8 @@ function typeLabel(t: ReturnType<typeof useT<"workflows">>["t"], type: StageType
   switch (type) {
     case "agent":
       return t(($) => $.designer.type.agent);
+    case "parallel":
+      return t(($) => $.designer.type.parallel);
     case "human_gate":
       return t(($) => $.designer.type.human_gate);
     case "condition":

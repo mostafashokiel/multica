@@ -13,13 +13,21 @@ import {
 /** Drawn size of each stage type; also the layout's idea of a node and the size before it is measured. */
 export const NODE_SIZE: Record<StageType, Size> = {
   agent: { width: 232, height: 90 },
+  // The height is the base here; a parallel stage grows by BRANCH_ROW for each branch (see sizeOf).
+  parallel: { width: 232, height: 76 },
   human_gate: { width: 232, height: 108 },
   // A diamond needs more height than a box for the same text: it is narrow near its points.
   condition: { width: 232, height: 128 },
   end: { width: 140, height: 52 },
 };
 
-export const sizeOf = (type: StageType): Size => NODE_SIZE[type];
+/** What one branch of a parallel stage adds to its node: a row of text. */
+export const BRANCH_ROW = 22;
+
+export const sizeOf = (stage: Stage): Size => {
+  const base = NODE_SIZE[stage.type];
+  return stage.type === "parallel" ? { width: base.width, height: base.height + BRANCH_ROW * stage.branches.length } : base;
+};
 
 export interface StageNodeData extends Record<string, unknown> {
   stage: Stage;
@@ -48,10 +56,10 @@ export function toFlowNodes(
     position: positions[stage.id] ?? fallback(index),
     data: { stage, isStart: def.start === stage.id, problems: problemsByStage[stage.id] ?? 0, readOnly },
     // Known sizes let the first fit and the minimap work before anything has been measured.
-    initialWidth: NODE_SIZE[stage.type].width,
-    initialHeight: NODE_SIZE[stage.type].height,
+    initialWidth: sizeOf(stage).width,
+    initialHeight: sizeOf(stage).height,
     // A fixed box, so handles and edges line up whatever the text says.
-    style: { width: NODE_SIZE[stage.type].width, height: NODE_SIZE[stage.type].height },
+    style: { width: sizeOf(stage).width, height: sizeOf(stage).height },
     selected: stage.id === selectedId,
     draggable: !readOnly,
     deletable: !readOnly,
@@ -139,7 +147,7 @@ export function contentHeight(def: WorkflowDefinition, positions: Positions): nu
     const p = positions[stage.id];
     if (p === undefined) continue;
     top = Math.min(top, p.y);
-    bottom = Math.max(bottom, p.y + NODE_SIZE[stage.type].height);
+    bottom = Math.max(bottom, p.y + sizeOf(stage).height);
   }
   return bottom === -Infinity ? 0 : bottom - top;
 }

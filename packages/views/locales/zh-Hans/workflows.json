@@ -117,7 +117,8 @@
       "agent": "智能体",
       "human_gate": "人工关卡",
       "condition": "条件",
-      "end": "结束"
+      "end": "结束",
+      "parallel": "并行"
     },
     "edge": {
       "approve": "批准",
@@ -135,7 +136,9 @@
     "transition": "{{from}} 流向 {{to}}",
     "cannot_draw": "无法绘制此版本，因为其定义无法读取。“定义”标签中可查看文本。",
     "loading": "正在加载图示…",
-    "no_stages": "此版本还没有阶段。"
+    "no_stages": "此版本还没有阶段。",
+    "branches": "分支",
+    "branch_empty": "（未选择智能体）"
   },
   "editor": {
     "title_new": "新建工作流",
@@ -261,7 +264,14 @@
     "group_add_person": "添加成员",
     "group_filter": "筛选成员",
     "group_no_match": "没有匹配的成员。",
-    "group_all_added": "所有已注册成员都已在此分组中。"
+    "group_all_added": "所有已注册成员都已在此分组中。",
+    "branches_hint": "所有分支同时开始，每个分支是分配给对应智能体的子事项。全部完成（Done）后该阶段才结束。",
+    "branch_title": "分支 {{n}}",
+    "branch_remove": "删除分支 {{n}}",
+    "branch_name": "分支名称",
+    "branch_name_hint": "可选。用作子事项标题的一部分；为空时使用智能体名称。",
+    "branch_add": "添加分支",
+    "branches_max": "并行阶段最多有 {{count}} 个分支。"
   },
   "pipeline": {
     "summary_other": "{{count}} 个任务遵循此工作流",

@@ -119,7 +119,8 @@
       "agent": "Agent",
       "human_gate": "Validation humaine",
       "condition": "Condition",
-      "end": "Fin"
+      "end": "Fin",
+      "parallel": "Parallèle"
     },
     "edge": {
       "approve": "approuvé",
@@ -137,7 +138,9 @@
     "transition": "{{from}} mène à {{to}}",
     "cannot_draw": "Cette version ne peut pas être dessinée car sa définition n'a pas pu être lue. L'onglet Définition montre le texte.",
     "loading": "Chargement du diagramme…",
-    "no_stages": "Cette version n'a pas encore d'étapes."
+    "no_stages": "Cette version n'a pas encore d'étapes.",
+    "branches": "Branches",
+    "branch_empty": "(aucun agent)"
   },
   "editor": {
     "title_new": "Nouveau workflow",
@@ -263,7 +266,14 @@
     "group_add_person": "Ajouter une personne",
     "group_filter": "Filtrer les personnes",
     "group_no_match": "Personne ne correspond.",
-    "group_all_added": "Tous les membres enregistrés sont déjà dans ce groupe."
+    "group_all_added": "Tous les membres enregistrés sont déjà dans ce groupe.",
+    "branches_hint": "Toutes les branches démarrent en même temps, chacune sous forme de sous-ticket assigné à son agent. L'étape se termine quand toutes sont Done.",
+    "branch_title": "Branche {{n}}",
+    "branch_remove": "Supprimer la branche {{n}}",
+    "branch_name": "Nom de la branche",
+    "branch_name_hint": "Facultatif. Fait partie du titre du sous-ticket ; le nom de l'agent est utilisé si vide.",
+    "branch_add": "Ajouter une branche",
+    "branches_max": "Une étape parallèle compte au plus {{count}} branches."
   },
   "pipeline": {
     "summary_one": "{{count}} tâche suit ce workflow",

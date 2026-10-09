@@ -1,8 +1,9 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { parseDefinitionText, type WorkflowDefinition } from "./definition";
+import { MAX_BRANCHES, parseDefinitionText, type WorkflowDefinition } from "./definition";
 import {
   addApproverGroup,
+  addBranch,
   addStage,
   connect,
   disconnect,
@@ -10,6 +11,7 @@ import {
   handleTarget,
   parseMembers,
   removeApproverGroup,
+  removeBranch,
   removeStage,
   renameApproverGroup,
   renamePositions,
@@ -18,6 +20,7 @@ import {
   setStart,
   stageById,
   uniqueStageId,
+  updateBranch,
   updateMetadata,
   updateStage,
 } from "./designer-model";
@@ -250,5 +253,64 @@ describe("building the pilot by hand gives the pilot", () => {
     expect(d.start).toBe("br-review");
     expect(d).toEqual(pilot());
     expect(setStart(d, "nope")).toBe(d);
+  });
+});
+
+describe("parallel stages", () => {
+  const withParallel = () => addStage(addStage(emptyDefinition(), "parallel").definition, "end").definition;
+  const branchesOf = (d: WorkflowDefinition) => {
+    const stage = stageById(d, "parallel-1");
+    if (stage?.type !== "parallel") throw new Error("not parallel");
+    return stage.branches;
+  };
+
+  it("starts with two empty branches, the least a parallel stage can have", () => {
+    const d = withParallel();
+    expect(d.stages[0]).toEqual({ id: "parallel-1", type: "parallel", branches: [{ agent: "" }, { agent: "" }], next: "" });
+    expect(d.start).toBe("parallel-1");
+  });
+
+  it("has one output, wired like an agent's", () => {
+    let d = connect(withParallel(), "parallel-1", "next", "end-1");
+    expect(handleTarget(stageById(d, "parallel-1")!, "next")).toBe("end-1");
+    d = removeStage(d, "end-1");
+    expect(handleTarget(stageById(d, "parallel-1")!, "next")).toBe("");
+    const renamed = renameStage(connect(withParallel(), "parallel-1", "next", "end-1"), "end-1", "finish");
+    expect(renamed.ok && handleTarget(stageById(renamed.definition, "parallel-1")!, "next")).toBe("finish");
+  });
+
+  it("adds, edits and removes branches by position without touching the input", () => {
+    const before = withParallel();
+    let d = updateBranch(before, "parallel-1", 0, { agent: "nyc", name: "New York", skills: ["clock"], expected_output: "the time" });
+    d = updateBranch(d, "parallel-1", 1, { agent: "cairo" });
+    d = addBranch(d, "parallel-1");
+    expect(branchesOf(d)).toEqual([
+      { agent: "nyc", name: "New York", skills: ["clock"], expected_output: "the time" },
+      { agent: "cairo" },
+      { agent: "" },
+    ]);
+    expect(branchesOf(before)).toEqual([{ agent: "" }, { agent: "" }]);
+    d = removeBranch(d, "parallel-1", 0);
+    expect(branchesOf(d).map((b) => b.agent)).toEqual(["cairo", ""]);
+  });
+
+  it("empty text clears an optional branch field instead of storing it", () => {
+    let d = updateBranch(withParallel(), "parallel-1", 0, { agent: "a", name: "N", skills: ["s"], expected_output: "o" });
+    d = updateBranch(d, "parallel-1", 0, { name: "", skills: [], expected_output: "" });
+    expect(branchesOf(d)[0]).toEqual({ agent: "a" });
+    expect(Object.keys(branchesOf(d)[0]!)).toEqual(["agent"]);
+  });
+
+  it("stops adding at the limit, and ignores stages of another type", () => {
+    let d = withParallel();
+    for (let i = 0; i < MAX_BRANCHES + 3; i++) d = addBranch(d, "parallel-1");
+    expect(branchesOf(d)).toHaveLength(MAX_BRANCHES);
+    expect(addBranch(d, "end-1")).toEqual(d);
+    expect(updateBranch(d, "end-1", 0, { agent: "x" })).toEqual(d);
+  });
+
+  it("renames the stage through updateStage like any other", () => {
+    const d = updateStage(withParallel(), "parallel-1", { name: "Checks" });
+    expect(stageById(d, "parallel-1")).toMatchObject({ name: "Checks", branches: [{ agent: "" }, { agent: "" }] });
   });
 });

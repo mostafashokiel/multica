@@ -18,6 +18,7 @@ Un workflow ne s'exécute pas tout seul et Multica n'a pas de moteur dédié. **
 | Étape | Rôle |
 |---|---|
 | **Agent** | Un agent fait le travail. Le chef le lui confie par mention `@` et attend sa réponse. |
+| **Parallèle** | De deux à huit agents travaillent en même temps. Le chef crée un sous-ticket par branche, assigné à son agent, et fait avancer la tâche quand tous les sous-tickets sont Done. |
 | **Validation humaine** | Une ou plusieurs personnes décident. Le workflow nomme un groupe d'approbateurs, une limite de reprises facultative et un délai facultatif après lequel le chef relance. |
 | **Condition** | Choisit l'étape suivante d'après les étiquettes de la tâche, par exemple `has_label("pci-scope")`. |
 | **Fin** | Termine le workflow. |
@@ -47,6 +48,8 @@ L'application ne crée pas d'étiquettes. Créez d'abord `wf:<key>` et une étiq
 Donnez à la tâche l'étiquette `wf:<key>` et assignez-la à un squad qui suit le workflow. Le chef positionne l'étiquette `phase:` de la tâche sur l'étape courante, délègue les étapes d'agent par mention `@` et fait avancer la tâche lorsque l'agent répond. La tâche reste assignée au squad tout du long.
 
 À une validation humaine, le chef mentionne les approbateurs et attend. Un approbateur décide en répondant sur la tâche avec ses propres mots, sans étiquette ni mention du squad. Le chef n'agit que sur le commentaire d'un approbateur listé : une approbation claire fait avancer la tâche, un refus clair la renvoie avec le motif, et tout le reste donne lieu à une seule question de précision.
+
+À une étape parallèle, le chef crée un sous-ticket par branche et l'assigne à l'agent de cette branche : tous démarrent ensemble. Chaque agent doit terminer son sous-ticket en **Done** : Multica ne réveille le chef que lorsqu'un sous-ticket est Done ou Cancelled, et un agent qui s'arrête à In Review le laisse attendre indéfiniment. La consigne l'écrit dans chaque sous-ticket. Quand le dernier est Done, le chef lit les résultats et fait avancer la tâche. Un sous-ticket annulé, ou un agent qui ne peut pas faire son travail, arrête l'étape jusqu'à ce qu'une personne décide.
 
 ## Pipeline
 

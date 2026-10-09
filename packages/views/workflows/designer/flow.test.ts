@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { addStage, connect, emptyDefinition, renameStage, updateMetadata, type WorkflowDefinition } from "@multica/core/workflows";
-import { toFlowEdges } from "./flow";
+import { BRANCH_ROW, NODE_SIZE, sizeOf, toFlowEdges } from "./flow";
 
 // work -> gate1 -> check -> gate2 -> done, with each gate's reject looping back and the check's "else"
 // leaving the same side as those loops.
@@ -52,5 +52,15 @@ describe("toFlowEdges corridors", () => {
     const o = offsets();
     expect(o["work:next"]).toBe(o["check:else"]);
     expect(o["gate1:approve"]).toBe(o["check:then"]);
+  });
+});
+
+describe("sizeOf", () => {
+  it("is the type's box, except that a parallel stage grows by a row for each branch", () => {
+    const parallel = (n: number) => ({ id: "p", type: "parallel" as const, branches: Array.from({ length: n }, () => ({ agent: "a" })), next: "" });
+    expect(sizeOf({ id: "a", type: "agent", agent: "", next: "" })).toEqual(NODE_SIZE.agent);
+    expect(sizeOf(parallel(2)).height).toBe(NODE_SIZE.parallel.height + 2 * BRANCH_ROW);
+    expect(sizeOf(parallel(5)).height - sizeOf(parallel(2)).height).toBe(3 * BRANCH_ROW);
+    expect(sizeOf(parallel(2)).width).toBe(NODE_SIZE.parallel.width);
   });
 });

@@ -8,6 +8,8 @@ import { agentListOptions, memberListOptions, skillListOptions } from "@multica/
 import {
   STAGE_HANDLES,
   handleTarget,
+  MAX_BRANCHES,
+  type BranchEdit,
   type EditRefusal,
   type Handle,
   type MetadataEdit,
@@ -31,6 +33,8 @@ function typeLabel(t: TFn, type: StageType): string {
   switch (type) {
     case "agent":
       return t(($) => $.designer.type.agent);
+    case "parallel":
+      return t(($) => $.designer.type.parallel);
     case "human_gate":
       return t(($) => $.designer.type.human_gate);
     case "condition":
@@ -206,6 +210,54 @@ function useSuggestions() {
   };
 }
 
+/** The agent a stage or branch hands work to: pick one registered in the workspace, or type a name when they cannot be listed. */
+function AgentPicker({
+  id,
+  value,
+  suggestions,
+  onChange,
+}: {
+  id: string;
+  value: string;
+  suggestions: ReturnType<typeof useSuggestions>;
+  onChange: (next: string) => void;
+}) {
+  const { t } = useT("workflows");
+  const unregistered = value !== "" && !suggestions.agents.includes(value);
+  return (
+    <Field>
+      <FieldLabel htmlFor={id}>{t(($) => $.properties.agent)}</FieldLabel>
+      {suggestions.agentsFailed ? (
+        <Input id={id} className="font-mono" value={value} onChange={(e) => onChange(e.target.value)} />
+      ) : (
+        <Select
+          items={[
+            { value: NONE, label: t(($) => $.properties.none) },
+            ...suggestions.agents.map((name) => ({ value: name, label: name })),
+            ...(unregistered ? [{ value, label: t(($) => $.properties.agent_unregistered, { name: value }) }] : []),
+          ]}
+          value={value === "" ? NONE : value}
+          onValueChange={(next) => onChange(next === null || next === NONE ? "" : next)}
+        >
+          <SelectTrigger id={id} className="w-full font-mono">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={NONE}>{t(($) => $.properties.none)}</SelectItem>
+            {suggestions.agents.map((name) => (
+              <SelectItem key={name} value={name}>
+                {name}
+              </SelectItem>
+            ))}
+            {unregistered ? <SelectItem value={value}>{t(($) => $.properties.agent_unregistered, { name: value })}</SelectItem> : null}
+          </SelectContent>
+        </Select>
+      )}
+      <FieldDescription>{t(($) => $.properties.agent_hint)}</FieldDescription>
+    </Field>
+  );
+}
+
 // ---- the selected stage ---------------------------------------------------------------------------
 
 export function StageProperties({
@@ -213,6 +265,9 @@ export function StageProperties({
   stage,
   onEdit,
   onRename,
+  onBranchAdd,
+  onBranchRemove,
+  onBranchEdit,
   onSetStart,
   onDisconnect,
   onDelete,
@@ -221,6 +276,10 @@ export function StageProperties({
   definition: WorkflowDefinition;
   stage: Stage;
   onEdit: (edit: StageEdit, mergeKey: string) => void;
+  /** Parallel stages: add a branch, remove the branch at an index, change one. */
+  onBranchAdd: () => void;
+  onBranchRemove: (index: number) => void;
+  onBranchEdit: (index: number, edit: BranchEdit, mergeKey: string) => void;
   onRename: (next: string) => EditRefusal | null;
   onGroupMembers: (group: string, members: string[]) => void;
   onSetStart: () => void;
@@ -262,40 +321,7 @@ export function StageProperties({
 
       {stage.type === "agent" ? (
         <>
-          <Field>
-            <FieldLabel htmlFor="stage-agent">{t(($) => $.properties.agent)}</FieldLabel>
-            {suggestions.agentsFailed ? (
-              <Input id="stage-agent" className="font-mono" value={stage.agent} onChange={(e) => edit({ agent: e.target.value }, "agent")} />
-            ) : (
-              <Select
-                items={[
-                  { value: NONE, label: t(($) => $.properties.none) },
-                  ...suggestions.agents.map((name) => ({ value: name, label: name })),
-                  ...(stage.agent === "" || suggestions.agents.includes(stage.agent)
-                    ? []
-                    : [{ value: stage.agent, label: t(($) => $.properties.agent_unregistered, { name: stage.agent }) }]),
-                ]}
-                value={stage.agent === "" ? NONE : stage.agent}
-                onValueChange={(next) => edit({ agent: next === null || next === NONE ? "" : next }, "agent")}
-              >
-                <SelectTrigger id="stage-agent" className="w-full font-mono">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={NONE}>{t(($) => $.properties.none)}</SelectItem>
-                  {suggestions.agents.map((name) => (
-                    <SelectItem key={name} value={name}>
-                      {name}
-                    </SelectItem>
-                  ))}
-                  {stage.agent !== "" && !suggestions.agents.includes(stage.agent) ? (
-                    <SelectItem value={stage.agent}>{t(($) => $.properties.agent_unregistered, { name: stage.agent })}</SelectItem>
-                  ) : null}
-                </SelectContent>
-              </Select>
-            )}
-            <FieldDescription>{t(($) => $.properties.agent_hint)}</FieldDescription>
-          </Field>
+          <AgentPicker id="stage-agent" value={stage.agent} suggestions={suggestions} onChange={(agent) => edit({ agent }, "agent")} />
           <SkillsField skills={stage.skills ?? []} suggestions={suggestions.skills} onChange={(next) => edit({ skills: next }, "skills")} />
           <Field>
             <FieldLabel htmlFor="stage-output">{t(($) => $.properties.expected_output)}</FieldLabel>
@@ -303,6 +329,66 @@ export function StageProperties({
             <FieldDescription>{t(($) => $.properties.expected_output_hint)}</FieldDescription>
           </Field>
         </>
+      ) : null}
+
+      {stage.type === "parallel" ? (
+        <section className="flex flex-col gap-3" aria-label={t(($) => $.designer.branches)}>
+          <h3 className="text-caption font-medium uppercase tracking-wide text-muted-foreground">{t(($) => $.designer.branches)}</h3>
+          <p className="text-caption text-muted-foreground">{t(($) => $.properties.branches_hint)}</p>
+          {stage.branches.map((branch, i) => (
+            // Branches have no id: they are edited by position, so the index is the identity of a row.
+            <div key={i} role="group" aria-label={t(($) => $.properties.branch_title, { n: i + 1 })} className="flex flex-col gap-3 rounded-lg border p-3">
+              <div className="flex items-center justify-between gap-2">
+                <h4 className="text-body font-medium">{t(($) => $.properties.branch_title, { n: i + 1 })}</h4>
+                <Button
+                  size="icon-xs"
+                  variant="ghost"
+                  className="text-muted-foreground hover:text-destructive"
+                  aria-label={t(($) => $.properties.branch_remove, { n: i + 1 })}
+                  onClick={() => onBranchRemove(i)}
+                >
+                  <Trash2 aria-hidden="true" className="size-3.5" />
+                </Button>
+              </div>
+              <Field>
+                <FieldLabel htmlFor={`branch-${String(i)}-name`}>{t(($) => $.properties.branch_name)}</FieldLabel>
+                <Input
+                  id={`branch-${String(i)}-name`}
+                  value={branch.name ?? ""}
+                  onChange={(e) => onBranchEdit(i, { name: e.target.value }, `${stage.id}:branch:${String(i)}:name`)}
+                />
+                <FieldDescription>{t(($) => $.properties.branch_name_hint)}</FieldDescription>
+              </Field>
+              <AgentPicker
+                id={`branch-${String(i)}-agent`}
+                value={branch.agent}
+                suggestions={suggestions}
+                onChange={(agent) => onBranchEdit(i, { agent }, `${stage.id}:branch:${String(i)}:agent`)}
+              />
+              <SkillsField
+                skills={branch.skills ?? []}
+                suggestions={suggestions.skills}
+                onChange={(next) => onBranchEdit(i, { skills: next }, `${stage.id}:branch:${String(i)}:skills`)}
+              />
+              <Field>
+                <FieldLabel htmlFor={`branch-${String(i)}-output`}>{t(($) => $.properties.expected_output)}</FieldLabel>
+                <Textarea
+                  id={`branch-${String(i)}-output`}
+                  rows={3}
+                  value={branch.expected_output ?? ""}
+                  onChange={(e) => onBranchEdit(i, { expected_output: e.target.value }, `${stage.id}:branch:${String(i)}:output`)}
+                />
+              </Field>
+            </div>
+          ))}
+          <Button size="sm" variant="outline" disabled={stage.branches.length >= MAX_BRANCHES} onClick={onBranchAdd}>
+            <Plus aria-hidden="true" className="size-3.5" />
+            {t(($) => $.properties.branch_add)}
+          </Button>
+          {stage.branches.length >= MAX_BRANCHES ? (
+            <p className="text-caption text-muted-foreground">{t(($) => $.properties.branches_max, { count: MAX_BRANCHES })}</p>
+          ) : null}
+        </section>
       ) : null}
 
       {stage.type === "human_gate" ? (

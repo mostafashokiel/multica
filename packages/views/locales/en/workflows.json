@@ -119,7 +119,8 @@
       "agent": "Agent",
       "human_gate": "Human gate",
       "condition": "Condition",
-      "end": "End"
+      "end": "End",
+      "parallel": "Parallel"
     },
     "edge": {
       "approve": "approve",
@@ -137,7 +138,9 @@
     "transition": "{{from}} leads to {{to}}",
     "cannot_draw": "This version can't be drawn because its definition couldn't be read. The Definition tab shows the text.",
     "loading": "Loading the diagram…",
-    "no_stages": "This version has no stages yet."
+    "no_stages": "This version has no stages yet.",
+    "branches": "Branches",
+    "branch_empty": "(no agent)"
   },
   "editor": {
     "title_new": "New workflow",
@@ -263,7 +266,14 @@
     "group_add_person": "Add a person",
     "group_filter": "Filter people",
     "group_no_match": "No one matches.",
-    "group_all_added": "Everyone registered is already in this group."
+    "group_all_added": "Everyone registered is already in this group.",
+    "branches_hint": "Every branch starts at the same time, as a sub-issue assigned to its agent. The stage ends when all of them are Done.",
+    "branch_title": "Branch {{n}}",
+    "branch_remove": "Remove branch {{n}}",
+    "branch_name": "Branch name",
+    "branch_name_hint": "Optional. Part of the sub-issue title; the agent's name is used when empty.",
+    "branch_add": "Add branch",
+    "branches_max": "A parallel stage has at most {{count}} branches."
   },
   "pipeline": {
     "summary_one": "{{count}} issue follows this workflow",

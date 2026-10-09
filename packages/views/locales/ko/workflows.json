@@ -117,7 +117,8 @@
       "agent": "에이전트",
       "human_gate": "사람 승인",
       "condition": "조건",
-      "end": "종료"
+      "end": "종료",
+      "parallel": "병렬"
     },
     "edge": {
       "approve": "승인",
@@ -135,7 +136,9 @@
     "transition": "{{from}}에서 {{to}}(으)로 이동",
     "cannot_draw": "정의를 읽을 수 없어 이 버전을 그릴 수 없습니다. 정의 탭에서 텍스트를 확인하세요.",
     "loading": "다이어그램 불러오는 중…",
-    "no_stages": "이 버전에는 아직 단계가 없습니다."
+    "no_stages": "이 버전에는 아직 단계가 없습니다.",
+    "branches": "브랜치",
+    "branch_empty": "(에이전트 없음)"
   },
   "editor": {
     "title_new": "새 워크플로",
@@ -261,7 +264,14 @@
     "group_add_person": "멤버 추가",
     "group_filter": "멤버 필터",
     "group_no_match": "일치하는 멤버가 없습니다.",
-    "group_all_added": "등록된 모든 멤버가 이미 이 그룹에 있습니다."
+    "group_all_added": "등록된 모든 멤버가 이미 이 그룹에 있습니다.",
+    "branches_hint": "모든 브랜치는 동시에 시작되며, 각각 해당 에이전트에 배정된 하위 이슈가 됩니다. 모두 Done이 되면 이 단계가 끝납니다.",
+    "branch_title": "브랜치 {{n}}",
+    "branch_remove": "브랜치 {{n}} 삭제",
+    "branch_name": "브랜치 이름",
+    "branch_name_hint": "선택 사항. 하위 이슈 제목의 일부로 쓰이며, 비워 두면 에이전트 이름을 씁니다.",
+    "branch_add": "브랜치 추가",
+    "branches_max": "병렬 단계에는 브랜치를 최대 {{count}}개까지 둘 수 있습니다."
   },
   "pipeline": {
     "summary_other": "이 워크플로를 따르는 태스크 {{count}}개",

@@ -79,6 +79,7 @@ describe("WorkflowPipelinePane", () => {
       total: 3,
       stages: [
         { id: "build", name: "Build", type: "agent", approvers: [], issues: [issue("1", "Do the thing", { assignee_type: "agent", assignee_id: "a-1" }), issue("2", "Another")] },
+        { id: "checks", name: "Checks", type: "parallel", approvers: [], issues: [] },
         { id: "review", name: "Review", type: "human_gate", approvers: [], issues: [] },
         { id: "done", name: "done", type: "end", approvers: [], issues: [issue("3", "Finished", { status: "done" })] },
       ],
@@ -98,6 +99,9 @@ describe("WorkflowPipelinePane", () => {
     expect(within(build).getByText("Agent")).toBeInTheDocument();
     expect(build.querySelector('[data-stage-icon="agent"]')).not.toBeNull();
     expect(screen.getByRole("region", { name: "Review" }).querySelector('[data-stage-icon="human_gate"]')).not.toBeNull();
+    const checks = screen.getByRole("region", { name: "Checks" });
+    expect(within(checks).getByText("Parallel")).toBeInTheDocument();
+    expect(checks.querySelector('[data-stage-icon="parallel"]')).not.toBeNull();
     expect(within(screen.getByRole("region", { name: "Review" })).getByText("Human gate")).toBeInTheDocument();
   });
 

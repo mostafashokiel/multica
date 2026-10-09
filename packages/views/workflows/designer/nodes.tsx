@@ -4,13 +4,14 @@ import { Handle, Position, type NodeProps } from "@xyflow/react";
 import { cn } from "@multica/ui/lib/utils";
 import type { StageType } from "@multica/core/workflows";
 import { useT } from "../../i18n";
-import type { StageNode } from "./flow";
+import { BRANCH_ROW, type StageNode } from "./flow";
 import { StageIcon } from "./stage-icon";
 
 type StageNodeProps = NodeProps<StageNode>;
 
 const ACCENT: Record<StageType, string> = {
   agent: "border-l-brand",
+  parallel: "border-l-brand",
   human_gate: "border-l-warning",
   condition: "border-l-info",
   end: "border-l-muted-foreground",
@@ -25,6 +26,8 @@ function useTypeLabel() {
     switch (type) {
       case "agent":
         return t(($) => $.designer.type.agent);
+      case "parallel":
+        return t(($) => $.designer.type.parallel);
       case "human_gate":
         return t(($) => $.designer.type.human_gate);
       case "condition":
@@ -57,6 +60,30 @@ function Detail({ data }: { data: StageNodeProps["data"] }) {
   );
 }
 
+// The branches are listed inside the node, one fixed-height row each, so the node's height follows from
+// the count (see sizeOf in flow.ts) and the layout can leave room for it.
+function Branches({ data }: { data: StageNodeProps["data"] }) {
+  const { t } = useT("workflows");
+  const { stage } = data;
+  if (stage.type !== "parallel") return null;
+  return (
+    <ul className="mt-1 flex flex-col border-t pt-1" aria-label={t(($) => $.designer.branches)}>
+      {stage.branches.map((branch, i) => {
+        const label = branch.name !== undefined && branch.name !== "" ? branch.name : branch.agent;
+        return (
+          // The list is edited by position, so the index is the identity of a row.
+          <li key={i} className="flex items-center gap-1.5 truncate text-caption" style={{ height: BRANCH_ROW - 2 }}>
+            <span aria-hidden="true" className="size-1.5 shrink-0 rounded-full bg-brand" />
+            <span className={cn("truncate font-mono", label === "" && "text-muted-foreground")}>
+              {label === "" ? t(($) => $.designer.branch_empty) : label}
+            </span>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 function Body({ data, selected }: { data: StageNodeProps["data"]; selected: boolean | undefined }) {
   const { t } = useT("workflows");
   const typeLabel = useTypeLabel();
@@ -68,6 +95,7 @@ function Body({ data, selected }: { data: StageNodeProps["data"]; selected: bool
         ACCENT[stage.type],
         data.problems > 0 && "border-destructive",
         selected === true && "ring-2 ring-ring",
+        stage.type === "parallel" && "justify-start",
       )}
       title={stage.name ?? stage.id}
     >
@@ -89,6 +117,7 @@ function Body({ data, selected }: { data: StageNodeProps["data"]; selected: bool
       <div className="truncate text-body font-medium">{stage.name ?? stage.id}</div>
       {stage.name !== undefined ? <div className="truncate text-micro text-muted-foreground">{stage.id}</div> : null}
       <Detail data={data} />
+      <Branches data={data} />
     </div>
   );
 }
@@ -211,6 +240,7 @@ export function EndNode({ data, selected }: StageNodeProps) {
 
 export const nodeTypes = {
   agent: AgentNode,
+  parallel: AgentNode, // one way in, one way out; the branches are drawn inside the node
   human_gate: GateNode,
   condition: ConditionNode,
   end: EndNode,

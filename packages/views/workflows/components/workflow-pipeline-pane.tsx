@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useWorkspaceId } from "@multica/core/hooks";
 import { useWorkspacePaths } from "@multica/core/paths";
-import { workflowPipelineOptions } from "@multica/core/workflows";
+import { STAGE_TYPES, workflowPipelineOptions, type StageType } from "@multica/core/workflows";
 import { useActorName } from "@multica/core/workspace/hooks";
 import type { WorkflowPipelineApprover, WorkflowPipelineIssue, WorkflowPipelineStage } from "@multica/core/types";
 import { Skeleton } from "@multica/ui/components/ui/skeleton";
@@ -85,12 +85,13 @@ export function WorkflowPipelinePane({
   );
 }
 
+// The server sends the stage type as text; one this build does not know is shown as written.
+const isStageType = (value: string): value is StageType => (STAGE_TYPES as readonly string[]).includes(value);
+
 function StageColumn({ stage }: { stage: WorkflowPipelineStage }) {
   const { t } = useT("workflows");
-  const type =
-    stage.type === "agent" || stage.type === "human_gate" || stage.type === "end" || stage.type === "condition"
-      ? t(($) => $.designer.type[stage.type as "agent" | "human_gate" | "end" | "condition"])
-      : stage.type;
+  const known = isStageType(stage.type);
+  const type = known ? t(($) => $.designer.type[stage.type as StageType]) : stage.type;
   const waiting = waitingFor(t, stage.approvers);
   return (
     <section
@@ -102,9 +103,7 @@ function StageColumn({ stage }: { stage: WorkflowPipelineStage }) {
         <span className="shrink-0 text-caption tabular-nums text-muted-foreground">{stage.issues.length}</span>
       </header>
       <p className="flex items-center gap-1.5 px-1 text-caption text-muted-foreground">
-        {stage.type === "agent" || stage.type === "human_gate" || stage.type === "condition" || stage.type === "end" ? (
-          <StageIcon type={stage.type} />
-        ) : null}
+        {isStageType(stage.type) ? <StageIcon type={stage.type} /> : null}
         {type}
       </p>
       {stage.type === "human_gate" ? (

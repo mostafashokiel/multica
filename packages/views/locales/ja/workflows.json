@@ -117,7 +117,8 @@
       "agent": "エージェント",
       "human_gate": "人による承認",
       "condition": "条件",
-      "end": "終了"
+      "end": "終了",
+      "parallel": "並列"
     },
     "edge": {
       "approve": "承認",
@@ -135,7 +136,9 @@
     "transition": "{{from}} は {{to}} へ進みます",
     "cannot_draw": "定義を読み取れなかったため、このバージョンは描画できません。「定義」タブでテキストを確認できます。",
     "loading": "図を読み込み中…",
-    "no_stages": "このバージョンにはまだステージがありません。"
+    "no_stages": "このバージョンにはまだステージがありません。",
+    "branches": "ブランチ",
+    "branch_empty": "（エージェント未設定）"
   },
   "editor": {
     "title_new": "新しいワークフロー",
@@ -261,7 +264,14 @@
     "group_add_person": "メンバーを追加",
     "group_filter": "メンバーを絞り込む",
     "group_no_match": "一致するメンバーがいません。",
-    "group_all_added": "登録メンバー全員がすでにこのグループにいます。"
+    "group_all_added": "登録メンバー全員がすでにこのグループにいます。",
+    "branches_hint": "すべてのブランチは同時に開始され、それぞれ担当エージェントに割り当てられたサブ課題になります。すべてが Done になるとこのステージは終了します。",
+    "branch_title": "ブランチ {{n}}",
+    "branch_remove": "ブランチ {{n}} を削除",
+    "branch_name": "ブランチ名",
+    "branch_name_hint": "任意。サブ課題のタイトルの一部になります。空の場合はエージェント名を使います。",
+    "branch_add": "ブランチを追加",
+    "branches_max": "並列ステージのブランチは最大 {{count}} 個です。"
   },
   "pipeline": {
     "summary_other": "このワークフローに従うタスクは {{count}}件です",

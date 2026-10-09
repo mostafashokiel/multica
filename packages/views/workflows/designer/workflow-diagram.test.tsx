@@ -149,4 +149,23 @@ describe("WorkflowDiagram", () => {
     expect(within(list).getByText("review leads to build")).toBeInTheDocument();
     expect(screen.getByRole("group", { name: "Workflow diagram with 4 stages" })).toBeInTheDocument();
   });
+
+  it("draws a parallel stage as one node that lists its branches, with the parallel icon", async () => {
+    let d = sample();
+    d = updateStage(addStage(d, "parallel").definition, "parallel-1", { name: "Checks" });
+    d = {
+      ...d,
+      stages: d.stages.map((s) =>
+        s.type === "parallel" ? { ...s, branches: [{ name: "New York", agent: "nyc" }, { agent: "cairo" }], next: "review" } : s,
+      ),
+    };
+    render(d);
+
+    const node = (await screen.findByText("Checks")).closest("[data-id]") as HTMLElement;
+    expect(within(node).getAllByRole("listitem").map((li) => li.textContent)).toEqual(["New York", "cairo"]);
+    expect(node.querySelector('[data-stage-icon="parallel"]')).not.toBeNull();
+    expect(within(node).getByText("Parallel")).toBeInTheDocument();
+    // One way out, to the stage after the join.
+    expect(document.querySelector('.react-flow__edge[data-id="parallel-1:next"]')).not.toBeNull();
+  });
 });
