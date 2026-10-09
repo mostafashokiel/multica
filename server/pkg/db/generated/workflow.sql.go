@@ -307,6 +307,96 @@ func (q *Queries) ListWorkflowAudit(ctx context.Context, arg ListWorkflowAuditPa
 	return items, nil
 }
 
+const listWorkflowPipelineIssues = `-- name: ListWorkflowPipelineIssues :many
+SELECT i.id, i.number, i.title, i.status, i.assignee_type, i.assignee_id, i.updated_at,
+    COALESCE(
+        (SELECT array_agg(pl.name ORDER BY pl.name)
+         FROM issue_to_label pa
+         JOIN issue_label pl ON pl.id = pa.label_id
+         WHERE pa.issue_id = i.id
+           AND pl.workspace_id = i.workspace_id
+           AND pl.resource_type = 'issue'
+           AND pl.name LIKE 'phase:%'),
+        '{}')::text[] AS phases
+FROM issue i
+WHERE i.workspace_id = $1::uuid
+  AND i.status <> 'cancelled'
+  AND ($2::uuid IS NULL
+       OR (i.assignee_type = 'squad' AND i.assignee_id = $2::uuid))
+  AND (NOT $3::bool
+       OR i.assignee_type IS DISTINCT FROM 'squad')
+  AND EXISTS (
+      SELECT 1
+      FROM issue_to_label wa
+      JOIN issue_label wl ON wl.id = wa.label_id
+      WHERE wa.issue_id = i.id
+        AND wl.workspace_id = i.workspace_id
+        AND wl.resource_type = 'issue'
+        AND wl.name = $4::text)
+ORDER BY i.updated_at DESC, i.id DESC
+LIMIT $5::int
+`
+
+type ListWorkflowPipelineIssuesParams struct {
+	WorkspaceID  pgtype.UUID `json:"workspace_id"`
+	SquadID      pgtype.UUID `json:"squad_id"`
+	WithoutSquad bool        `json:"without_squad"`
+	WfLabel      string      `json:"wf_label"`
+	RowLimit     int32       `json:"row_limit"`
+}
+
+type ListWorkflowPipelineIssuesRow struct {
+	ID           pgtype.UUID        `json:"id"`
+	Number       int32              `json:"number"`
+	Title        string             `json:"title"`
+	Status       string             `json:"status"`
+	AssigneeType pgtype.Text        `json:"assignee_type"`
+	AssigneeID   pgtype.UUID        `json:"assignee_id"`
+	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
+	Phases       []string           `json:"phases"`
+}
+
+// The issues that carry a workflow's wf:<key> label, with the names of every
+// phase:* label each one has (a healthy issue has exactly one). Cancelled issues
+// are left out. squad_id keeps only the issues assigned to that squad;
+// without_squad keeps only those not assigned to any squad. Newest activity
+// first; the caller asks for one row more than it shows so it can tell that the
+// list was cut.
+func (q *Queries) ListWorkflowPipelineIssues(ctx context.Context, arg ListWorkflowPipelineIssuesParams) ([]ListWorkflowPipelineIssuesRow, error) {
+	rows, err := q.db.Query(ctx, listWorkflowPipelineIssues,
+		arg.WorkspaceID,
+		arg.SquadID,
+		arg.WithoutSquad,
+		arg.WfLabel,
+		arg.RowLimit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListWorkflowPipelineIssuesRow{}
+	for rows.Next() {
+		var i ListWorkflowPipelineIssuesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Number,
+			&i.Title,
+			&i.Status,
+			&i.AssigneeType,
+			&i.AssigneeID,
+			&i.UpdatedAt,
+			&i.Phases,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listWorkflowVersions = `-- name: ListWorkflowVersions :many
 SELECT id, workspace_id, workflow_id, version, content_hash, note,
        created_by_type, created_by_id, created_at

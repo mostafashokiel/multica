@@ -109,3 +109,38 @@ SELECT * FROM workflow_audit
 WHERE workflow_id = $1 AND workspace_id = $2
 ORDER BY created_at DESC, id DESC
 LIMIT $3;
+
+-- name: ListWorkflowPipelineIssues :many
+-- The issues that carry a workflow's wf:<key> label, with the names of every
+-- phase:* label each one has (a healthy issue has exactly one). Cancelled issues
+-- are left out. squad_id keeps only the issues assigned to that squad;
+-- without_squad keeps only those not assigned to any squad. Newest activity
+-- first; the caller asks for one row more than it shows so it can tell that the
+-- list was cut.
+SELECT i.id, i.number, i.title, i.status, i.assignee_type, i.assignee_id, i.updated_at,
+    COALESCE(
+        (SELECT array_agg(pl.name ORDER BY pl.name)
+         FROM issue_to_label pa
+         JOIN issue_label pl ON pl.id = pa.label_id
+         WHERE pa.issue_id = i.id
+           AND pl.workspace_id = i.workspace_id
+           AND pl.resource_type = 'issue'
+           AND pl.name LIKE 'phase:%'),
+        '{}')::text[] AS phases
+FROM issue i
+WHERE i.workspace_id = sqlc.arg('workspace_id')::uuid
+  AND i.status <> 'cancelled'
+  AND (sqlc.narg('squad_id')::uuid IS NULL
+       OR (i.assignee_type = 'squad' AND i.assignee_id = sqlc.narg('squad_id')::uuid))
+  AND (NOT sqlc.arg('without_squad')::bool
+       OR i.assignee_type IS DISTINCT FROM 'squad')
+  AND EXISTS (
+      SELECT 1
+      FROM issue_to_label wa
+      JOIN issue_label wl ON wl.id = wa.label_id
+      WHERE wa.issue_id = i.id
+        AND wl.workspace_id = i.workspace_id
+        AND wl.resource_type = 'issue'
+        AND wl.name = sqlc.arg('wf_label')::text)
+ORDER BY i.updated_at DESC, i.id DESC
+LIMIT sqlc.arg('row_limit')::int;
