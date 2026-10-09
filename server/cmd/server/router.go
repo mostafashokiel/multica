@@ -2087,6 +2087,23 @@ func NewRouterWithOptions(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus
 				})
 			})
 
+			// Workflows: versioned definitions of the stages work moves through.
+			// Gated by the workflows_v1 feature flag inside each handler.
+			r.Route("/api/workflows", func(r chi.Router) {
+				r.Get("/", h.ListWorkflows)
+				r.Post("/", h.CreateWorkflow)
+				r.Post("/validate", h.ValidateWorkflowDefinition)
+				r.Route("/{id}", func(r chi.Router) {
+					r.Get("/", h.GetWorkflow)
+					r.Patch("/", h.UpdateWorkflow)
+					r.Get("/audit", h.ListWorkflowAudit)
+					r.Get("/versions", h.ListWorkflowVersions)
+					r.Post("/versions", h.SaveWorkflowVersion)
+					r.Get("/versions/{version}", h.GetWorkflowVersion)
+					r.Post("/versions/{version}/restore", h.RestoreWorkflowVersion)
+				})
+			})
+
 			// Custom issue properties (definitions; values live under /api/issues/{id}/properties)
 			r.Route("/api/properties", func(r chi.Router) {
 				r.Get("/", h.ListProperties)

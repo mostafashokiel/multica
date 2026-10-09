@@ -626,6 +626,23 @@ func (q *Queries) DeleteWorkspaceSquadsAndSkills(ctx context.Context, workspaceI
 	return err
 }
 
+const deleteWorkspaceWorkflows = `-- name: DeleteWorkspaceWorkflows :exec
+WITH deleted_audit AS (
+    DELETE FROM workflow_audit WHERE workflow_audit.workspace_id = $1
+),
+deleted_versions AS (
+    DELETE FROM workflow_version WHERE workflow_version.workspace_id = $1
+)
+DELETE FROM workflow WHERE workflow.workspace_id = $1
+`
+
+// Workflows carry no foreign keys by project rule, so every row of the three
+// workflow tables is swept explicitly.
+func (q *Queries) DeleteWorkspaceWorkflows(ctx context.Context, workspaceID pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, deleteWorkspaceWorkflows, workspaceID)
+	return err
+}
+
 const detachTaskBatchReferences = `-- name: DetachTaskBatchReferences :exec
 WITH detached_runs AS (
     UPDATE autopilot_run

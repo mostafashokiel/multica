@@ -577,6 +577,17 @@ deleted_issue_view_preferences AS (
 )
 DELETE FROM quick_action WHERE quick_action.workspace_id = $1;
 
+-- name: DeleteWorkspaceWorkflows :exec
+-- Workflows carry no foreign keys by project rule, so every row of the three
+-- workflow tables is swept explicitly.
+WITH deleted_audit AS (
+    DELETE FROM workflow_audit WHERE workflow_audit.workspace_id = $1
+),
+deleted_versions AS (
+    DELETE FROM workflow_version WHERE workflow_version.workspace_id = $1
+)
+DELETE FROM workflow WHERE workflow.workspace_id = $1;
+
 -- name: DeleteWorkspaceAutopilotRuns :exec
 DELETE FROM autopilot_run
 WHERE autopilot_id IN (

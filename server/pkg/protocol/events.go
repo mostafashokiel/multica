@@ -142,6 +142,11 @@ const (
 	EventSquadUpdated = "squad:updated"
 	EventSquadDeleted = "squad:deleted"
 
+	// Workflow events
+	EventWorkflowCreated        = "workflow:created"
+	EventWorkflowUpdated        = "workflow:updated"
+	EventWorkflowVersionCreated = "workflow:version_created"
+
 	// Daemon events
 	EventDaemonHeartbeat               = "daemon:heartbeat"
 	EventDaemonHeartbeatAck            = "daemon:heartbeat_ack"

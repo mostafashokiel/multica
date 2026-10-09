@@ -30,6 +30,12 @@ const (
 	// either way. Turning it off stops new intake and triage runs but leaves
 	// existing Triage issues workable.
 	TriageV1 = "triage_v1"
+	// WorkflowsV1 gates the Workflows API: versioned definitions of the stages
+	// work moves through (agent stages, human approval gates, conditions). It
+	// adds no execution engine and changes nothing about how issues move. Off
+	// by default; with it off every /api/workflows endpoint answers 403
+	// `workflows_disabled`.
+	WorkflowsV1 = "workflows_v1"
 	// LocalSearchIndex gates the sync endpoints behind Web/Desktop local search
 	// (MUL-7754). On by default. Turning it off (FF_LOCAL_SEARCH_INDEX=off)
 	// makes those endpoints answer 404, so clients stop syncing and search
@@ -56,6 +62,7 @@ var frontendPublicFlags = []string{
 	BillingWorkspaceSubscriptions,
 	ComposioMCPApps,
 	PluginsV1,
+	WorkflowsV1,
 }
 
 func BillingWorkspaceSubscriptionsEnabled(ctx context.Context, flags *featureflag.Service) bool {
@@ -72,6 +79,10 @@ func PluginsV1Enabled(ctx context.Context, flags *featureflag.Service) bool {
 
 func TriageV1Enabled(ctx context.Context, flags *featureflag.Service) bool {
 	return flags.IsEnabled(ctx, TriageV1, false)
+}
+
+func WorkflowsV1Enabled(ctx context.Context, flags *featureflag.Service) bool {
+	return flags.IsEnabled(ctx, WorkflowsV1, false)
 }
 
 func LocalSearchIndexEnabled(ctx context.Context, flags *featureflag.Service) bool {

@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/multica-ai/multica/server/internal/auth"
+	"github.com/multica-ai/multica/server/internal/featureflags"
 	"github.com/multica-ai/multica/server/internal/testutil"
 )
 
@@ -497,6 +498,34 @@ func TestGetConfigExposesEnabledPluginsV1Flag(t *testing.T) {
 	}
 	if !cfg.FeatureFlags["plugins_v1"] {
 		t.Fatal("plugins_v1: want true with flag enabled, got false")
+	}
+}
+
+// The Workflows pages are hidden by this flag, so the client has to be able to
+// read it: off by default, and published once the deployment turns it on.
+func TestGetConfigExposesTheWorkflowsV1Flag(t *testing.T) {
+	read := func(h *Handler) AppConfig {
+		t.Helper()
+		w := httptest.NewRecorder()
+		h.GetConfig(w, httptest.NewRequest(http.MethodGet, "/api/config", nil))
+		if w.Code != http.StatusOK {
+			t.Fatalf("GetConfig: expected 200, got %d: %s", w.Code, w.Body.String())
+		}
+		var cfg AppConfig
+		if err := json.Unmarshal(w.Body.Bytes(), &cfg); err != nil {
+			t.Fatalf("decode config: %v", err)
+		}
+		return cfg
+	}
+
+	if read(&Handler{}).FeatureFlags["workflows_v1"] {
+		t.Fatal("workflows_v1: want false by default, got true")
+	}
+
+	h := &Handler{}
+	withFeatureFlag(t, h, featureflags.WorkflowsV1, true)
+	if !read(h).FeatureFlags["workflows_v1"] {
+		t.Fatal("workflows_v1: want true with flag enabled, got false")
 	}
 }
 
