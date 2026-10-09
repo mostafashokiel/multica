@@ -1,0 +1,139 @@
+{
+  "page": {
+    "title": "Workflows",
+    "empty": "Aucun workflow pour le moment.",
+    "empty_description": "Un workflow définit les étapes que le travail traverse, y compris les points d'approbation humaine. Demandez à un propriétaire ou à un administrateur de l'espace de travail d'en créer un.",
+    "table": {
+      "name": "Workflow",
+      "key": "Clé",
+      "version": "Version",
+      "status": "Statut",
+      "updated": "Mis à jour"
+    },
+    "load_failed": "Impossible de charger les workflows.",
+    "disabled_title": "Les workflows ne sont pas activés",
+    "disabled_description": "Un administrateur peut activer cette fonctionnalité pour le déploiement."
+  },
+  "status": {
+    "active": "Actif",
+    "archived": "Archivé"
+  },
+  "detail": {
+    "load_failed": "Impossible de charger ce workflow.",
+    "not_found": "Ce workflow n'existe pas.",
+    "back": "Retour aux workflows",
+    "tabs": {
+      "definition": "Définition",
+      "history": "Versions",
+      "activity": "Activité",
+      "diagram": "Diagramme"
+    },
+    "version_label": "Version {{version}}",
+    "latest_badge": "Dernière",
+    "no_version": "Ce workflow n'a pas encore de version enregistrée.",
+    "key": "Clé",
+    "owner_section": "Détails",
+    "revision": "Révision",
+    "hash": "Empreinte du contenu",
+    "created": "Créé",
+    "updated": "Mis à jour",
+    "description_empty": "Aucune description",
+    "viewing_version": "Version {{version}} affichée",
+    "back_to_latest": "Revenir à la dernière",
+    "version_load_failed": "Impossible de charger cette version.",
+    "used_by_title": "Utilisé par",
+    "used_by_empty": "Aucune squad ne suit encore ce workflow.",
+    "used_by_failed": "Impossible de charger les squads.",
+    "used_by_version": "Version {{version}}",
+    "used_by_current": "À jour",
+    "used_by_behind": "En retard : la dernière est la version {{latest}}"
+  },
+  "problems": {
+    "title": "Problèmes ({{count}})",
+    "none": "Aucun problème détecté",
+    "stage": "Étape {{id}}",
+    "line": "Ligne {{line}}"
+  },
+  "history": {
+    "empty": "Aucune version pour le moment.",
+    "note_empty": "Aucune note",
+    "version": "Version {{version}}",
+    "view": "Afficher",
+    "by_member": "par un membre",
+    "by_agent": "par un agent"
+  },
+  "activity": {
+    "empty": "Aucune activité pour le moment.",
+    "actions": {
+      "create": "Créé",
+      "save": "Nouvelle version enregistrée",
+      "restore": "Version restaurée",
+      "archive": "Archivé",
+      "unarchive": "Désarchivé",
+      "rename": "Renommé"
+    },
+    "unknown_action": "Modifié",
+    "version": "Version {{version}}"
+  },
+  "apply": {
+    "button": "Appliquer à une squad",
+    "title": "Appliquer à une squad",
+    "description": "Écrit la version {{version}} dans les instructions du leader de la squad. Le texte déjà présent est conservé ; seule la section balisée du workflow est remplacée.",
+    "squad_label": "Squad",
+    "squad_placeholder": "Choisir une squad",
+    "no_squads": "Cet espace de travail n'a pas encore de squad.",
+    "preview_label": "Ce que le leader recevra",
+    "preview_failed": "Impossible d'afficher un aperçu de cette version.",
+    "labels_title": "Libellés utilisés",
+    "labels_hint": "Créez ceux qui manquent ; l'application ne crée pas de libellés.",
+    "conflict_title": "Cette squad suit déjà un autre workflow",
+    "conflict_body": "Elle suit « {{workflow}} ». La remplacer par « {{key}} » ?",
+    "conflict_body_unnamed": "La remplacer par « {{key}} » ?",
+    "invalid_block": "Les instructions de la squad contiennent un marqueur de workflow endommagé. Corrigez-le ou supprimez-le, puis réessayez.",
+    "cancel": "Annuler",
+    "confirm": "Appliquer",
+    "confirm_replace": "Remplacer et appliquer",
+    "success": "Version {{version}} appliquée à {{squad}}",
+    "unchanged": "{{squad}} a déjà la version {{version}} ; rien n'a changé",
+    "failed": "Impossible d'appliquer le workflow",
+    "members_title": "Membres de la squad",
+    "members_hint": "L'application ajoute aussi à la squad les agents et les approbateurs que ce workflow nomme.",
+    "members_empty": "Ce workflow ne nomme ni agent ni approbateur.",
+    "member_add": "Sera ajouté",
+    "member_present": "Déjà dans la squad",
+    "member_unresolved": "Introuvable dans cet espace de travail ; il ne sera pas ajouté",
+    "member_agent": "Agent",
+    "member_person": "Personne",
+    "success_members_one": "Version {{version}} appliquée à {{squad}} et {{count}} membre ajouté",
+    "success_members_other": "Version {{version}} appliquée à {{squad}} et {{count}} membres ajoutés",
+    "members_only_one": "{{count}} membre ajouté à {{squad}} ; elle avait déjà la version {{version}}",
+    "members_only_other": "{{count}} membres ajoutés à {{squad}} ; elle avait déjà la version {{version}}",
+    "member_cannot_wake": "Son commentaire ne réveillera pas le responsable de la squad : il est privé. Ouvrez l’agent responsable et autorisez cette personne sous « Qui peut exécuter cet agent ».",
+    "member_cannot_run": "Le travail transmis après son commentaire n’atteindra pas {{agents}} : ces agents sont privés à quelqu’un d’autre. Autorisez cette personne sous « Qui peut exécuter cet agent » pour chacun."
+  },
+  "designer": {
+    "type": {
+      "agent": "Agent",
+      "human_gate": "Validation humaine",
+      "condition": "Condition",
+      "end": "Fin"
+    },
+    "edge": {
+      "approve": "approuvé",
+      "reject": "rejeté",
+      "then": "alors",
+      "else": "sinon"
+    },
+    "start": "Début",
+    "approvers": "Approbateurs : {{group}}",
+    "max_rework": "Reprises max. {{count}}",
+    "escalates": "Escalade après {{count}} h",
+    "problems_on_stage": "Problèmes sur cette étape : {{count}}",
+    "aria_label": "Diagramme du workflow de {{count}} étapes",
+    "legend": "Les lignes en pointillés renvoient le travail pour reprise. Le texte exact est dans l'onglet Définition.",
+    "transition": "{{from}} mène à {{to}}",
+    "cannot_draw": "Cette version ne peut pas être dessinée car sa définition n'a pas pu être lue. L'onglet Définition montre le texte.",
+    "loading": "Chargement du diagramme…",
+    "no_stages": "Cette version n'a pas encore d'étapes."
+  }
+}

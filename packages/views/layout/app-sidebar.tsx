@@ -73,7 +73,8 @@ import { chatSessionsOptions } from "@multica/core/chat/queries";
 import { countUnreadChatMessages } from "@multica/core/chat/unread";
 import { useChatStore } from "@multica/core/chat";
 import { api, ApiError } from "@multica/core/api";
-import { useConfigStore } from "@multica/core/config";
+import { useConfigStore, useFeatureEnabled } from "@multica/core/config";
+import { WORKFLOWS_V1_FLAG } from "@multica/core/feature-flags";
 import { pinListOptions } from "@multica/core/pins/queries";
 import { useDeletePin, useReorderPins } from "@multica/core/pins/mutations";
 import { issueDetailOptions } from "@multica/core/issues/queries";
@@ -120,6 +121,7 @@ type NavKey =
   | "autopilots"
   | "agents"
   | "squads"
+  | "workflows"
   | "usage"
   | "runtimes"
   | "skills"
@@ -136,6 +138,7 @@ type NavLabelKey =
   | "autopilots"
   | "agents"
   | "squads"
+  | "workflows"
   | "usage"
   | "runtimes"
   | "skills"
@@ -154,6 +157,11 @@ const workNav: { key: NavKey; labelKey: NavLabelKey }[] = [
   { key: "issues", labelKey: "issues" },
   { key: "projects", labelKey: "projects" },
   { key: "autopilots", labelKey: "autopilots" },
+];
+
+// Shown only while the `workflows_v1` flag is on for the deployment.
+const workflowsNavItems: { key: NavKey; labelKey: NavLabelKey }[] = [
+  { key: "workflows", labelKey: "workflows" },
 ];
 
 const aiTeamNav: { key: NavKey; labelKey: NavLabelKey }[] = [
@@ -443,6 +451,8 @@ export function AppSidebar({ topSlot, searchSlot, headerClassName, headerStyle }
   const { data: workspaces = EMPTY_WORKSPACES } = useQuery(workspaceListOptions());
   const { data: myInvitations = EMPTY_INVITATIONS } = useQuery(myInvitationListOptions());
   const workspaceCreationDisabled = useConfigStore((s) => s.workspaceCreationDisabled);
+  const workflowsEnabled = useFeatureEnabled(WORKFLOWS_V1_FLAG, false);
+  const visibleWorkNav = workflowsEnabled ? [...workNav, ...workflowsNavItems] : workNav;
 
   // On a phone the sidebar is a Sheet covering the page, so navigating out of
   // it has to dismiss it — otherwise the destination renders underneath and the
@@ -861,7 +871,7 @@ export function AppSidebar({ topSlot, searchSlot, headerClassName, headerStyle }
             <SidebarGroupLabel>{t(($) => $.sidebar.work_group)}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu className="gap-0.5">
-                {workNav.map((item) => {
+                {visibleWorkNav.map((item) => {
                   const href = p[item.key]();
                   const Icon = routeIconForPath(href);
                   const isActive = !isActivePinnedRoute && isNavActive(pathname, href);

@@ -1,5 +1,7 @@
 import { act, type ReactNode } from "react";
 import { buildIssueStatusCatalog } from "@multica/core/issue-statuses/queries";
+import { configStore } from "@multica/core/config";
+import { WORKFLOWS_V1_FLAG } from "@multica/core/feature-flags";
 
 vi.mock("@multica/core/issue-statuses/hooks", () => ({
   useIssueStatuses: () => buildIssueStatusCatalog([]),
@@ -219,6 +221,7 @@ vi.mock("@multica/core/paths", async (importOriginal) => ({
     autopilots: () => "/ws-test/autopilots",
     agents: () => "/ws-test/agents",
     squads: () => "/ws-test/squads",
+    workflows: () => "/ws-test/workflows",
     usage: () => "/ws-test/usage",
     runtimes: () => "/ws-test/runtimes",
     skills: () => "/ws-test/skills",
@@ -311,6 +314,7 @@ vi.mock("sonner", () => ({
 
 describe("SearchCommand", () => {
   beforeEach(() => {
+    configStore.getState().setFeatureFlags({});
     mockPush.mockReset();
     mockSearchIssues.mockReset().mockResolvedValue({ issues: [] });
     mockSearchProjects.mockReset().mockResolvedValue({ projects: [] });
@@ -391,6 +395,7 @@ describe("SearchCommand", () => {
   it("offers every workspace nav page, not a hand-maintained subset", async () => {
     const user = userEvent.setup();
     renderSearch();
+    configStore.getState().setFeatureFlags({ [WORKFLOWS_V1_FLAG]: true });
     const input = screen.getByPlaceholderText("Type a command or search...");
 
     // The Pages group is generated from WORKSPACE_PAGES — the same registry
@@ -407,6 +412,18 @@ describe("SearchCommand", () => {
         ),
       ).toBeInTheDocument();
     }
+  });
+
+  it("hides the Workflows page while workflows_v1 is off", async () => {
+    const user = userEvent.setup();
+    renderSearch();
+    const input = screen.getByPlaceholderText("Type a command or search...");
+
+    await user.type(input, "Workflows");
+    expect(
+      screen.queryByText((_, el) => el?.textContent === "Workflows" && el?.tagName === "SPAN"),
+    ).not.toBeInTheDocument();
+
   });
 
   it("does not surface a page on an incidental substring of a hidden keyword", async () => {

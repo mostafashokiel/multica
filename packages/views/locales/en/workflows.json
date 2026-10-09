@@ -1,0 +1,139 @@
+{
+  "page": {
+    "title": "Workflows",
+    "empty": "No workflows yet.",
+    "empty_description": "A workflow defines the stages work moves through, including human approval gates. Ask a workspace owner or admin to create one.",
+    "table": {
+      "name": "Workflow",
+      "key": "Key",
+      "version": "Version",
+      "status": "Status",
+      "updated": "Updated"
+    },
+    "load_failed": "Couldn't load workflows.",
+    "disabled_title": "Workflows are not enabled",
+    "disabled_description": "An administrator can turn this feature on for the deployment."
+  },
+  "status": {
+    "active": "Active",
+    "archived": "Archived"
+  },
+  "detail": {
+    "load_failed": "Couldn't load this workflow.",
+    "not_found": "This workflow doesn't exist.",
+    "back": "Back to workflows",
+    "tabs": {
+      "definition": "Definition",
+      "history": "Versions",
+      "activity": "Activity",
+      "diagram": "Diagram"
+    },
+    "version_label": "Version {{version}}",
+    "latest_badge": "Latest",
+    "no_version": "This workflow has no saved version yet.",
+    "key": "Key",
+    "owner_section": "Details",
+    "revision": "Revision",
+    "hash": "Content hash",
+    "created": "Created",
+    "updated": "Updated",
+    "description_empty": "No description",
+    "viewing_version": "Viewing version {{version}}",
+    "back_to_latest": "Back to latest",
+    "version_load_failed": "Couldn't load this version.",
+    "used_by_title": "Used by",
+    "used_by_empty": "No squad follows this workflow yet.",
+    "used_by_failed": "Couldn't load the squads.",
+    "used_by_version": "Version {{version}}",
+    "used_by_current": "Up to date",
+    "used_by_behind": "Behind: the latest is version {{latest}}"
+  },
+  "problems": {
+    "title": "Problems ({{count}})",
+    "none": "No problems found",
+    "stage": "Stage {{id}}",
+    "line": "Line {{line}}"
+  },
+  "history": {
+    "empty": "No versions yet.",
+    "note_empty": "No note",
+    "version": "Version {{version}}",
+    "view": "View",
+    "by_member": "by a member",
+    "by_agent": "by an agent"
+  },
+  "activity": {
+    "empty": "No activity yet.",
+    "actions": {
+      "create": "Created",
+      "save": "Saved a new version",
+      "restore": "Restored a version",
+      "archive": "Archived",
+      "unarchive": "Unarchived",
+      "rename": "Renamed"
+    },
+    "unknown_action": "Changed",
+    "version": "Version {{version}}"
+  },
+  "apply": {
+    "button": "Apply to squad",
+    "title": "Apply to a squad",
+    "description": "Writes version {{version}} into the squad leader's instructions. Text the squad already has is kept; only the marked workflow section is replaced.",
+    "squad_label": "Squad",
+    "squad_placeholder": "Choose a squad",
+    "no_squads": "There are no squads in this workspace yet.",
+    "preview_label": "What the leader will be told",
+    "preview_failed": "Couldn't preview this version.",
+    "labels_title": "Labels used",
+    "labels_hint": "Create any that are missing; applying does not create labels.",
+    "conflict_title": "This squad already follows another workflow",
+    "conflict_body": "It follows \"{{workflow}}\". Replace it with \"{{key}}\"?",
+    "conflict_body_unnamed": "Replace it with \"{{key}}\"?",
+    "invalid_block": "The squad's instructions contain a damaged workflow marker. Fix or remove it, then try again.",
+    "cancel": "Cancel",
+    "confirm": "Apply",
+    "confirm_replace": "Replace and apply",
+    "success": "Applied version {{version}} to {{squad}}",
+    "unchanged": "{{squad}} already has version {{version}}; nothing changed",
+    "failed": "Couldn't apply the workflow",
+    "members_title": "Squad members",
+    "members_hint": "Applying also adds the agents and approvers this workflow names to the squad.",
+    "members_empty": "This workflow names no agents or approvers.",
+    "member_add": "Will be added",
+    "member_present": "Already in the squad",
+    "member_unresolved": "Not found in this workspace; it will not be added",
+    "member_agent": "Agent",
+    "member_person": "Person",
+    "success_members_one": "Applied version {{version}} to {{squad}} and added {{count}} member",
+    "success_members_other": "Applied version {{version}} to {{squad}} and added {{count}} members",
+    "members_only_one": "Added {{count}} member to {{squad}}; it already had version {{version}}",
+    "members_only_other": "Added {{count}} members to {{squad}}; it already had version {{version}}",
+    "member_cannot_wake": "Their comment will not wake the squad leader: the leader is private. Open the leader agent and allow this person under “Who can run this agent”.",
+    "member_cannot_run": "Work handed on after their comment cannot reach {{agents}}: those agents are private to someone else. Allow this person under “Who can run this agent” for each."
+  },
+  "designer": {
+    "type": {
+      "agent": "Agent",
+      "human_gate": "Human gate",
+      "condition": "Condition",
+      "end": "End"
+    },
+    "edge": {
+      "approve": "approve",
+      "reject": "reject",
+      "then": "then",
+      "else": "else"
+    },
+    "start": "Start",
+    "approvers": "Approvers: {{group}}",
+    "max_rework": "Max rework {{count}}",
+    "escalates": "Escalates after {{count}} h",
+    "problems_on_stage": "Problems on this stage: {{count}}",
+    "aria_label": "Workflow diagram with {{count}} stages",
+    "legend": "Dashed lines send work back for rework. Open the Definition tab for the exact text.",
+    "transition": "{{from}} leads to {{to}}",
+    "cannot_draw": "This version can't be drawn because its definition couldn't be read. The Definition tab shows the text.",
+    "loading": "Loading the diagram…",
+    "no_stages": "This version has no stages yet."
+  }
+}

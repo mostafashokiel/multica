@@ -96,6 +96,9 @@ export function parseTabSubject(url: string): TabSubject {
       return id
         ? { kind: "actor", actorType: "squad", id }
         : { kind: "page", page: "squads" };
+    case "workflows":
+      // A workflow detail keeps the page tab: it has no avatar identity.
+      return { kind: "page", page: "workflows" };
     case "usage":
       return { kind: "page", page: "usage" };
     case "inbox":

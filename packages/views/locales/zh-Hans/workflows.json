@@ -1,0 +1,137 @@
+{
+  "page": {
+    "title": "工作流",
+    "empty": "暂无工作流。",
+    "empty_description": "工作流定义了工作流转的各个阶段，包括人工审批关卡。请让工作区所有者或管理员创建。",
+    "table": {
+      "name": "工作流",
+      "key": "标识",
+      "version": "版本",
+      "status": "状态",
+      "updated": "更新时间"
+    },
+    "load_failed": "无法加载工作流。",
+    "disabled_title": "工作流功能未启用",
+    "disabled_description": "管理员可以在部署中开启此功能。"
+  },
+  "status": {
+    "active": "启用",
+    "archived": "已归档"
+  },
+  "detail": {
+    "load_failed": "无法加载此工作流。",
+    "not_found": "此工作流不存在。",
+    "back": "返回工作流列表",
+    "tabs": {
+      "definition": "定义",
+      "history": "版本",
+      "activity": "活动",
+      "diagram": "图示"
+    },
+    "version_label": "版本 {{version}}",
+    "latest_badge": "最新",
+    "no_version": "此工作流尚无已保存的版本。",
+    "key": "标识",
+    "owner_section": "详情",
+    "revision": "修订号",
+    "hash": "内容哈希",
+    "created": "创建时间",
+    "updated": "更新时间",
+    "description_empty": "暂无描述",
+    "viewing_version": "正在查看版本 {{version}}",
+    "back_to_latest": "返回最新版本",
+    "version_load_failed": "无法加载此版本。",
+    "used_by_title": "使用该工作流的小队",
+    "used_by_empty": "还没有小队使用此工作流。",
+    "used_by_failed": "无法加载小队。",
+    "used_by_version": "版本 {{version}}",
+    "used_by_current": "已是最新",
+    "used_by_behind": "已落后：最新为版本 {{latest}}"
+  },
+  "problems": {
+    "title": "问题（{{count}}）",
+    "none": "未发现问题",
+    "stage": "阶段 {{id}}",
+    "line": "第 {{line}} 行"
+  },
+  "history": {
+    "empty": "暂无版本。",
+    "note_empty": "无备注",
+    "version": "版本 {{version}}",
+    "view": "查看",
+    "by_member": "由成员保存",
+    "by_agent": "由智能体保存"
+  },
+  "activity": {
+    "empty": "暂无活动。",
+    "actions": {
+      "create": "已创建",
+      "save": "保存了新版本",
+      "restore": "恢复了某个版本",
+      "archive": "已归档",
+      "unarchive": "已取消归档",
+      "rename": "已重命名"
+    },
+    "unknown_action": "已更改",
+    "version": "版本 {{version}}"
+  },
+  "apply": {
+    "button": "应用到小队",
+    "title": "应用到小队",
+    "description": "将版本 {{version}} 写入小队负责人的指令。小队已有的文字会保留，只替换带标记的工作流部分。",
+    "squad_label": "小队",
+    "squad_placeholder": "选择小队",
+    "no_squads": "此工作区还没有小队。",
+    "preview_label": "负责人将收到的内容",
+    "preview_failed": "无法预览此版本。",
+    "labels_title": "使用的标签",
+    "labels_hint": "请创建缺少的标签；应用时不会自动创建标签。",
+    "conflict_title": "此小队已在使用另一个工作流",
+    "conflict_body": "它正在使用“{{workflow}}”。要替换为“{{key}}”吗？",
+    "conflict_body_unnamed": "要替换为“{{key}}”吗？",
+    "invalid_block": "小队指令中的工作流标记已损坏。请修复或删除后重试。",
+    "cancel": "取消",
+    "confirm": "应用",
+    "confirm_replace": "替换并应用",
+    "success": "已将版本 {{version}} 应用到 {{squad}}",
+    "unchanged": "{{squad}} 已是版本 {{version}}，未作更改",
+    "failed": "无法应用工作流",
+    "members_title": "小队成员",
+    "members_hint": "应用时还会把此工作流提到的智能体和审批人加入小队。",
+    "members_empty": "此工作流没有提到智能体或审批人。",
+    "member_add": "将被加入",
+    "member_present": "已在小队中",
+    "member_unresolved": "在此工作区中找不到，不会被加入",
+    "member_agent": "智能体",
+    "member_person": "成员",
+    "success_members_other": "已将版本 {{version}} 应用到 {{squad}}，并加入 {{count}} 名成员",
+    "members_only_other": "已向 {{squad}} 加入 {{count}} 名成员；它已是版本 {{version}}",
+    "member_cannot_wake": "他们的评论不会唤醒小队负责人：该智能体是私有的。请打开该负责人智能体，在“谁可以运行此智能体”中允许此人。",
+    "member_cannot_run": "他们评论之后交办的工作无法送达 {{agents}}：这些智能体对其他人是私有的。请在每个智能体的“谁可以运行此智能体”中允许此人。"
+  },
+  "designer": {
+    "type": {
+      "agent": "智能体",
+      "human_gate": "人工关卡",
+      "condition": "条件",
+      "end": "结束"
+    },
+    "edge": {
+      "approve": "批准",
+      "reject": "驳回",
+      "then": "是",
+      "else": "否"
+    },
+    "start": "起点",
+    "approvers": "审批人：{{group}}",
+    "max_rework": "最多返工 {{count}} 次",
+    "escalates": "{{count}} 小时后升级",
+    "problems_on_stage": "此阶段的问题：{{count}}",
+    "aria_label": "包含 {{count}} 个阶段的工作流图",
+    "legend": "虚线表示退回返工。完整文本请查看“定义”标签。",
+    "transition": "{{from}} 流向 {{to}}",
+    "cannot_draw": "无法绘制此版本，因为其定义无法读取。“定义”标签中可查看文本。",
+    "loading": "正在加载图示…",
+    "no_stages": "此版本还没有阶段。"
+  }
+}

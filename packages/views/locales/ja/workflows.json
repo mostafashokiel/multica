@@ -1,0 +1,137 @@
+{
+  "page": {
+    "title": "ワークフロー",
+    "empty": "ワークフローはまだありません。",
+    "empty_description": "ワークフローは、人による承認ゲートを含め、作業が進むステージを定義します。作成はワークスペースのオーナーか管理者に依頼してください。",
+    "table": {
+      "name": "ワークフロー",
+      "key": "キー",
+      "version": "バージョン",
+      "status": "ステータス",
+      "updated": "更新日時"
+    },
+    "load_failed": "ワークフローを読み込めませんでした。",
+    "disabled_title": "ワークフローは有効になっていません",
+    "disabled_description": "管理者がこのデプロイメントでこの機能を有効にできます。"
+  },
+  "status": {
+    "active": "有効",
+    "archived": "アーカイブ済み"
+  },
+  "detail": {
+    "load_failed": "このワークフローを読み込めませんでした。",
+    "not_found": "このワークフローは存在しません。",
+    "back": "ワークフロー一覧に戻る",
+    "tabs": {
+      "definition": "定義",
+      "history": "バージョン",
+      "activity": "アクティビティ",
+      "diagram": "図"
+    },
+    "version_label": "バージョン {{version}}",
+    "latest_badge": "最新",
+    "no_version": "このワークフローには保存されたバージョンがまだありません。",
+    "key": "キー",
+    "owner_section": "詳細",
+    "revision": "リビジョン",
+    "hash": "コンテンツハッシュ",
+    "created": "作成日時",
+    "updated": "更新日時",
+    "description_empty": "説明はありません",
+    "viewing_version": "バージョン {{version}} を表示中",
+    "back_to_latest": "最新に戻る",
+    "version_load_failed": "このバージョンを読み込めませんでした。",
+    "used_by_title": "使用中のスクワッド",
+    "used_by_empty": "このワークフローに従っているスクワッドはまだありません。",
+    "used_by_failed": "スクワッドを読み込めませんでした。",
+    "used_by_version": "バージョン {{version}}",
+    "used_by_current": "最新です",
+    "used_by_behind": "遅れています：最新はバージョン {{latest}}"
+  },
+  "problems": {
+    "title": "問題（{{count}}）",
+    "none": "問題は見つかりませんでした",
+    "stage": "ステージ {{id}}",
+    "line": "{{line}} 行目"
+  },
+  "history": {
+    "empty": "バージョンはまだありません。",
+    "note_empty": "メモなし",
+    "version": "バージョン {{version}}",
+    "view": "表示",
+    "by_member": "メンバーによる",
+    "by_agent": "エージェントによる"
+  },
+  "activity": {
+    "empty": "アクティビティはまだありません。",
+    "actions": {
+      "create": "作成しました",
+      "save": "新しいバージョンを保存しました",
+      "restore": "バージョンを復元しました",
+      "archive": "アーカイブしました",
+      "unarchive": "アーカイブを解除しました",
+      "rename": "名前を変更しました"
+    },
+    "unknown_action": "変更しました",
+    "version": "バージョン {{version}}"
+  },
+  "apply": {
+    "button": "スクワッドに適用",
+    "title": "スクワッドに適用",
+    "description": "バージョン {{version}} をスクワッドリーダーの指示に書き込みます。スクワッドにある既存のテキストは残り、マーカーで囲まれたワークフロー部分のみが置き換わります。",
+    "squad_label": "スクワッド",
+    "squad_placeholder": "スクワッドを選択",
+    "no_squads": "このワークスペースにはまだスクワッドがありません。",
+    "preview_label": "リーダーに伝わる内容",
+    "preview_failed": "このバージョンをプレビューできませんでした。",
+    "labels_title": "使用するラベル",
+    "labels_hint": "不足しているラベルを作成してください。適用時にラベルは作成されません。",
+    "conflict_title": "このスクワッドは別のワークフローに従っています",
+    "conflict_body": "現在「{{workflow}}」に従っています。「{{key}}」に置き換えますか？",
+    "conflict_body_unnamed": "「{{key}}」に置き換えますか？",
+    "invalid_block": "スクワッドの指示内のワークフローマーカーが壊れています。修正または削除してからやり直してください。",
+    "cancel": "キャンセル",
+    "confirm": "適用",
+    "confirm_replace": "置き換えて適用",
+    "success": "バージョン {{version}} を {{squad}} に適用しました",
+    "unchanged": "{{squad}} は既にバージョン {{version}} です。変更はありません",
+    "failed": "ワークフローを適用できませんでした",
+    "members_title": "スクワッドのメンバー",
+    "members_hint": "適用すると、このワークフローが指定するエージェントと承認者もスクワッドに追加されます。",
+    "members_empty": "このワークフローにはエージェントも承認者も指定されていません。",
+    "member_add": "追加されます",
+    "member_present": "すでにスクワッドにいます",
+    "member_unresolved": "このワークスペースに見つからないため、追加されません",
+    "member_agent": "エージェント",
+    "member_person": "メンバー",
+    "success_members_other": "バージョン {{version}} を {{squad}} に適用し、メンバー {{count}}名を追加しました",
+    "members_only_other": "{{squad}} にメンバー {{count}}名を追加しました。バージョン {{version}} はすでに適用済みです",
+    "member_cannot_wake": "この人のコメントではスクワッドのリーダーは起動しません：リーダーは非公開です。リーダーのエージェントを開き、「このエージェントを実行できる人」でこの人を許可してください。",
+    "member_cannot_run": "この人のコメント後に引き継がれる作業は {{agents}} に届きません：これらのエージェントは他の人専用です。各エージェントの「このエージェントを実行できる人」でこの人を許可してください。"
+  },
+  "designer": {
+    "type": {
+      "agent": "エージェント",
+      "human_gate": "人による承認",
+      "condition": "条件",
+      "end": "終了"
+    },
+    "edge": {
+      "approve": "承認",
+      "reject": "却下",
+      "then": "真",
+      "else": "偽"
+    },
+    "start": "開始",
+    "approvers": "承認者: {{group}}",
+    "max_rework": "最大差し戻し {{count}} 回",
+    "escalates": "{{count}} 時間後にエスカレーション",
+    "problems_on_stage": "このステージの問題: {{count}}",
+    "aria_label": "{{count}} 個のステージを持つワークフロー図",
+    "legend": "破線は差し戻し（やり直し）を表します。正確なテキストは「定義」タブで確認できます。",
+    "transition": "{{from}} は {{to}} へ進みます",
+    "cannot_draw": "定義を読み取れなかったため、このバージョンは描画できません。「定義」タブでテキストを確認できます。",
+    "loading": "図を読み込み中…",
+    "no_stages": "このバージョンにはまだステージがありません。"
+  }
+}

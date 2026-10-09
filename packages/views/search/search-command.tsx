@@ -39,6 +39,8 @@ import {
 import { issueDetailOptions, issueTimelineOptions } from "@multica/core/issues/queries";
 import { useWorkspaceId } from "@multica/core";
 import { useIssueStatuses } from "@multica/core/issue-statuses/hooks";
+import { useFeatureEnabled } from "@multica/core/config";
+import { WORKFLOWS_V1_FLAG } from "@multica/core/feature-flags";
 import { useWorkspacePaths, WORKSPACE_PAGES } from "@multica/core/paths";
 import type { WorkspacePageKey, WorkspacePaths } from "@multica/core/paths";
 import { useModalStore } from "@multica/core/modals";
@@ -98,6 +100,7 @@ const PAGE_KEYWORDS: Record<WorkspacePageKey, string[]> = {
   autopilots: ["autopilot", "autopilots", "automation", "schedule", "cron", "webhook", "自动化", "定时"],
   agents: ["agents", "bots", "ai", "智能体"],
   squads: ["squads", "teams", "小队", "团队"],
+  workflows: ["workflows", "stages", "approval", "gates", "工作流", "审批"],
   usage: ["usage", "analytics", "stats", "metrics", "统计", "分析", "用量"],
   runtimes: ["runtimes", "environments", "machines", "运行时"],
   skills: ["skills", "library", "技能"],
@@ -317,14 +320,17 @@ export function SearchCommand() {
   // copy under `search.pages`: one translated string per page, so the palette
   // can never disagree with the sidebar about what a page is called.
   const { t: tNav } = useT("layout");
+  // Pages behind a feature flag stay out of the palette while it is off, as
+  // they do in the sidebar.
+  const workflowsEnabled = useFeatureEnabled(WORKFLOWS_V1_FLAG, false);
   const navPages = useMemo<NavPage[]>(
     () =>
-      NAV_PAGE_KEYS.map((key) => ({
+      NAV_PAGE_KEYS.filter((key) => key !== "workflows" || workflowsEnabled).map((key) => ({
         key,
         label: tNav(($) => $.nav[WORKSPACE_PAGES[key].navKey]),
         keywords: PAGE_KEYWORDS[key],
       })),
-    [tNav],
+    [tNav, workflowsEnabled],
   );
   const { pathname, getShareableUrl } = useNavigation();
   const intentNavigate = useIntentNavigate();
