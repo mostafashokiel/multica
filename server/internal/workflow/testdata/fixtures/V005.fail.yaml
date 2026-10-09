@@ -1,0 +1,25 @@
+apiVersion: composer.noqodi/v1
+kind: Workflow
+metadata:
+  id: fixture
+  version: 1
+  owner: tester
+target:
+  squad:
+    name: Squad
+    leader: lead
+approvers:
+  qa: [user:u1]
+start: build
+stages:
+  - id: build
+    type: agent
+    agent: builder
+    next: review
+  - id: review
+    type: human_gate
+    approvers: qa
+    on_approve: done
+    on_reject: build
+  - id: done
+    type: end
