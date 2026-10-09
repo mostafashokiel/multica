@@ -17,6 +17,7 @@ vi.mock("@multica/core/api", async (importOriginal) => ({
     listWorkflowAudit: vi.fn(),
     listSquads: vi.fn(),
     listWorkflowSquads: vi.fn(),
+    getWorkflowPipeline: vi.fn(),
     renderWorkflow: vi.fn(),
     applyWorkflow: vi.fn(),
   },
@@ -110,6 +111,7 @@ beforeEach(() => {
   vi.mocked(api.listWorkflowAudit).mockReset();
   vi.mocked(api.listSquads).mockReset();
   vi.mocked(api.listWorkflowSquads).mockReset();
+  vi.mocked(api.getWorkflowPipeline).mockReset();
   vi.mocked(api.listWorkflowSquads).mockResolvedValue({ squads: [] });
   vi.mocked(api.renderWorkflow).mockReset();
   vi.mocked(api.applyWorkflow).mockReset();

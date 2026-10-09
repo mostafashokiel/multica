@@ -34,6 +34,7 @@ describe("paths.workspace(slug)", () => {
     expect(ws.squads()).toBe("/acme/squads");
     expect(ws.squadDetail("sq_1")).toBe("/acme/squads/sq_1");
     expect(ws.workflows()).toBe("/acme/workflows");
+    expect(ws.pipeline()).toBe("/acme/pipeline");
     expect(ws.workflowDetail("wf 1")).toBe("/acme/workflows/wf%201");
     expect(ws.workflowNew()).toBe("/acme/workflows/new");
     expect(ws.workflowEdit("wf 1")).toBe("/acme/workflows/wf%201/edit");

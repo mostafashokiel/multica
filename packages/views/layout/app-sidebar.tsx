@@ -122,6 +122,7 @@ type NavKey =
   | "agents"
   | "squads"
   | "workflows"
+  | "pipeline"
   | "usage"
   | "runtimes"
   | "skills"
@@ -139,6 +140,7 @@ type NavLabelKey =
   | "agents"
   | "squads"
   | "workflows"
+  | "pipeline"
   | "usage"
   | "runtimes"
   | "skills"
@@ -160,7 +162,9 @@ const workNav: { key: NavKey; labelKey: NavLabelKey }[] = [
 ];
 
 // Shown only while the `workflows_v1` flag is on for the deployment.
+// The pipeline (what is in flight) comes before the workflows (how work is defined).
 const workflowsNavItems: { key: NavKey; labelKey: NavLabelKey }[] = [
+  { key: "pipeline", labelKey: "pipeline" },
   { key: "workflows", labelKey: "workflows" },
 ];
 

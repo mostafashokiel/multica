@@ -262,5 +262,32 @@
     "group_filter": "メンバーを絞り込む",
     "group_no_match": "一致するメンバーがいません。",
     "group_all_added": "登録メンバー全員がすでにこのグループにいます。"
+  },
+  "pipeline": {
+    "summary_other": "このワークフローに従うタスクは {{count}}件です",
+    "truncated": "最近更新された {{count}}件を表示しています。",
+    "refresh_hint": "スクワッドのリーダーが管理する wf: と phase: ラベルから読み取り、15秒ごとに更新します。",
+    "empty": "このワークフローに従うタスクはまだありません。",
+    "empty_hint": "ラベル {{label}} を持つタスクがこのワークフローに従います。",
+    "load_failed": "パイプラインを読み込めませんでした。",
+    "stage_empty": "なし",
+    "no_stage_title": "未着手",
+    "no_stage_hint": "ワークフローのラベルはありますが、フェーズのラベルがまだありません。",
+    "conflicting_title": "要確認：フェーズのラベルが複数あります",
+    "conflicting_hint": "リーダーはこれらで手を止め、人にラベルの修正を依頼します。",
+    "unknown_title": "要確認：不明なステージ",
+    "unknown_hint": "フェーズのラベルがバージョン {{version}} のどのステージにも一致しません。ステージの名前変更または削除の可能性があります。",
+    "labels": "ラベル：{{labels}}",
+    "waiting_for": "{{names}} の対応待ち",
+    "waiting_nobody": "承認者を待っていますが、登録メンバーがいません",
+    "waiting_unregistered_other": "ほか未登録 {{count}}名",
+    "page_title": "パイプライン",
+    "open_button": "パイプライン",
+    "workflow_label": "ワークフロー",
+    "squad_label": "スクワッド",
+    "squad_all": "すべてのスクワッド",
+    "squad_none": "スクワッド未割り当て",
+    "no_workflows": "ワークフローはまだありません。作成すると、そのパイプラインがここに表示されます。",
+    "empty_filtered": "このスクワッドには、このワークフローに従うタスクがありません。"
   }
 }

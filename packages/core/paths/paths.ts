@@ -54,6 +54,7 @@ function workspaceScoped(slug: string) {
     squads: () => `${ws}/squads`,
     squadDetail: (id: string) => `${ws}/squads/${encode(id)}`,
     workflows: () => `${ws}/workflows`,
+    pipeline: () => `${ws}/pipeline`,
     workflowNew: () => `${ws}/workflows/new`,
     workflowDetail: (id: string) => `${ws}/workflows/${encode(id)}`,
     workflowEdit: (id: string) => `${ws}/workflows/${encode(id)}/edit`,

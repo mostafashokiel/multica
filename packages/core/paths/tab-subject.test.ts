@@ -15,6 +15,7 @@ describe("parseTabSubject", () => {
     ["/acme/agents", { kind: "page", page: "agents" }],
     ["/acme/squads", { kind: "page", page: "squads" }],
     ["/acme/workflows", { kind: "page", page: "workflows" }],
+    ["/acme/pipeline", { kind: "page", page: "pipeline" }],
     ["/acme/workflows/wf-1", { kind: "page", page: "workflows" }],
     ["/acme/usage", { kind: "page", page: "usage" }],
     ["/acme/runtimes", { kind: "page", page: "runtimes" }],

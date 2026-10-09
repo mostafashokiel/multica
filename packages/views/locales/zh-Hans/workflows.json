@@ -262,5 +262,32 @@
     "group_filter": "筛选成员",
     "group_no_match": "没有匹配的成员。",
     "group_all_added": "所有已注册成员都已在此分组中。"
+  },
+  "pipeline": {
+    "summary_other": "{{count}} 个任务遵循此工作流",
+    "truncated": "仅显示最近更新的 {{count}} 个。",
+    "refresh_hint": "根据小队负责人维护的 wf: 和 phase: 标签读取，每 15 秒刷新一次。",
+    "empty": "还没有任务遵循此工作流。",
+    "empty_hint": "任务带有标签 {{label}} 即视为遵循它。",
+    "load_failed": "无法加载流水线。",
+    "stage_empty": "暂无",
+    "no_stage_title": "未开始",
+    "no_stage_hint": "带有工作流标签，但还没有阶段标签。",
+    "conflicting_title": "需要处理：有多个阶段标签",
+    "conflicting_hint": "负责人遇到这类任务会停下，并请人修正标签。",
+    "unknown_title": "需要处理：未知阶段",
+    "unknown_hint": "阶段标签没有对应版本 {{version}} 中的任何阶段。该阶段可能已被重命名或移除。",
+    "labels": "标签：{{labels}}",
+    "waiting_for": "等待 {{names}}",
+    "waiting_nobody": "正在等待审批人，但没有已注册的成员",
+    "waiting_unregistered_other": "另有 {{count}} 位未注册",
+    "page_title": "流水线",
+    "open_button": "流水线",
+    "workflow_label": "工作流",
+    "squad_label": "小队",
+    "squad_all": "所有小队",
+    "squad_none": "未分配给小队",
+    "no_workflows": "还没有工作流。创建一个后即可在这里查看它的流水线。",
+    "empty_filtered": "此小队没有任务遵循此工作流。"
   }
 }

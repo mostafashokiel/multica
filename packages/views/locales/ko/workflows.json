@@ -262,5 +262,32 @@
     "group_filter": "멤버 필터",
     "group_no_match": "일치하는 멤버가 없습니다.",
     "group_all_added": "등록된 모든 멤버가 이미 이 그룹에 있습니다."
+  },
+  "pipeline": {
+    "summary_other": "이 워크플로를 따르는 태스크 {{count}}개",
+    "truncated": "최근 업데이트된 {{count}}개만 표시합니다.",
+    "refresh_hint": "스쿼드 리더가 관리하는 wf: 및 phase: 라벨에서 읽으며 15초마다 새로고침됩니다.",
+    "empty": "이 워크플로를 따르는 태스크가 아직 없습니다.",
+    "empty_hint": "{{label}} 라벨이 있는 태스크가 이 워크플로를 따릅니다.",
+    "load_failed": "파이프라인을 불러오지 못했습니다.",
+    "stage_empty": "없음",
+    "no_stage_title": "시작 전",
+    "no_stage_hint": "워크플로 라벨은 있지만 아직 단계 라벨이 없습니다.",
+    "conflicting_title": "확인 필요: 단계 라벨이 여러 개",
+    "conflicting_hint": "리더는 이런 태스크에서 멈추고 사람에게 라벨 수정을 요청합니다.",
+    "unknown_title": "확인 필요: 알 수 없는 단계",
+    "unknown_hint": "단계 라벨이 버전 {{version}}의 어떤 단계와도 일치하지 않습니다. 단계 이름이 바뀌었거나 삭제되었을 수 있습니다.",
+    "labels": "라벨: {{labels}}",
+    "waiting_for": "{{names}} 님을 기다리는 중",
+    "waiting_nobody": "승인자를 기다리고 있지만 등록된 멤버가 없습니다",
+    "waiting_unregistered_other": "미등록 {{count}}명 추가",
+    "page_title": "파이프라인",
+    "open_button": "파이프라인",
+    "workflow_label": "워크플로",
+    "squad_label": "스쿼드",
+    "squad_all": "모든 스쿼드",
+    "squad_none": "스쿼드에 할당되지 않음",
+    "no_workflows": "아직 워크플로가 없습니다. 만들면 여기에서 파이프라인을 볼 수 있습니다.",
+    "empty_filtered": "이 스쿼드에는 이 워크플로를 따르는 태스크가 없습니다."
   }
 }

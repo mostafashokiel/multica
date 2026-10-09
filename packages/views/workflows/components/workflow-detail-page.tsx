@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { CircleAlert, CircleCheck, Pencil, Send, Workflow } from "lucide-react";
+import { CircleAlert, CircleCheck, Columns3, Pencil, Send, Workflow } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { ApiError } from "@multica/core/api";
 import { useWorkspaceId } from "@multica/core/hooks";
@@ -109,6 +109,12 @@ export function WorkflowDetailPage() {
       }
       actions={
         <>
+          {workflow ? (
+            <Button size="sm" variant="outline" onClick={() => push(`${p.pipeline()}?workflow=${encodeURIComponent(workflow.key)}`)}>
+              <Columns3 aria-hidden="true" className="size-3.5" />
+              {t(($) => $.pipeline.open_button)}
+            </Button>
+          ) : null}
           {canManage && workflow ? (
             <Button size="sm" variant="outline" onClick={() => push(p.workflowEdit(workflow.id))}>
               <Pencil aria-hidden="true" className="size-3.5" />

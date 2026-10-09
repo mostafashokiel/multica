@@ -147,6 +147,7 @@ vi.mock("@multica/core/paths", async (importOriginal) => ({
     agents: () => "/acme/agents",
     squads: () => "/acme/squads",
     workflows: () => "/acme/workflows",
+    pipeline: () => "/acme/pipeline",
     usage: () => "/acme/usage",
     runtimes: () => "/acme/runtimes",
     skills: () => "/acme/skills",
@@ -418,6 +419,7 @@ describe("workflows nav item", () => {
     const { container } = render(<AppSidebar />);
 
     expect(container.querySelector('button[data-href="/acme/workflows"]')).toBeNull();
+    expect(container.querySelector('button[data-href="/acme/pipeline"]')).toBeNull();
     expect(container.querySelector('button[data-href="/acme/autopilots"]')).not.toBeNull();
   });
 
@@ -432,6 +434,15 @@ describe("workflows nav item", () => {
     );
     expect(item?.textContent).toBe("Workflows");
 
+    // The pipeline sits right before it, in the same group.
+    const pipeline = container.querySelector('button[data-href="/acme/pipeline"]');
+    expect(pipeline).not.toBeNull();
+    expect(pipeline?.className).toBe(item?.className);
+    expect(pipeline?.textContent).toBe("Pipeline");
+    expect(pipeline!.compareDocumentPosition(item!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // ...and nothing sits between them.
+    const nav = Array.from(container.querySelectorAll("button[data-href]"));
+    expect(nav.indexOf(item as Element) - nav.indexOf(pipeline as Element)).toBe(1);
   });
 });
 

@@ -222,6 +222,7 @@ vi.mock("@multica/core/paths", async (importOriginal) => ({
     agents: () => "/ws-test/agents",
     squads: () => "/ws-test/squads",
     workflows: () => "/ws-test/workflows",
+    pipeline: () => "/ws-test/pipeline",
     usage: () => "/ws-test/usage",
     runtimes: () => "/ws-test/runtimes",
     skills: () => "/ws-test/skills",
@@ -414,7 +415,7 @@ describe("SearchCommand", () => {
     }
   });
 
-  it("hides the Workflows page while workflows_v1 is off", async () => {
+  it("hides the Workflows and Pipeline pages while workflows_v1 is off", async () => {
     const user = userEvent.setup();
     renderSearch();
     const input = screen.getByPlaceholderText("Type a command or search...");
@@ -424,6 +425,11 @@ describe("SearchCommand", () => {
       screen.queryByText((_, el) => el?.textContent === "Workflows" && el?.tagName === "SPAN"),
     ).not.toBeInTheDocument();
 
+    await user.clear(input);
+    await user.type(input, "Pipeline");
+    expect(
+      screen.queryByText((_, el) => el?.textContent === "Pipeline" && el?.tagName === "SPAN"),
+    ).not.toBeInTheDocument();
   });
 
   it("does not surface a page on an incidental substring of a hidden keyword", async () => {

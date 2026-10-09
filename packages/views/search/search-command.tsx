@@ -101,6 +101,7 @@ const PAGE_KEYWORDS: Record<WorkspacePageKey, string[]> = {
   agents: ["agents", "bots", "ai", "智能体"],
   squads: ["squads", "teams", "小队", "团队"],
   workflows: ["workflows", "stages", "approval", "gates", "工作流", "审批"],
+  pipeline: ["pipeline", "board", "stages", "in flight", "流水线"],
   usage: ["usage", "analytics", "stats", "metrics", "统计", "分析", "用量"],
   runtimes: ["runtimes", "environments", "machines", "运行时"],
   skills: ["skills", "library", "技能"],
@@ -325,7 +326,7 @@ export function SearchCommand() {
   const workflowsEnabled = useFeatureEnabled(WORKFLOWS_V1_FLAG, false);
   const navPages = useMemo<NavPage[]>(
     () =>
-      NAV_PAGE_KEYS.filter((key) => key !== "workflows" || workflowsEnabled).map((key) => ({
+      NAV_PAGE_KEYS.filter((key) => (key !== "workflows" && key !== "pipeline") || workflowsEnabled).map((key) => ({
         key,
         label: tNav(($) => $.nav[WORKSPACE_PAGES[key].navKey]),
         keywords: PAGE_KEYWORDS[key],
