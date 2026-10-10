@@ -232,7 +232,8 @@
       "open_failed": "无法打开该版本。",
       "restored": "已将版本 {{from}} 恢复为版本 {{to}}。",
       "restore_failed": "无法恢复该版本。"
-    }
+    },
+    "key_taken": "此工作区已有键为“{{key}}”的工作流。请在“工作流设置”中修改键，或打开那个工作流并在其中导入这段文本以添加新版本。"
   },
   "properties": {
     "stage_title": "{{type}}阶段",

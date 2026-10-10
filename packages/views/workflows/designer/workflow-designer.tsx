@@ -111,7 +111,7 @@ function fingerprint(def: WorkflowDefinition, positions: Positions): string {
 
 type Tab = "canvas" | "yaml" | "versions";
 
-type Banner = { kind: "conflict"; latest: number } | { kind: "invalid"; issues: string[] } | { kind: "failed" } | null;
+type Banner = { kind: "conflict"; latest: number } | { kind: "key_taken"; key: string } | { kind: "invalid"; issues: string[] } | { kind: "failed" } | null;
 
 function DesignerInner({ workflowId, initial, onCreated, initialTab }: WorkflowDesignerProps) {
   const { t } = useT("workflows");
@@ -451,7 +451,8 @@ function DesignerInner({ workflowId, initial, onCreated, initialTab }: WorkflowD
       toast.success(problems === 0 ? t(($) => $.editor.saved, { version }) : t(($) => $.editor.saved_with_problems, { version }));
       if (isNew) onCreated(result.workflow.id);
     } catch (error) {
-      setBanner(describeFailure(error));
+      // Creating can only be refused with a conflict when the key is already used in this workspace.
+      setBanner(isNew && error instanceof ApiError && error.status === 409 ? { kind: "key_taken", key: definition.metadata.id } : describeFailure(error));
     } finally {
       setSaving(false);
     }
@@ -703,6 +704,8 @@ function BannerView({ banner }: { banner: NonNullable<Banner> }) {
     <div role="alert" className="border-b border-destructive/30 bg-destructive/5 px-4 py-2 text-body text-destructive">
       {banner.kind === "conflict" ? (
         <p>{t(($) => $.editor.conflict, { version: banner.latest })}</p>
+      ) : banner.kind === "key_taken" ? (
+        <p>{t(($) => $.editor.key_taken, { key: banner.key })}</p>
       ) : banner.kind === "invalid" ? (
         <>
           <p>{t(($) => $.editor.invalid)}</p>

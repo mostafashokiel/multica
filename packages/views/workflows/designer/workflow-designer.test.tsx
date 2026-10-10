@@ -161,6 +161,21 @@ describe("a new workflow", () => {
   });
 });
 
+describe("saving a new workflow under a key that is taken", () => {
+  it("says that the key is taken and what to do, not just that saving failed, and keeps the work", async () => {
+    vi.mocked(api.createWorkflow).mockRejectedValue(new ApiError('a workflow with the key "demo" already exists', 409, "Conflict", { error: 'a workflow with the key "demo" already exists' }));
+    const { container } = renderDesigner({ initial: initialFor(updateMetadata(emptyDefinition(), { id: "demo" }), 0) });
+    const user = userEvent.setup();
+    await user.click(within(screen.getByLabelText("Stages")).getByRole("button", { name: "End" }));
+    await waitFor(() => expect(nodeCount(container)).toBe(1));
+
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent('A workflow with the key "demo" already exists in this workspace. Change the key under Workflow settings');
+    expect(nodeCount(container)).toBe(1);
+  });
+});
+
 describe("an existing workflow", () => {
   const open = () => initialFor(pilotish(), 3);
 

@@ -234,7 +234,8 @@
       "open_failed": "Couldn't open that version.",
       "restored": "Restored version {{from}} as version {{to}}.",
       "restore_failed": "Couldn't restore that version."
-    }
+    },
+    "key_taken": "A workflow with the key \"{{key}}\" already exists in this workspace. Change the key under Workflow settings, or open that workflow and import this text there to add a version."
   },
   "properties": {
     "stage_title": "{{type}} stage",

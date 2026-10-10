@@ -234,7 +234,8 @@
       "open_failed": "Impossible d'ouvrir cette version.",
       "restored": "Version {{from}} restaurée en version {{to}}.",
       "restore_failed": "Impossible de restaurer cette version."
-    }
+    },
+    "key_taken": "Un workflow avec la clé « {{key}} » existe déjà dans cet espace de travail. Changez la clé dans les paramètres du workflow, ou ouvrez ce workflow et importez ce texte pour ajouter une version."
   },
   "properties": {
     "stage_title": "Étape : {{type}}",
