@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { CircleAlert, CircleCheck, Columns3, Pencil, Send, Workflow } from "lucide-react";
+import { CircleAlert, CircleCheck, Columns3, Pencil, PenLine, Send, Workflow } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { ApiError } from "@multica/core/api";
 import { useWorkspaceId } from "@multica/core/hooks";
@@ -32,6 +32,7 @@ import { YamlExportButtons, yamlFileName } from "../designer/yaml-actions";
 import { cn } from "@multica/ui/lib/utils";
 import { LazyWorkflowDiagram } from "../designer/lazy-workflow-diagram";
 import { ApplyWorkflowDialog } from "./apply-workflow-dialog";
+import { RenameWorkflowDialog } from "./rename-workflow-dialog";
 import { BreadcrumbHeader } from "../../layout/breadcrumb-header";
 import { CollectionPageState } from "../../layout/collection-page";
 import { PAGE_GUTTER, PAGE_RAIL } from "../../layout/page-header";
@@ -58,6 +59,7 @@ export function WorkflowDetailPage() {
   // null = the latest version; a number pins an older one for reading.
   const [pinned, setPinned] = useState<number | null>(null);
   const [applyOpen, setApplyOpen] = useState(false);
+  const [renameOpen, setRenameOpen] = useState(false);
   const { role } = useCurrentMember(wsId);
 
   const detail = useQuery(workflowDetailOptions(wsId, id));
@@ -114,6 +116,12 @@ export function WorkflowDetailPage() {
             <Button size="sm" variant="outline" onClick={() => push(`${p.pipeline()}?workflow=${encodeURIComponent(workflow.key)}`)}>
               <Columns3 aria-hidden="true" className="size-3.5" />
               {t(($) => $.pipeline.open_button)}
+            </Button>
+          ) : null}
+          {canManage && workflow ? (
+            <Button size="sm" variant="outline" onClick={() => setRenameOpen(true)}>
+              <PenLine aria-hidden="true" className="size-3.5" />
+              {t(($) => $.rename.button)}
             </Button>
           ) : null}
           {canManage && workflow ? (
@@ -213,6 +221,7 @@ export function WorkflowDetailPage() {
           </Tabs>
         </div>
       </div>
+      {canManage && workflow ? <RenameWorkflowDialog workflow={workflow} open={renameOpen} onOpenChange={setRenameOpen} /> : null}
       {canApply && shown ? (
         <ApplyWorkflowDialog
           open={applyOpen}

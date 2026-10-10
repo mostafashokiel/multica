@@ -185,7 +185,7 @@
       "id_hint": "小写字母、数字和连字符。它将成为工作流的键，首次保存后无法更改。",
       "id_locked": "标识是工作流的键，无法更改。",
       "description": "描述",
-      "description_hint": "同时也是列表中显示的工作流名称。",
+      "description_hint": "首次保存时作为工作流在列表中的名称。之后可在其页面中重命名。",
       "owner": "负责人",
       "owner_hint": "对此工作流负责的人（自由文本）。"
     },
@@ -320,5 +320,16 @@
     "branches_progress": "{{total}} 个分支已完成 {{done}} 个",
     "branches_cancelled": "{{count}} 个已取消",
     "branches": "分支"
+  },
+  "rename": {
+    "button": "重命名",
+    "title": "重命名工作流",
+    "description": "显示在列表和本页的名称。键 {{key}} 不会改变。",
+    "label": "名称",
+    "save": "保存",
+    "cancel": "取消",
+    "done": "工作流已重命名",
+    "conflict": "在此期间有人修改了这个工作流，已重新加载，请再试一次。",
+    "failed": "无法重命名工作流。"
   }
 }

@@ -240,6 +240,13 @@ export interface CreateWorkflowRequest {
   note?: string;
 }
 
+/** Change a workflow's name or description. `revision` is the one the caller loaded: a stale one answers 409. */
+export interface UpdateWorkflowRequest {
+  name?: string;
+  description?: string;
+  revision: number;
+}
+
 export interface SaveWorkflowVersionRequest {
   definition: string;
   /** The newest version the editor loaded; a newer one saved since answers 409. */

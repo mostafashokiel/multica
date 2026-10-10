@@ -18,6 +18,7 @@ export {
   useCreateWorkflow,
   useRestoreWorkflowVersion,
   useSaveWorkflowVersion,
+  useUpdateWorkflow,
 } from "./mutations";
 export {
   MAX_WORKFLOW_SOURCE_BYTES,

@@ -187,7 +187,7 @@
       "id_hint": "Lowercase letters, digits and hyphens. It becomes the workflow's key and can't be changed after the first save.",
       "id_locked": "The id is the workflow's key and can't be changed.",
       "description": "Description",
-      "description_hint": "Also the workflow's name in lists.",
+      "description_hint": "Used as the workflow's name in lists when it is first saved. Rename it later from its page.",
       "owner": "Owner",
       "owner_hint": "Who answers for this workflow (free text)."
     },
@@ -324,5 +324,16 @@
     "branches_progress": "{{done}} of {{total}} branches done",
     "branches_cancelled": "{{count}} cancelled",
     "branches": "Branches"
+  },
+  "rename": {
+    "button": "Rename",
+    "title": "Rename workflow",
+    "description": "The name shown in lists and on this page. The key {{key}} does not change.",
+    "label": "Name",
+    "save": "Save",
+    "cancel": "Cancel",
+    "done": "Workflow renamed",
+    "conflict": "Someone changed this workflow while this was open. It has been reloaded: try again.",
+    "failed": "Couldn't rename the workflow."
   }
 }

@@ -20,6 +20,7 @@ vi.mock("@multica/core/api", async (importOriginal) => ({
     getWorkflowPipeline: vi.fn(),
     renderWorkflow: vi.fn(),
     applyWorkflow: vi.fn(),
+    updateWorkflow: vi.fn(),
   },
 }));
 const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
@@ -115,6 +116,7 @@ beforeEach(() => {
   vi.mocked(api.listWorkflowSquads).mockResolvedValue({ squads: [] });
   vi.mocked(api.renderWorkflow).mockReset();
   vi.mocked(api.applyWorkflow).mockReset();
+  vi.mocked(api.updateWorkflow).mockReset();
   toast.success.mockReset();
   toast.error.mockReset();
   member.role = "owner";
@@ -738,5 +740,96 @@ describe("Edit", () => {
     renderPage();
     expect(await screen.findByRole("button", { name: "Edit" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Apply to squad" })).toBeNull();
+  });
+});
+
+describe("renaming a workflow", () => {
+  const open = async () => {
+    vi.mocked(api.getWorkflow).mockResolvedValue({ workflow, version: version(2, { definition: "kind: Workflow\n" }) });
+    renderPage();
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: "Rename" }));
+    return { user, dialog: await screen.findByRole("dialog") };
+  };
+
+  it("offers owners and admins a Rename button, and nobody else", async () => {
+    vi.mocked(api.getWorkflow).mockResolvedValue({ workflow, version: version(2, { definition: "kind: Workflow\n" }) });
+    member.role = "member";
+    renderPage();
+    await screen.findByRole("heading", { name: "SDLC pilot" });
+    expect(screen.queryByRole("button", { name: "Rename" })).toBeNull();
+  });
+
+  it("starts from the current name, and cannot save an empty or an unchanged one", async () => {
+    const { user, dialog } = await open();
+    const name = within(dialog).getByLabelText("Name") as HTMLInputElement;
+    const save = within(dialog).getByRole("button", { name: "Save" });
+
+    expect(name.value).toBe("SDLC pilot");
+    expect(save).toBeDisabled();
+    await user.clear(name);
+    expect(save).toBeDisabled();
+    await user.type(name, "   ");
+    expect(save).toBeDisabled();
+    await user.type(name, "Delivery");
+    expect(save).toBeEnabled();
+    expect(within(dialog).getByText(/The key sdlc-pilot does not change/)).toBeInTheDocument();
+  });
+
+  it("renames with the revision it loaded, trims the name, says so and closes", async () => {
+    vi.mocked(api.updateWorkflow).mockResolvedValue({ ...workflow, name: "Delivery", revision: 6 });
+    const { user, dialog } = await open();
+    const name = within(dialog).getByLabelText("Name");
+    await user.clear(name);
+    await user.type(name, "  Delivery  ");
+
+    await user.click(within(dialog).getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(api.updateWorkflow).toHaveBeenCalledWith("wf-1", { name: "Delivery", revision: 5 }));
+    expect(toast.success).toHaveBeenCalledWith("Workflow renamed");
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  });
+
+  it("saves from the keyboard with Enter", async () => {
+    vi.mocked(api.updateWorkflow).mockResolvedValue({ ...workflow, name: "Delivery", revision: 6 });
+    const { user, dialog } = await open();
+    const name = within(dialog).getByLabelText("Name");
+    await user.clear(name);
+    await user.type(name, "Delivery{Enter}");
+    await waitFor(() => expect(api.updateWorkflow).toHaveBeenCalledTimes(1));
+  });
+
+  it("says when someone changed the workflow first, keeps the dialog open and the typed name", async () => {
+    vi.mocked(api.updateWorkflow).mockRejectedValue(new ApiError("resource changed", 409, "Conflict", { code: "revision_conflict", expected_revision: 5, actual_revision: 7 }));
+    const { user, dialog } = await open();
+    const name = within(dialog).getByLabelText("Name") as HTMLInputElement;
+    await user.clear(name);
+    await user.type(name, "Delivery");
+
+    await user.click(within(dialog).getByRole("button", { name: "Save" }));
+
+    expect(await within(dialog).findByText(/Someone changed this workflow while this was open/)).toBeInTheDocument();
+    expect(name.value).toBe("Delivery");
+    expect(toast.success).not.toHaveBeenCalled();
+  });
+
+  it("shows the server's reason when it refuses the name, and a plain message for anything else", async () => {
+    vi.mocked(api.updateWorkflow).mockRejectedValueOnce(new ApiError("bad", 400, "Bad Request", { error: "name is longer than 120 characters" }));
+    const { user, dialog } = await open();
+    const name = within(dialog).getByLabelText("Name");
+    await user.clear(name);
+    await user.type(name, "Delivery");
+    await user.click(within(dialog).getByRole("button", { name: "Save" }));
+    expect(await within(dialog).findByText("name is longer than 120 characters")).toBeInTheDocument();
+
+    vi.mocked(api.updateWorkflow).mockRejectedValueOnce(new Error("offline"));
+    await user.type(name, "!");
+    await user.click(within(dialog).getByRole("button", { name: "Save" }));
+    expect(await within(dialog).findByText("Couldn't rename the workflow.")).toBeInTheDocument();
+  });
+
+  it("limits the name to what the server accepts", async () => {
+    const { dialog } = await open();
+    expect((within(dialog).getByLabelText("Name") as HTMLInputElement).maxLength).toBe(120);
   });
 });

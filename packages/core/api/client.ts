@@ -130,6 +130,8 @@ import type {
   RenderWorkflowRequest,
   CreateWorkflowRequest,
   SaveWorkflowVersionRequest,
+  UpdateWorkflowRequest,
+  Workflow,
   ValidateWorkflowResult,
   WorkflowApplyResult,
   WorkflowRender,
@@ -430,6 +432,7 @@ import {
   ListWorkflowVersionsResponseSchema,
   ListWorkflowsResponseSchema,
   WorkflowVersionSchema,
+  WorkflowSchema,
   WorkflowWithVersionSchema,
   WorkflowRenderSchema,
   ValidateWorkflowResultSchema,
@@ -444,6 +447,7 @@ import {
   EMPTY_LIST_WORKFLOW_AUDIT_RESPONSE,
   EMPTY_LIST_WORKFLOW_VERSIONS_RESPONSE,
   EMPTY_LIST_WORKFLOWS_RESPONSE,
+  EMPTY_WORKFLOW,
   EMPTY_WORKFLOW_WITH_VERSION,
   QuickActionRenderSchema,
   EMPTY_QUICK_ACTION,
@@ -4282,6 +4286,12 @@ export class ApiClient {
     return parseWithFallback(raw, WorkflowWithVersionSchema, EMPTY_WORKFLOW_WITH_VERSION, {
       endpoint: "GET /api/workflows/{id}",
     });
+  }
+
+  /** Change a workflow's name or description (not its definition: that is a new version). */
+  async updateWorkflow(id: string, data: UpdateWorkflowRequest): Promise<Workflow> {
+    const raw = await this.fetch<unknown>(`/api/workflows/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(data) });
+    return parseWithFallback(raw, WorkflowSchema, EMPTY_WORKFLOW, { endpoint: "PATCH /api/workflows/{id}" });
   }
 
   async listWorkflowVersions(id: string): Promise<ListWorkflowVersionsResponse> {

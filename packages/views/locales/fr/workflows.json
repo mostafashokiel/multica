@@ -187,7 +187,7 @@
       "id_hint": "Lettres minuscules, chiffres et tirets. Il devient la clé du workflow et ne peut plus être changé après le premier enregistrement.",
       "id_locked": "L'identifiant est la clé du workflow et ne peut pas être changé.",
       "description": "Description",
-      "description_hint": "C'est aussi le nom du workflow dans les listes.",
+      "description_hint": "Sert de nom au workflow dans les listes lors du premier enregistrement. Renommez-le ensuite depuis sa page.",
       "owner": "Responsable",
       "owner_hint": "Qui répond de ce workflow (texte libre)."
     },
@@ -324,5 +324,16 @@
     "branches_progress": "{{done}} branche(s) sur {{total}} terminée(s)",
     "branches_cancelled": "{{count}} annulée(s)",
     "branches": "Branches"
+  },
+  "rename": {
+    "button": "Renommer",
+    "title": "Renommer le workflow",
+    "description": "Le nom affiché dans les listes et sur cette page. La clé {{key}} ne change pas.",
+    "label": "Nom",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "done": "Workflow renommé",
+    "conflict": "Quelqu'un a modifié ce workflow pendant que cette fenêtre était ouverte. Il a été rechargé : réessayez.",
+    "failed": "Impossible de renommer le workflow."
   }
 }

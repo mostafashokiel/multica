@@ -4,6 +4,8 @@ import type {
   ApplyWorkflowRequest,
   CreateWorkflowRequest,
   SaveWorkflowVersionRequest,
+  UpdateWorkflowRequest,
+  Workflow,
   WorkflowApplyResult,
   WorkflowWithVersion,
 } from "../types";
@@ -53,5 +55,15 @@ export function useRestoreWorkflowVersion(wsId: string, workflowId: string) {
   return useMutation<WorkflowWithVersion, Error, number>({
     mutationFn: (version) => api.restoreWorkflowVersion(workflowId, version),
     onSuccess: () => qc.invalidateQueries({ queryKey: workflowKeys.all(wsId) }),
+  });
+}
+
+/** Rename a workflow, or change its description. Every workflow view shows the name, so all of them refresh. */
+export function useUpdateWorkflow(wsId: string, workflowId: string) {
+  const qc = useQueryClient();
+  return useMutation<Workflow, Error, UpdateWorkflowRequest>({
+    mutationFn: (data) => api.updateWorkflow(workflowId, data),
+    // Also after a refusal: a stale revision is the usual one, and a retry must carry the current one.
+    onSettled: () => qc.invalidateQueries({ queryKey: workflowKeys.all(wsId) }),
   });
 }

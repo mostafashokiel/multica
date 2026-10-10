@@ -148,6 +148,7 @@ export type {
   WorkflowLayout,
   CreateWorkflowRequest,
   SaveWorkflowVersionRequest,
+  UpdateWorkflowRequest,
 } from "./workflow";
 export type {
   QuickAction,

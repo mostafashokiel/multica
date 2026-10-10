@@ -302,6 +302,19 @@ describe("ApiClient workflows (render and apply)", () => {
     expect(old?.children).toEqual([]);
   });
 
+  it("renames a workflow with a PATCH that carries the revision, and reads the workflow back", async () => {
+    const fetchMock = stubFetch(json({ id: "wf-1", key: "k", name: "New name", revision: 6 }));
+    const client = new ApiClient("https://api.example.test");
+
+    const result = await client.updateWorkflow("wf-1", { name: "New name", revision: 5 });
+
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(String(url)).toBe("https://api.example.test/api/workflows/wf-1");
+    expect(init.method).toBe("PATCH");
+    expect(JSON.parse(String(init.body))).toEqual({ name: "New name", revision: 5 });
+    expect(result).toMatchObject({ id: "wf-1", name: "New name", revision: 6 });
+  });
+
   it("asks for one squad's issues when given a squad", async () => {
     // A fresh Response per call: a body can be read once.
     const fetchMock = vi.fn().mockImplementation(async () => json({ workflow_key: "x", stages: [], total: 0 }));
