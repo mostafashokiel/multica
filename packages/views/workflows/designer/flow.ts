@@ -13,20 +13,57 @@ import {
 /** Drawn size of each stage type; also the layout's idea of a node and the size before it is measured. */
 export const NODE_SIZE: Record<StageType, Size> = {
   agent: { width: 232, height: 90 },
-  // The height is the base here; a parallel stage grows by BRANCH_ROW for each branch (see sizeOf).
-  parallel: { width: 232, height: 76 },
+  // Only the size of a parallel stage with no branches; sizeOf gives the real one.
+  parallel: { width: 300, height: 164 },
   human_gate: { width: 232, height: 108 },
   // A diamond needs more height than a box for the same text: it is narrow near its points.
   condition: { width: 232, height: 128 },
   end: { width: 140, height: 52 },
 };
 
-/** What one branch of a parallel stage adds to its node: a row of text. */
-export const BRANCH_ROW = 22;
+/**
+ * A parallel stage is drawn as a split circle, one card per branch side by side, and a join circle,
+ * all inside one node. Every measure is here so the node, the layout and the tests agree on the size.
+ */
+export const PARALLEL = {
+  padX: 12,
+  padY: 4,
+  /** The row with the label and the split circle. */
+  topRow: 36,
+  gate: 28,
+  gapY: 20,
+  cardW: 148,
+  cardH: 52,
+  cardGap: 14,
+  minWidth: 300,
+} as const;
+
+export function parallelGeometry(count: number) {
+  const { padX, padY, topRow, gate, gapY, cardW, cardH, cardGap, minWidth } = PARALLEL;
+  const rowW = count * cardW + Math.max(0, count - 1) * cardGap;
+  const width = Math.max(minWidth, rowW + 2 * padX);
+  const cardTop = padY + topRow + gapY;
+  const cardBottom = cardTop + cardH;
+  const joinY = cardBottom + gapY + gate / 2;
+  const left = (width - rowW) / 2;
+  return {
+    width,
+    height: joinY + gate / 2 + padY,
+    cx: width / 2,
+    splitY: padY + topRow / 2,
+    cardTop,
+    cardBottom,
+    joinY,
+    centers: Array.from({ length: count }, (_, i) => left + i * (cardW + cardGap) + cardW / 2),
+  };
+}
 
 export const sizeOf = (stage: Stage): Size => {
-  const base = NODE_SIZE[stage.type];
-  return stage.type === "parallel" ? { width: base.width, height: base.height + BRANCH_ROW * stage.branches.length } : base;
+  if (stage.type === "parallel") {
+    const { width, height } = parallelGeometry(stage.branches.length);
+    return { width, height };
+  }
+  return NODE_SIZE[stage.type];
 };
 
 export interface StageNodeData extends Record<string, unknown> {
@@ -34,6 +71,11 @@ export interface StageNodeData extends Record<string, unknown> {
   isStart: boolean;
   problems: number;
   readOnly: boolean;
+  /** Parallel stages only: which branch is selected (the panel shows it), and the edits the node offers. */
+  selectedBranch?: number | null;
+  onBranchSelect?: (index: number) => void;
+  onBranchAdd?: () => void;
+  onBranchRemove?: (index: number) => void;
 }
 
 export type StageNode = Node<StageNodeData>;
@@ -49,12 +91,20 @@ export function toFlowNodes(
   problemsByStage: Readonly<Record<string, number>>,
   readOnly: boolean,
   selectedId: string | null = null,
+  /** What a parallel stage's node offers for editing its branches; given the stage's id. */
+  branchEdit?: (stageId: string) => Pick<StageNodeData, "selectedBranch" | "onBranchSelect" | "onBranchAdd" | "onBranchRemove">,
 ): StageNode[] {
   return def.stages.map((stage, index) => ({
     id: stage.id,
     type: stage.type,
     position: positions[stage.id] ?? fallback(index),
-    data: { stage, isStart: def.start === stage.id, problems: problemsByStage[stage.id] ?? 0, readOnly },
+    data: {
+      stage,
+      isStart: def.start === stage.id,
+      problems: problemsByStage[stage.id] ?? 0,
+      readOnly,
+      ...(stage.type === "parallel" && branchEdit !== undefined ? branchEdit(stage.id) : {}),
+    },
     // Known sizes let the first fit and the minimap work before anything has been measured.
     initialWidth: sizeOf(stage).width,
     initialHeight: sizeOf(stage).height,

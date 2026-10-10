@@ -494,7 +494,7 @@ describe("stage properties", () => {
     expect(text).toContain("expected_output: A report");
   });
 
-  it("edits a parallel stage: its branches are listed on the node, added, filled in and removed", async () => {
+  it("edits a parallel stage in the panel: branches are added, filled in and removed, and the node follows", async () => {
     okSave();
     vi.mocked(api.listAgents).mockResolvedValue([
       { id: "a1", name: "nyc", archived_at: null },
@@ -502,31 +502,32 @@ describe("stage properties", () => {
     ] as never);
     const { container } = renderDesigner({ initial: initialFor(pilotish(), 3), workflowId: "wf-1" });
     const user = userEvent.setup();
-    const palette = within(screen.getByLabelText("Stages"));
-    await user.click(palette.getByRole("button", { name: "Parallel" }));
+    await user.click(within(screen.getByLabelText("Stages")).getByRole("button", { name: "Parallel" }));
     await waitFor(() => expect(nodeNamed("parallel-1")).not.toBeNull());
+    const panel = within(screen.getByLabelText("Properties"));
 
-    // Two empty branches to begin with, drawn inside the node.
+    // Two empty branches to begin with, drawn as cards between two circles.
     expect(within(nodeNamed("parallel-1")).getAllByText("(no agent)")).toHaveLength(2);
-    const first = within(screen.getByRole("group", { name: "Branch 1" }));
+    expect(nodeNamed("parallel-1").querySelectorAll('[data-gate="true"]')).toHaveLength(2);
+    const first = within(panel.getByRole("group", { name: "Branch 1" }));
     await user.click(first.getByLabelText("Agent"));
     await user.click(await screen.findByRole("option", { name: "nyc" }));
     await user.type(first.getByLabelText("Branch name"), "New York");
     await user.type(first.getByLabelText("Skills"), "clock{Enter}");
     await user.type(first.getByLabelText("Expected output"), "The time");
-    const second = within(screen.getByRole("group", { name: "Branch 2" }));
+    const second = within(panel.getByRole("group", { name: "Branch 2" }));
     await user.click(second.getByLabelText("Agent"));
     await user.click(await screen.findByRole("option", { name: "cairo" }));
 
     // A third branch, then take it away again.
-    await user.click(screen.getByRole("button", { name: "Add branch" }));
-    expect(screen.getByRole("group", { name: "Branch 3" })).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Remove branch 3" }));
-    expect(screen.queryByRole("group", { name: "Branch 3" })).toBeNull();
+    await user.click(panel.getByRole("button", { name: "Add branch" }));
+    expect(panel.getByRole("group", { name: "Branch 3" })).toBeInTheDocument();
+    await user.click(panel.getByRole("button", { name: "Remove branch 3" }));
+    expect(panel.queryByRole("group", { name: "Branch 3" })).toBeNull();
 
-    // The node lists what was chosen: the branch's name when it has one, else its agent.
-    const items = within(nodeNamed("parallel-1")).getAllByRole("listitem").map((li) => li.textContent);
-    expect(items).toEqual(["New York", "cairo"]);
+    // The cards show the branch's name when it has one, else "Branch n", and its agent.
+    const cards = within(nodeNamed("parallel-1")).getAllByRole("button").map((b) => b.getAttribute("aria-label"));
+    expect(cards.filter((c) => c?.includes(":"))).toEqual(["New York: nyc", "Branch 2: cairo"]);
 
     await user.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(api.saveWorkflowVersion).toHaveBeenCalled());
@@ -538,15 +539,47 @@ describe("stage properties", () => {
     expect(nodeCount(container)).toBe(4);
   });
 
-  it("stops offering more branches at the limit", async () => {
+  it("edits a parallel stage on the canvas: add a branch, pick one to show it in the panel, remove one", async () => {
     renderDesigner({ initial: initialFor(emptyDefinition(), 0) });
     const user = userEvent.setup();
     await user.click(within(screen.getByLabelText("Stages")).getByRole("button", { name: "Parallel" }));
-    const add = await screen.findByRole("button", { name: "Add branch" });
+    await waitFor(() => expect(nodeNamed("parallel-1")).not.toBeNull());
+    const node = within(nodeNamed("parallel-1"));
+    const panel = within(screen.getByLabelText("Properties"));
+
+    // With two branches nothing can be removed from the canvas: a parallel stage needs two.
+    expect(node.queryByRole("button", { name: /^Remove branch/ })).toBeNull();
+    await user.click(node.getByRole("button", { name: "Add branch" }));
+    expect(panel.getByRole("group", { name: "Branch 3" })).toBeInTheDocument();
+    expect(node.getAllByRole("listitem")).toHaveLength(3);
+
+    // Picking a card marks it, and the panel marks the same branch.
+    // fireEvent, as for nodes: a synthesized mouse-down has no window and trips the canvas library's drag handler.
+    fireEvent.click(node.getByRole("button", { name: /^Branch 3:/ }));
+    expect(node.getByRole("button", { name: /^Branch 3:/ })).toHaveAttribute("aria-pressed", "true");
+    expect(node.getByRole("button", { name: /^Branch 1:/ })).toHaveAttribute("aria-pressed", "false");
+    expect(panel.getByRole("group", { name: "Branch 3" })).toHaveAttribute("aria-current", "true");
+    expect(panel.getByRole("group", { name: "Branch 1" })).not.toHaveAttribute("aria-current");
+
+    // The cross on a card removes that branch and clears the pick.
+    await user.click(node.getByRole("button", { name: "Remove branch 3" }));
+    expect(node.getAllByRole("listitem")).toHaveLength(2);
+    expect(panel.queryByRole("group", { name: "Branch 3" })).toBeNull();
+    expect(panel.getByRole("group", { name: "Branch 1" })).not.toHaveAttribute("aria-current");
+  });
+
+  it("stops offering more branches at the limit, on the canvas and in the panel", async () => {
+    renderDesigner({ initial: initialFor(emptyDefinition(), 0) });
+    const user = userEvent.setup();
+    await user.click(within(screen.getByLabelText("Stages")).getByRole("button", { name: "Parallel" }));
+    await waitFor(() => expect(nodeNamed("parallel-1")).not.toBeNull());
+    const panel = within(screen.getByLabelText("Properties"));
+    const add = panel.getByRole("button", { name: "Add branch" });
     for (let i = 0; i < 6; i++) await user.click(add);
-    expect(screen.getByRole("group", { name: "Branch 8" })).toBeInTheDocument();
+    expect(panel.getByRole("group", { name: "Branch 8" })).toBeInTheDocument();
     expect(add).toBeDisabled();
-    expect(screen.getByText("A parallel stage has at most 8 branches.")).toBeInTheDocument();
+    expect(panel.getByText("A parallel stage has at most 8 branches.")).toBeInTheDocument();
+    expect(within(nodeNamed("parallel-1")).queryByRole("button", { name: "Add branch" })).toBeNull();
   });
 
   it("edits a gate: the approver group, the rework limit and the escalation", async () => {

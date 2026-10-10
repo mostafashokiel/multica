@@ -126,6 +126,8 @@ function DesignerInner({ workflowId, initial, onCreated }: WorkflowDesignerProps
   // What was last saved: the version it got and a fingerprint to tell whether anything changed since.
   const [saved, setSaved] = useState(() => ({ version: initial.version, fingerprint: fingerprint(initial.definition, initial.positions) }));
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  // A branch picked on a parallel stage's node; the panel highlights it. Keyed by stage so a stale pick never shows on another one.
+  const [branchPick, setBranchPick] = useState<{ stageId: string; index: number } | null>(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
   const [dragged, setDragged] = useState<Positions>({});
   const [note, setNote] = useState("");
@@ -201,7 +203,22 @@ function DesignerInner({ workflowId, initial, onCreated }: WorkflowDesignerProps
     }),
     [t],
   );
-  const nodes = useMemo(() => toFlowNodes(definition, shownPositions, problemsByStage, false, selectedId), [definition, shownPositions, problemsByStage, selectedId]);
+  const branchEdit = useCallback(
+    (stageId: string) => ({
+      selectedBranch: branchPick?.stageId === stageId ? branchPick.index : null,
+      onBranchSelect: (index: number) => setBranchPick({ stageId, index }),
+      onBranchAdd: () => edit((s) => ({ ...s, definition: addBranch(s.definition, stageId) })),
+      onBranchRemove: (index: number) => {
+        setBranchPick(null);
+        edit((s) => ({ ...s, definition: removeBranch(s.definition, stageId, index) }));
+      },
+    }),
+    [branchPick, edit],
+  );
+  const nodes = useMemo(
+    () => toFlowNodes(definition, shownPositions, problemsByStage, false, selectedId, branchEdit),
+    [definition, shownPositions, problemsByStage, selectedId, branchEdit],
+  );
   const edges = useMemo(() => toFlowEdges(definition, false, (h) => labels[h], selectedEdgeId), [definition, labels, selectedEdgeId]);
 
   const onNodesChange = useCallback((changes: NodeChange[]) => {
@@ -585,8 +602,12 @@ function DesignerInner({ workflowId, initial, onCreated }: WorkflowDesignerProps
               stage={selectedStage}
               onEdit={(partial, key) => edit((s) => ({ ...s, definition: updateStage(s.definition, selectedStage.id, partial) }), key)}
               onRename={(next) => renameSelected(selectedStage.id, next)}
+              selectedBranch={branchPick?.stageId === selectedStage.id ? branchPick.index : null}
               onBranchAdd={() => edit((s) => ({ ...s, definition: addBranch(s.definition, selectedStage.id) }))}
-              onBranchRemove={(index) => edit((s) => ({ ...s, definition: removeBranch(s.definition, selectedStage.id, index) }))}
+              onBranchRemove={(index) => {
+                setBranchPick(null);
+                edit((s) => ({ ...s, definition: removeBranch(s.definition, selectedStage.id, index) }));
+              }}
               onBranchEdit={(index, partial, key) => edit((s) => ({ ...s, definition: updateBranch(s.definition, selectedStage.id, index, partial) }), key)}
               onSetStart={() => edit((s) => ({ ...s, definition: setStart(s.definition, selectedStage.id) }))}
               onDisconnect={(handle) => edit((s) => ({ ...s, definition: disconnect(s.definition, selectedStage.id, handle) }))}

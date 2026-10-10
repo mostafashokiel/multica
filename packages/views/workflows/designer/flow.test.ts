@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { addStage, connect, emptyDefinition, renameStage, updateMetadata, type WorkflowDefinition } from "@multica/core/workflows";
-import { BRANCH_ROW, NODE_SIZE, sizeOf, toFlowEdges } from "./flow";
+import { NODE_SIZE, PARALLEL, parallelGeometry, sizeOf, toFlowEdges } from "./flow";
 
 // work -> gate1 -> check -> gate2 -> done, with each gate's reject looping back and the check's "else"
 // leaving the same side as those loops.
@@ -55,12 +55,27 @@ describe("toFlowEdges corridors", () => {
   });
 });
 
-describe("sizeOf", () => {
-  it("is the type's box, except that a parallel stage grows by a row for each branch", () => {
-    const parallel = (n: number) => ({ id: "p", type: "parallel" as const, branches: Array.from({ length: n }, () => ({ agent: "a" })), next: "" });
+describe("sizeOf and the parallel geometry", () => {
+  const parallel = (n: number) => ({ id: "p", type: "parallel" as const, branches: Array.from({ length: n }, () => ({ agent: "a" })), next: "" });
+
+  it("is the type's box, except that a parallel stage is as wide as its row of branches", () => {
     expect(sizeOf({ id: "a", type: "agent", agent: "", next: "" })).toEqual(NODE_SIZE.agent);
-    expect(sizeOf(parallel(2)).height).toBe(NODE_SIZE.parallel.height + 2 * BRANCH_ROW);
-    expect(sizeOf(parallel(5)).height - sizeOf(parallel(2)).height).toBe(3 * BRANCH_ROW);
-    expect(sizeOf(parallel(2)).width).toBe(NODE_SIZE.parallel.width);
+    expect(sizeOf(parallel(0)).width).toBe(PARALLEL.minWidth);
+    expect(sizeOf(parallel(2)).width).toBe(2 * PARALLEL.cardW + PARALLEL.cardGap + 2 * PARALLEL.padX);
+    expect(sizeOf(parallel(5)).width - sizeOf(parallel(4)).width).toBe(PARALLEL.cardW + PARALLEL.cardGap);
+    expect(sizeOf(parallel(2)).height).toBe(sizeOf(parallel(8)).height);
+  });
+
+  it("puts the branch cards in one centred row between the two circles", () => {
+    for (const n of [0, 1, 2, 3, 8]) {
+      const g = parallelGeometry(n);
+      expect(g.centers).toHaveLength(n);
+      if (n > 0) expect((g.centers[0]! + g.centers[n - 1]!) / 2).toBeCloseTo(g.cx, 5);
+      if (n > 1) expect(g.centers[1]! - g.centers[0]!).toBe(PARALLEL.cardW + PARALLEL.cardGap);
+      expect(g.splitY).toBeLessThan(g.cardTop);
+      expect(g.cardBottom).toBeLessThan(g.joinY);
+      expect(g.height).toBeGreaterThan(g.joinY);
+      expect(Math.min(...g.centers, g.cx) - PARALLEL.cardW / 2).toBeGreaterThanOrEqual(0);
+    }
   });
 });

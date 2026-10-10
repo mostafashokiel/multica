@@ -23,6 +23,7 @@ import { Field, FieldDescription, FieldError, FieldLabel } from "@multica/ui/com
 import { Input } from "@multica/ui/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@multica/ui/components/ui/select";
 import { Textarea } from "@multica/ui/components/ui/textarea";
+import { cn } from "@multica/ui/lib/utils";
 import { useT } from "../../i18n";
 
 type TFn = ReturnType<typeof useT<"workflows">>["t"];
@@ -195,6 +196,11 @@ function SkillsField({ skills, suggestions, onChange }: { skills: string[]; sugg
   );
 }
 
+/** Brings the branch picked on the canvas into view in the panel. */
+function scrollIntoViewRef(node: HTMLElement | null) {
+  node?.scrollIntoView?.({ block: "nearest" });
+}
+
 /** Workspace names for the pickers; typing anything else is always allowed. */
 function useSuggestions() {
   const wsId = useWorkspaceId();
@@ -265,6 +271,7 @@ export function StageProperties({
   stage,
   onEdit,
   onRename,
+  selectedBranch,
   onBranchAdd,
   onBranchRemove,
   onBranchEdit,
@@ -276,7 +283,8 @@ export function StageProperties({
   definition: WorkflowDefinition;
   stage: Stage;
   onEdit: (edit: StageEdit, mergeKey: string) => void;
-  /** Parallel stages: add a branch, remove the branch at an index, change one. */
+  /** Parallel stages: the branch picked on the canvas (shown highlighted), then add, remove and change. */
+  selectedBranch: number | null;
   onBranchAdd: () => void;
   onBranchRemove: (index: number) => void;
   onBranchEdit: (index: number, edit: BranchEdit, mergeKey: string) => void;
@@ -337,7 +345,7 @@ export function StageProperties({
           <p className="text-caption text-muted-foreground">{t(($) => $.properties.branches_hint)}</p>
           {stage.branches.map((branch, i) => (
             // Branches have no id: they are edited by position, so the index is the identity of a row.
-            <div key={i} role="group" aria-label={t(($) => $.properties.branch_title, { n: i + 1 })} className="flex flex-col gap-3 rounded-lg border p-3">
+            <div key={i} role="group" aria-label={t(($) => $.properties.branch_title, { n: i + 1 })} aria-current={selectedBranch === i || undefined} ref={selectedBranch === i ? scrollIntoViewRef : undefined} className={cn("flex flex-col gap-3 rounded-lg border p-3", selectedBranch === i && "border-ring ring-1 ring-ring")}>
               <div className="flex items-center justify-between gap-2">
                 <h4 className="text-body font-medium">{t(($) => $.properties.branch_title, { n: i + 1 })}</h4>
                 <Button
