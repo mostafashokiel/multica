@@ -73,7 +73,7 @@ func TestRenderNeutralisesHostileText(t *testing.T) {
 		t.Fatalf("hostile text left an HTML comment opener in the briefing:\n%s", out)
 	}
 	for _, l := range strings.Split(out, "\n") {
-		if strings.HasPrefix(l, "## ") && l != "## Rules" && l != "## Stages" {
+		if strings.HasPrefix(l, "## ") && l != "## Rules" && l != "## Labels" && l != "## Stages" {
 			t.Fatalf("unexpected heading %q", l)
 		}
 	}

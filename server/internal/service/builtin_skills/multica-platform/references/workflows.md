@@ -39,8 +39,7 @@ Then compare. The squad's `instructions` should contain a block that starts with
   the damaged marker is fixed or removed.
 
 If the block is right, the problem is elsewhere: the issue is missing the
-`wf:<key>` label, or the labels the briefing names do not exist in the workspace
-(see [Labels](#labels)).
+`wf:<key>` label and the leader did not add it (see [Labels](#labels)).
 
 ## Core model
 
@@ -116,7 +115,9 @@ the instructions:
 The briefing records where an issue stands with two labels: `wf:<key>` marks an
 issue as part of the workflow and `phase:<stage>` is its current stage. Condition
 stages get no phase label. `render --labels` lists them. `apply` does not create
-labels; they have to exist in the workspace before issues enter the workflow.
+labels. The leader does: every issue assigned to the squad follows the workflow, and the briefing
+tells the leader to add `wf:<key>` and each `phase:` label itself, creating a label first when the
+workspace has none by that name (`multica label create`, then `multica issue label add`).
 
 A human gate needs no label from the person: they reply on the issue in their own
 words. The squad leader is woken by that comment (the squad owns the issue) and

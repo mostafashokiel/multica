@@ -41,10 +41,11 @@ func RenderLeaderInstructionsFor(def *Definition, squadName string, people map[s
 	line("")
 	line("## Rules")
 	line("")
-	line("1. An issue is in this workflow if it has the label %s. Ignore every other issue.", code(WorkflowLabel(def)))
+	line("1. Every issue assigned to this squad follows this workflow, and the label %s marks it. "+
+		"If the issue does not have that label yet, add it first (see Labels below): nobody has to prepare issues for you.", code(WorkflowLabel(def)))
 	line("2. The current stage is the issue's one `phase:` label. If it has none, start it at %s. "+
 		"If it has more than one, change nothing and ask a human in a comment to fix the labels.", code(phaseLabel(def.Start)))
-	line("3. To move an issue, add the new `phase:` label, then remove the old one, then post ONE comment that records the move, " +
+	line("3. To move an issue, add the new `phase:` label (creating it first if the workspace does not have it), then remove the old one, then post ONE comment that records the move, " +
 		"such as `Moved from <old> to <new>`. The same comment does what the new stage asks of you, below.")
 	line("4. Never skip a stage and never move an issue to a stage that is not listed below.")
 	line("5. Keep the issue assigned to this squad and never reassign it. Every new comment on it wakes you while the squad owns it, " +
@@ -52,6 +53,16 @@ func RenderLeaderInstructionsFor(def *Definition, squadName string, people map[s
 	line("6. If anything is unclear or a stage is not listed, stop and ask in a comment.")
 	line("")
 	line("The workflow starts at %s.", code(def.Start))
+	line("")
+	line("## Labels")
+	line("")
+	line("You keep the labels yourself. To put a label on an issue:")
+	line("")
+	line("1. Look for it with `multica label list --output json`.")
+	line("2. If it is not there, create it with `multica label create --name \"<name>\" --color <color>`. "+
+		"Use %s for the %s label and %s for every `phase:` label. "+
+		"If creating it fails because the name exists, someone just made it: list again.", code(WorkflowLabelColor), code("wf:"), code(PhaseLabelColor))
+	line("3. Attach it with `multica issue label add <issue-id> <label-id>`.")
 	line("")
 	line("## Stages")
 	line("")
@@ -212,6 +223,12 @@ func Labels(def *Definition) []string {
 	}
 	return out
 }
+
+// Colours the leader gives the labels it has to create.
+const (
+	WorkflowLabelColor = "#6366f1"
+	PhaseLabelColor    = "#94a3b8"
+)
 
 // WorkflowLabel is the label that marks an issue as part of the workflow.
 func WorkflowLabel(def *Definition) string { return "wf:" + def.Metadata.ID }
