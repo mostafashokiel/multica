@@ -141,7 +141,8 @@
     "loading": "Loading the diagram…",
     "no_stages": "This version has no stages yet.",
     "branches": "Branches",
-    "branch_empty": "(no agent)"
+    "branch_empty": "(no agent)",
+    "waits_for_all": "Waits for all {{count}}"
   },
   "editor": {
     "title_new": "New workflow",

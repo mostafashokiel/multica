@@ -105,6 +105,49 @@ describe("WorkflowPipelinePane", () => {
     expect(within(screen.getByRole("region", { name: "Review" })).getByText("Human gate")).toBeInTheDocument();
   });
 
+  it("numbers the lanes in order, shrinks the empty ones, and counts what the others hold", async () => {
+    vi.mocked(api.getWorkflowPipeline).mockResolvedValue({
+      ...empty,
+      total: 2,
+      stages: [
+        { id: "a", name: "Plan", type: "agent", approvers: [], issues: [] },
+        { id: "b", name: "Build", type: "agent", approvers: [], issues: [issue("1", "One"), issue("2", "Two")] },
+        { id: "c", name: "Checks", type: "parallel", approvers: [], issues: [] },
+      ],
+    });
+    renderPane();
+
+    const plan = await screen.findByRole("region", { name: "Plan" });
+    const build = screen.getByRole("region", { name: "Build" });
+    // Lanes with work are wide and say how many; empty ones are narrow and marked, with no placeholder text on screen.
+    expect(plan).toHaveAttribute("data-empty", "true");
+    expect(build).not.toHaveAttribute("data-empty");
+    expect(plan.className).toContain("w-44");
+    expect(build.className).toContain("w-72");
+    // The count is the highlighted badge (the other "2" is the lane's step number).
+    expect([...build.querySelectorAll("header span")].find((n) => n.className.includes("text-brand"))?.textContent).toBe("2");
+    expect(within(plan).getByText("Nothing here")).toHaveClass("sr-only");
+    // The step numbers follow the workflow's order.
+    expect([...document.querySelectorAll("section[aria-label] header span[aria-hidden]")].map((n) => n.textContent)).toEqual(["1", "2", "3"]);
+  });
+
+  it("keeps an issue card visibly apart from its lane: the lane has a header, the card is a bordered, raised link", async () => {
+    vi.mocked(api.getWorkflowPipeline).mockResolvedValue({
+      ...empty,
+      total: 1,
+      stages: [{ id: "b", name: "Build", type: "agent", approvers: [], issues: [issue("1", "Do the thing")] }],
+    });
+    renderPane();
+
+    const lane = await screen.findByRole("region", { name: "Build" });
+    expect(lane.querySelector("header")).not.toBeNull();
+    const card = within(lane).getByRole("link", { name: /Do the thing/ });
+    expect(card.className).toContain("border");
+    expect(card.className).toContain("shadow-sm");
+    expect(lane.contains(card)).toBe(true);
+    expect(card.querySelector("header")).toBeNull();
+  });
+
   it("says whom a human gate waits for, by name, and shows the assignee's name on the card", async () => {
     vi.mocked(api.getWorkflowPipeline).mockResolvedValue({
       ...empty,

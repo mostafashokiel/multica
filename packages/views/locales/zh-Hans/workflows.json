@@ -139,7 +139,8 @@
     "loading": "正在加载图示…",
     "no_stages": "此版本还没有阶段。",
     "branches": "分支",
-    "branch_empty": "（未选择智能体）"
+    "branch_empty": "（未选择智能体）",
+    "waits_for_all": "等待全部 {{count}} 个"
   },
   "editor": {
     "title_new": "新建工作流",

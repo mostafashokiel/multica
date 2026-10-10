@@ -139,7 +139,8 @@
     "loading": "図を読み込み中…",
     "no_stages": "このバージョンにはまだステージがありません。",
     "branches": "ブランチ",
-    "branch_empty": "（エージェント未設定）"
+    "branch_empty": "（エージェント未設定）",
+    "waits_for_all": "{{count}} 件すべてを待つ"
   },
   "editor": {
     "title_new": "新しいワークフロー",

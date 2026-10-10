@@ -33,7 +33,7 @@ export const PARALLEL = {
   gate: 28,
   gapY: 20,
   cardW: 148,
-  cardH: 52,
+  cardH: 60,
   cardGap: 14,
   minWidth: 300,
 } as const;
@@ -138,42 +138,103 @@ const EDGE_STYLE: Record<Handle, { stroke: string; dashed?: boolean }> = {
   else: { stroke: "var(--muted-foreground)", dashed: true },
 };
 
-// Edges that leave a stage sideways first run a short way out before turning. If they all ran the same
-// distance, a loop back to an earlier stage (reject) and the "else" of a condition above it would share
-// one vertical corridor and draw over each other. The loops get their own corridors, further out and
-// staggered, one per loop in the order the workflow lists them.
+// An edge that leaves a stage sideways first runs a short way out before turning.
 const SIDE_EDGE_OFFSET = 20;
-const LOOP_EDGE_OFFSET = 40;
-const LOOP_EDGE_STEP = 16;
 
-/** One edge per connected output whose target exists; dangling references are reported as problems instead. */
+// A rework loop (a gate's reject) goes back to an earlier stage. It is drawn by its own edge type: out of the
+// side of the gate, along a corridor to the right of the whole diagram, up beside the stages in between, and
+// into the top of the target from just above it. Running outside everything is what keeps it from crossing a
+// stage, however wide one of them is (a parallel stage is much wider than the others). Loops that span
+// different heights share a corridor; loops that overlap get one each, the shorter inside the longer.
+export const LOOP_CORRIDOR_GAP = 36;
+export const LOOP_CORRIDOR_STEP = 18;
+/** How far above the target the loop turns toward it: inside the gap between two rows of stages. */
+export const LOOP_HEAD_CLEARANCE = 18;
+
+interface Loop {
+  id: string;
+  source: Stage;
+  target: string;
+}
+
+/** The corridor x of each loop, by edge id. `rect` gives a stage's box on the canvas, or undefined when it has none. */
+export function loopCorridors(
+  loops: Loop[],
+  rect: (id: string) => { x: number; y: number; width: number; height: number } | undefined,
+  diagramRight: number,
+): Map<string, number> {
+  const spans = loops.flatMap((loop) => {
+    const from = rect(loop.source.id);
+    const to = rect(loop.target);
+    if (from === undefined || to === undefined) return [];
+    const ends = [from.y + from.height / 2, to.y];
+    return [{ id: loop.id, top: Math.min(...ends), bottom: Math.max(...ends) }];
+  });
+  spans.sort((a, b) => a.bottom - a.top - (b.bottom - b.top) || a.top - b.top);
+  const lanes: { top: number; bottom: number }[][] = [];
+  const out = new Map<string, number>();
+  for (const span of spans) {
+    let lane = lanes.findIndex((taken) => taken.every((t) => span.bottom < t.top || span.top > t.bottom));
+    if (lane === -1) lane = lanes.push([]) - 1;
+    (lanes[lane] as { top: number; bottom: number }[]).push(span);
+    out.set(span.id, diagramRight + LOOP_CORRIDOR_GAP + LOOP_CORRIDOR_STEP * lane);
+  }
+  return out;
+}
+
+/**
+ * One edge per connected output whose target exists; dangling references are reported as problems instead.
+ * With `positions`, rework loops are routed outside the diagram (see above); without them they take a short
+ * default corridor, which is only right for a diagram whose stages are all the same width.
+ */
 export function toFlowEdges(
   def: WorkflowDefinition,
   readOnly: boolean,
   labelOf: (handle: Handle) => string | undefined,
   selectedEdgeId: string | null = null,
+  positions?: Positions,
 ): Edge[] {
   const ids = new Set(def.stages.map((s) => s.id));
+  const byId = new Map(def.stages.map((s) => [s.id, s]));
+  const rect = (id: string) => {
+    const stage = byId.get(id);
+    const at = positions?.[id];
+    if (stage === undefined || at === undefined) return undefined;
+    const size = sizeOf(stage);
+    return { x: at.x, y: at.y, width: size.width, height: size.height };
+  };
+  const loops: Loop[] = [];
+  for (const stage of def.stages) {
+    const target = handleTarget(stage, "reject");
+    if (STAGE_HANDLES[stage.type].includes("reject") && target !== "" && ids.has(target)) {
+      loops.push({ id: edgeId(stage.id, "reject"), source: stage, target });
+    }
+  }
+  let diagramRight = -Infinity;
+  for (const stage of def.stages) {
+    const r = rect(stage.id);
+    if (r !== undefined) diagramRight = Math.max(diagramRight, r.x + r.width);
+  }
+  const corridors = positions === undefined ? new Map<string, number>() : loopCorridors(loops, rect, diagramRight);
+
   const edges: Edge[] = [];
-  let loops = 0;
   for (const stage of def.stages) {
     for (const handle of STAGE_HANDLES[stage.type]) {
       const target = handleTarget(stage, handle);
       if (target === "" || !ids.has(target)) continue;
       const look = EDGE_STYLE[handle];
       const id = edgeId(stage.id, handle);
-      const offset = handle === "reject" ? LOOP_EDGE_OFFSET + LOOP_EDGE_STEP * loops++ : SIDE_EDGE_OFFSET;
-      const edge: Edge & { pathOptions: { offset: number; borderRadius: number } } = {
+      const corridor = corridors.get(id);
+      const common = {
         id,
         source: stage.id,
         sourceHandle: handle,
         target,
         targetHandle: "in",
-        type: "smoothstep",
         label: labelOf(handle),
         labelStyle: { fill: "var(--muted-foreground)", fontSize: 11 },
         labelBgStyle: { fill: "var(--background)", fillOpacity: 0.9 },
-        labelBgPadding: [5, 2],
+        labelBgPadding: [5, 2] as [number, number],
         labelBgBorderRadius: 4,
         selected: id === selectedEdgeId,
         deletable: !readOnly,
@@ -181,6 +242,15 @@ export function toFlowEdges(
         focusable: !readOnly,
         style: { stroke: look.stroke, strokeWidth: 2, ...(look.dashed ? { strokeDasharray: "6 4" } : {}) },
         markerEnd: { type: "arrowclosed" as never, color: look.stroke },
+      };
+      if (corridor !== undefined) {
+        edges.push({ ...common, type: "loop", data: { corridorX: corridor } });
+        continue;
+      }
+      const offset = handle === "reject" ? 56 : SIDE_EDGE_OFFSET;
+      const edge: Edge & { pathOptions: { offset: number; borderRadius: number } } = {
+        ...common,
+        type: "smoothstep",
         pathOptions: { offset, borderRadius: 8 },
       };
       edges.push(edge);

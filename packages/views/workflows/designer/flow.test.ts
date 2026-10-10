@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { addStage, connect, emptyDefinition, renameStage, updateMetadata, type WorkflowDefinition } from "@multica/core/workflows";
-import { NODE_SIZE, PARALLEL, parallelGeometry, sizeOf, toFlowEdges } from "./flow";
+import { addStage, autoLayout, connect, emptyDefinition, renameStage, updateMetadata, type WorkflowDefinition } from "@multica/core/workflows";
+import { LOOP_CORRIDOR_GAP, LOOP_CORRIDOR_STEP, NODE_SIZE, PARALLEL, loopCorridors, parallelGeometry, sizeOf, toFlowEdges } from "./flow";
 
 // work -> gate1 -> check -> gate2 -> done, with each gate's reject looping back and the check's "else"
 // leaving the same side as those loops.
@@ -27,31 +27,54 @@ function chain(): WorkflowDefinition {
   return d;
 }
 
-const offsets = () => {
-  const out: Record<string, number> = {};
-  for (const e of toFlowEdges(chain(), true, () => undefined)) {
-    out[e.id] = (e as unknown as { pathOptions: { offset: number } }).pathOptions.offset;
-  }
-  return out;
-};
+const layout = () => autoLayout(chain(), sizeOf);
+const edgesWithLayout = () => toFlowEdges(chain(), true, () => undefined, null, layout());
+const corridorOf = (id: string) => (edgesWithLayout().find((e) => e.id === id)?.data as { corridorX: number } | undefined)?.corridorX;
 
-describe("toFlowEdges corridors", () => {
-  it("sends each loop back through its own corridor, further out than a condition's side edges", () => {
-    const o = offsets();
-
-    const loops = [o["gate1:reject"]!, o["gate2:reject"]!];
-    expect(new Set(loops).size).toBe(2);
-    for (const loop of loops) expect(loop).toBeGreaterThan(Math.max(o["check:then"]!, o["check:else"]!));
+describe("toFlowEdges rework loops", () => {
+  it("draws each reject as a loop edge that runs to the right of every stage", () => {
+    const positions = layout();
+    const right = Math.max(...chain().stages.map((s) => positions[s.id]!.x + sizeOf(s).width));
+    for (const id of ["gate1:reject", "gate2:reject"]) {
+      expect(edgesWithLayout().find((e) => e.id === id)?.type).toBe("loop");
+      expect(corridorOf(id)!).toBeGreaterThanOrEqual(right + LOOP_CORRIDOR_GAP);
+    }
   });
 
-  it("is stable: the same workflow gives the same offsets", () => {
-    expect(offsets()).toEqual(offsets());
+  it("gives loops that overlap in height their own corridors, the shorter one inside", () => {
+    // gate1 -> work is shorter than gate2 -> work, and both start below work, so they overlap.
+    const inner = corridorOf("gate1:reject")!;
+    const outer = corridorOf("gate2:reject")!;
+    expect(outer - inner).toBe(LOOP_CORRIDOR_STEP);
   });
 
-  it("gives the forward edges the short run", () => {
-    const o = offsets();
-    expect(o["work:next"]).toBe(o["check:else"]);
-    expect(o["gate1:approve"]).toBe(o["check:then"]);
+  it("lets loops that do not overlap share a corridor", () => {
+    const rect = (id: string) => ({ a: { x: 0, y: 0, width: 100, height: 50 }, b: { x: 0, y: 100, width: 100, height: 50 }, c: { x: 0, y: 300, width: 100, height: 50 }, d: { x: 0, y: 400, width: 100, height: 50 } })[id as "a"];
+    const stage = (id: string) => ({ id, type: "human_gate" as const, approvers: "", on_approve: "", on_reject: "" });
+    const corridors = loopCorridors([{ id: "b:reject", source: stage("b"), target: "a" }, { id: "d:reject", source: stage("d"), target: "c" }], rect, 500);
+    expect(corridors.get("b:reject")).toBe(corridors.get("d:reject"));
+  });
+
+  it("never lets a loop cross a stage, even when one stage is much wider than the rest", () => {
+    // The widest stage sets the right edge; the corridor is beyond it.
+    let d = chain();
+    d = addStage(d, "parallel").definition;
+    const wide = d.stages.find((s) => s.type === "parallel")!;
+    const positions = { ...autoLayout(d, sizeOf) };
+    const right = Math.max(...d.stages.map((s) => positions[s.id]!.x + sizeOf(s).width));
+    const loops = toFlowEdges(d, true, () => undefined, null, positions).filter((e) => e.type === "loop");
+    expect(sizeOf(wide).width).toBeGreaterThan(sizeOf(d.stages[0]!).width);
+    for (const e of loops) expect((e.data as { corridorX: number }).corridorX).toBeGreaterThan(right);
+  });
+
+  it("keeps the short default for a reject when there are no positions to route by", () => {
+    const e = toFlowEdges(chain(), true, () => undefined).find((x) => x.id === "gate1:reject")!;
+    expect(e.type).toBe("smoothstep");
+  });
+
+  it("is stable: the same workflow gives the same corridors", () => {
+    expect(corridorOf("gate1:reject")).toBe(corridorOf("gate1:reject"));
+    expect(edgesWithLayout().map((e) => e.id)).toEqual(edgesWithLayout().map((e) => e.id));
   });
 });
 

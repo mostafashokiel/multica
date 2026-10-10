@@ -194,8 +194,9 @@ export function ParallelNode({ data, selected }: StageNodeProps) {
       <In readOnly={data.readOnly} />
       <div
         className={cn(
-          "relative h-full w-full rounded-xl",
-          data.problems > 0 && "ring-1 ring-destructive",
+          // A faint dashed frame ties the split, the cards and the join into one block.
+          "relative h-full w-full rounded-xl border border-dashed border-border bg-muted/20",
+          data.problems > 0 && "border-destructive",
           selected === true && "ring-2 ring-ring",
         )}
         title={stage.name ?? stage.id}
@@ -245,6 +246,15 @@ export function ParallelNode({ data, selected }: StageNodeProps) {
           <div className="truncate text-body font-medium">{stage.name ?? stage.id}</div>
         </div>
 
+        {stage.branches.length > 0 ? (
+          <span
+            className="pointer-events-none absolute whitespace-nowrap text-micro text-muted-foreground"
+            style={{ left: g.cx + gate / 2 + 8, top: g.joinY - 8 }}
+          >
+            {t(($) => $.designer.waits_for_all, { count: stage.branches.length })}
+          </span>
+        ) : null}
+
         {editable && stage.branches.length < MAX_BRANCHES && data.onBranchAdd !== undefined ? (
           <button
             type="button"
@@ -277,8 +287,8 @@ export function ParallelNode({ data, selected }: StageNodeProps) {
                   )}
                   onClick={() => data.onBranchSelect?.(i)}
                 >
-                  <span className="truncate text-micro text-muted-foreground">{title}</span>
-                  <span className={cn("truncate font-mono text-caption", branch.agent === "" && "text-muted-foreground")}>
+                  <span className="line-clamp-2 break-words text-caption font-medium leading-tight">{title}</span>
+                  <span className={cn("truncate font-mono text-micro text-muted-foreground", branch.agent === "" && "italic")}>
                     {branch.agent === "" ? t(($) => $.designer.branch_empty) : branch.agent}
                   </span>
                 </button>

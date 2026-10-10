@@ -62,9 +62,9 @@ export function WorkflowPipelinePane({
         </p>
       </div>
 
-      <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-2">
-        {data.stages.map((stage) => (
-          <StageColumn key={stage.id} stage={stage} />
+      <div className="-mx-1 flex items-stretch gap-3 overflow-x-auto px-1 pb-2">
+        {data.stages.map((stage, index) => (
+          <StageColumn key={stage.id} stage={stage} step={index + 1} />
         ))}
       </div>
 
@@ -88,31 +88,73 @@ export function WorkflowPipelinePane({
 // The server sends the stage type as text; one this build does not know is shown as written.
 const isStageType = (value: string): value is StageType => (STAGE_TYPES as readonly string[]).includes(value);
 
-function StageColumn({ stage }: { stage: WorkflowPipelineStage }) {
+// The colour of the strip across the top of a lane says what kind of stage it is, as on the designer's canvas.
+const LANE_BAR: Record<StageType, string> = {
+  agent: "bg-brand",
+  parallel: "bg-brand",
+  human_gate: "bg-warning",
+  condition: "bg-info",
+  end: "bg-muted-foreground",
+};
+
+/**
+ * One stage as a lane. The lane is a column with its own header (step number, name, kind, how many issues, and
+ * who a gate waits for) over a tinted floor; the issues are white cards that stand on that floor, so a card is
+ * never mistaken for a lane. A lane with nothing in it shrinks, so the lanes that hold work stand out.
+ */
+function StageColumn({ stage, step }: { stage: WorkflowPipelineStage; step: number }) {
   const { t } = useT("workflows");
   const known = isStageType(stage.type);
   const type = known ? t(($) => $.designer.type[stage.type as StageType]) : stage.type;
   const waiting = waitingFor(t, stage.approvers);
+  const count = stage.issues.length;
   return (
     <section
       aria-label={stage.name}
-      className="flex w-60 shrink-0 flex-col gap-2 rounded-lg border bg-muted/20 p-2"
+      data-empty={count === 0 || undefined}
+      className={cn("flex shrink-0 flex-col overflow-hidden rounded-xl border bg-muted/40", count === 0 ? "w-44" : "w-72")}
     >
-      <header className="flex items-baseline gap-2 px-1">
-        <h3 className="min-w-0 flex-1 truncate text-body font-medium">{stage.name}</h3>
-        <span className="shrink-0 text-caption tabular-nums text-muted-foreground">{stage.issues.length}</span>
+      <div aria-hidden="true" className={cn("h-1 shrink-0", known ? LANE_BAR[stage.type as StageType] : "bg-muted-foreground")} />
+      <header className="flex flex-col gap-1.5 border-b bg-background px-3 py-2.5">
+        <div className="flex items-start gap-2">
+          <span
+            aria-hidden="true"
+            className="mt-px grid size-5 shrink-0 place-items-center rounded-full bg-muted text-micro font-medium tabular-nums text-muted-foreground"
+          >
+            {step}
+          </span>
+          <h3 className="min-w-0 flex-1 break-words text-body font-medium leading-snug">{stage.name}</h3>
+          <span
+            className={cn(
+              "min-w-6 shrink-0 rounded-full px-1.5 text-center text-caption tabular-nums",
+              count > 0 ? "bg-brand/10 font-medium text-brand" : "text-muted-foreground",
+            )}
+          >
+            {count}
+          </span>
+        </div>
+        <p className="flex items-center gap-1.5 text-caption text-muted-foreground">
+          {isStageType(stage.type) ? <StageIcon type={stage.type} /> : null}
+          {type}
+        </p>
+        {stage.type === "human_gate" ? (
+          <p
+            className={cn(
+              "w-fit max-w-full rounded-md px-1.5 py-0.5 text-caption",
+              waiting.registered ? "bg-warning/10 text-foreground" : "bg-warning/10 text-warning",
+            )}
+          >
+            {waiting.text}
+          </p>
+        ) : null}
       </header>
-      <p className="flex items-center gap-1.5 px-1 text-caption text-muted-foreground">
-        {isStageType(stage.type) ? <StageIcon type={stage.type} /> : null}
-        {type}
-      </p>
-      {stage.type === "human_gate" ? (
-        <p className={cn("px-1 text-caption", waiting.registered ? "text-foreground" : "text-warning")}>{waiting.text}</p>
-      ) : null}
-      {stage.issues.length === 0 ? (
-        <p className="px-1 py-2 text-caption text-muted-foreground">{t(($) => $.pipeline.stage_empty)}</p>
+      {count === 0 ? (
+        <div className="min-h-16 flex-1 p-2">
+          <div aria-hidden="true" className="h-full min-h-12 rounded-lg border border-dashed border-border/70" />
+          <p className="sr-only">{t(($) => $.pipeline.stage_empty)}</p>
+        </div>
       ) : (
-        <ul className="flex flex-col gap-1.5">
+        <ul className="flex flex-1 flex-col gap-2 p-2">
           {stage.issues.map((issue) => (
             <li key={issue.id}>
               <IssueCard issue={issue} />
@@ -160,7 +202,7 @@ function Outside({
       <ul className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
         {issues.map((issue) => (
           <li key={issue.id}>
-            <IssueCard issue={issue} />
+            <IssueCard issue={issue} showPhases />
           </li>
         ))}
       </ul>
@@ -168,7 +210,7 @@ function Outside({
   );
 }
 
-function IssueCard({ issue }: { issue: WorkflowPipelineIssue }) {
+function IssueCard({ issue, showPhases = false }: { issue: WorkflowPipelineIssue; showPhases?: boolean }) {
   const { t } = useT("workflows");
   const wsId = useWorkspaceId();
   const p = useWorkspacePaths();
@@ -179,25 +221,27 @@ function IssueCard({ issue }: { issue: WorkflowPipelineIssue }) {
   return (
     <AppLink
       href={p.issueDetail(issue.id)}
-      className="flex flex-col gap-1 rounded-md border bg-background p-2 text-left transition-colors hover:bg-accent"
+      className="flex flex-col gap-2 rounded-lg border border-border bg-card p-2.5 text-left shadow-sm transition-colors hover:border-ring/50 hover:bg-accent/40"
     >
       <span className="flex items-center gap-1.5 text-caption text-muted-foreground">
-        <StatusIcon status={issue.status} className="size-3.5" />
+        <StatusIcon status={issue.status} className="size-3.5 shrink-0" />
         <span className="font-mono">{issue.identifier}</span>
         <span className="min-w-0 flex-1 truncate">{statusLabel(issue.status)}</span>
-        {issue.assignee_type && issue.assignee_id ? (
-          <ActorAvatar actorType={issue.assignee_type as "member" | "agent"} actorId={issue.assignee_id} size="sm" />
-        ) : null}
       </span>
-      <span className="line-clamp-2 break-words text-body">{issue.title}</span>
-      {issue.phases && issue.phases.length > 0 ? (
+      <span className="line-clamp-3 break-words text-body font-medium leading-snug">{issue.title}</span>
+      {showPhases && issue.phases && issue.phases.length > 0 ? (
         <span className="break-all font-mono text-caption text-muted-foreground">
           {t(($) => $.pipeline.labels, { labels: issue.phases.join(", ") })}
         </span>
       ) : null}
-      <span className="truncate text-caption text-muted-foreground">
-        {assignee ? `${assignee} · ` : ""}
-        {timeAgo(issue.updated_at)}
+      <span className="flex items-center gap-1.5 text-caption text-muted-foreground">
+        {issue.assignee_type && issue.assignee_id ? (
+          <ActorAvatar actorType={issue.assignee_type as "member" | "agent"} actorId={issue.assignee_id} size="sm" />
+        ) : null}
+        <span className="min-w-0 flex-1 truncate">
+          {assignee ? `${assignee} · ` : ""}
+          {timeAgo(issue.updated_at)}
+        </span>
       </span>
     </AppLink>
   );

@@ -66,6 +66,7 @@ import { useTheme } from "@multica/ui/components/common/theme-provider";
 import { cn } from "@multica/ui/lib/utils";
 import { useT } from "../../i18n";
 import { parseEdgeId, sizeOf, toFlowEdges, toFlowNodes } from "./flow";
+import { edgeTypes } from "./edges";
 import { nodeTypes } from "./nodes";
 import { StageProperties, WorkflowSettings } from "./panels";
 import { StageIcon } from "./stage-icon";
@@ -222,7 +223,7 @@ function DesignerInner({ workflowId, initial, onCreated, initialTab }: WorkflowD
     () => toFlowNodes(definition, shownPositions, problemsByStage, false, selectedId, branchEdit),
     [definition, shownPositions, problemsByStage, selectedId, branchEdit],
   );
-  const edges = useMemo(() => toFlowEdges(definition, false, (h) => labels[h], selectedEdgeId), [definition, labels, selectedEdgeId]);
+  const edges = useMemo(() => toFlowEdges(definition, false, (h) => labels[h], selectedEdgeId, shownPositions), [definition, labels, selectedEdgeId, shownPositions]);
 
   const onNodesChange = useCallback((changes: NodeChange[]) => {
     for (const change of changes) {
@@ -559,6 +560,7 @@ function DesignerInner({ workflowId, initial, onCreated, initialTab }: WorkflowD
             nodes={nodes}
             edges={edges}
             nodeTypes={nodeTypes}
+            edgeTypes={edgeTypes}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onNodeDragStop={onNodeDragStop}

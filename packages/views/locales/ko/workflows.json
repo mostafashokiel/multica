@@ -139,7 +139,8 @@
     "loading": "다이어그램 불러오는 중…",
     "no_stages": "이 버전에는 아직 단계가 없습니다.",
     "branches": "브랜치",
-    "branch_empty": "(에이전트 없음)"
+    "branch_empty": "(에이전트 없음)",
+    "waits_for_all": "{{count}}개 모두 기다림"
   },
   "editor": {
     "title_new": "새 워크플로",

@@ -7,6 +7,7 @@ import { useTheme } from "@multica/ui/components/common/theme-provider";
 import { STAGE_HANDLES, handleTarget, type Handle, type Positions, type WorkflowDefinition } from "@multica/core/workflows";
 import { useT } from "../../i18n";
 import { contentHeight, toFlowEdges, toFlowNodes } from "./flow";
+import { edgeTypes } from "./edges";
 import { nodeTypes } from "./nodes";
 
 interface WorkflowDiagramProps {
@@ -38,7 +39,7 @@ function WorkflowDiagram({ definition, positions, problemsByStage = NO_PROBLEMS 
     [t],
   );
   const nodes = useMemo(() => toFlowNodes(definition, positions, problemsByStage, true), [definition, positions, problemsByStage]);
-  const edges = useMemo(() => toFlowEdges(definition, true, (handle) => labels[handle]), [definition, labels]);
+  const edges = useMemo(() => toFlowEdges(definition, true, (handle) => labels[handle], null, positions), [definition, labels, positions]);
 
   // As tall as the stages need, within reason: a long chain squeezed into a short box is unreadable.
   const height = Math.min(920, Math.max(360, contentHeight(definition, positions) + 120));
@@ -55,6 +56,7 @@ function WorkflowDiagram({ definition, positions, problemsByStage = NO_PROBLEMS 
           nodes={nodes}
           edges={edges}
           nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
           nodesDraggable={false}
           nodesConnectable={false}
           elementsSelectable={false}

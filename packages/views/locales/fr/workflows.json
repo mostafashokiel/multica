@@ -141,7 +141,8 @@
     "loading": "Chargement du diagramme…",
     "no_stages": "Cette version n'a pas encore d'étapes.",
     "branches": "Branches",
-    "branch_empty": "(aucun agent)"
+    "branch_empty": "(aucun agent)",
+    "waits_for_all": "Attend les {{count}}"
   },
   "editor": {
     "title_new": "Nouveau workflow",

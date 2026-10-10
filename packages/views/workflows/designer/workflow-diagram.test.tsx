@@ -167,6 +167,7 @@ describe("WorkflowDiagram", () => {
     expect(node.querySelectorAll('[data-gate="true"]')).toHaveLength(2);
     expect(node.querySelector('[data-stage-icon="parallel"]')).not.toBeNull();
     expect(within(node).getByText("Parallel")).toBeInTheDocument();
+    expect(within(node).getByText("Waits for all 2")).toBeInTheDocument();
     // The diagram only shows: no add or remove buttons.
     expect(within(node).queryByText("Add branch")).toBeNull();
     // One way out, to the stage after the join.
