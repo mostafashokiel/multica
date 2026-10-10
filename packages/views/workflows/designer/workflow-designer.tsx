@@ -376,6 +376,10 @@ function DesignerInner({ workflowId, initial, onCreated, initialTab }: WorkflowD
     setTab("canvas");
   };
 
+  // What the YAML editor starts from: the server's form of the canvas, or, when the server cannot read the
+  // canvas yet (a new workflow has no key), the canvas as plain text, so there is always somewhere to paste.
+  const yamlStart = validation.canonical ?? (validation.known && !validation.checking ? text : undefined);
+
   const selectStage = (id: string) => {
     setTab("canvas");
     setSelectedId(id);
@@ -588,10 +592,10 @@ function DesignerInner({ workflowId, initial, onCreated, initialTab }: WorkflowD
 
             {tab === "yaml" ? (
               <section className="absolute inset-0" aria-label={t(($) => $.editor.tabs.yaml)}>
-                {validation.canonical === undefined ? (
+                {yamlStart === undefined ? (
                   <Skeleton className="m-4 h-64" aria-hidden="true" />
                 ) : (
-                  <YamlEditor canonical={validation.canonical} lockedKey={isNew ? null : definition.metadata.id} onApply={applyYaml} />
+                  <YamlEditor canonical={yamlStart} lockedKey={isNew ? null : definition.metadata.id} onApply={applyYaml} />
                 )}
               </section>
             ) : null}

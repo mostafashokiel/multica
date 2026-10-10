@@ -952,6 +952,21 @@ describe("importing YAML", () => {
     await waitFor(() => expect(screen.getByRole("button", { name: "Put on canvas" })).toBeEnabled());
   });
 
+  it("is there for a new, empty workflow too, although the server cannot read its text yet", async () => {
+    vi.mocked(api.validateWorkflow).mockImplementation(async (text: string) =>
+      text.includes("PASTED")
+        ? { parsed: true, valid: true, issues: [], canonical: stringifyForTest(other("fresh")) }
+        : { parsed: false, valid: false, issues: [{ message: "metadata.id must not be empty", path: "metadata.id" }] },
+    );
+    renderDesigner({ initial: initialFor(emptyDefinition(), 0) });
+    await openYaml();
+
+    const editor = (await screen.findByLabelText("Workflow YAML")) as HTMLTextAreaElement;
+    expect(editor.value).toContain("apiVersion: composer.noqodi/v1");
+    fireEvent.change(editor, { target: { value: "PASTED" } });
+    await waitFor(() => expect(screen.getByRole("button", { name: "Put on canvas" })).toBeEnabled());
+  });
+
   it("loads a file into the editor", async () => {
     serverReads(other("demo"));
     renderDesigner({ initial: open(), workflowId: "wf-1" });
