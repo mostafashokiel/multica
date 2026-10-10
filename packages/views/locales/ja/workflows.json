@@ -316,6 +316,9 @@
     "squad_all": "すべてのスクワッド",
     "squad_none": "スクワッド未割り当て",
     "no_workflows": "ワークフローはまだありません。作成すると、そのパイプラインがここに表示されます。",
-    "empty_filtered": "このスクワッドには、このワークフローに従うタスクがありません。"
+    "empty_filtered": "このスクワッドには、このワークフローに従うタスクがありません。",
+    "branches_progress": "{{total}} 件中 {{done}} 件のブランチが完了",
+    "branches_cancelled": "{{count}} 件キャンセル",
+    "branches": "ブランチ"
   }
 }

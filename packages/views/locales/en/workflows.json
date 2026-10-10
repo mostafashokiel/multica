@@ -320,6 +320,9 @@
     "squad_all": "All squads",
     "squad_none": "Not assigned to a squad",
     "no_workflows": "No workflows yet. Create one to see its pipeline here.",
-    "empty_filtered": "No issue of this squad follows this workflow."
+    "empty_filtered": "No issue of this squad follows this workflow.",
+    "branches_progress": "{{done}} of {{total}} branches done",
+    "branches_cancelled": "{{count}} cancelled",
+    "branches": "Branches"
   }
 }

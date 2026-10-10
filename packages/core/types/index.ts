@@ -140,6 +140,7 @@ export type {
   WorkflowMember,
   WorkflowPipeline,
   WorkflowPipelineIssue,
+  WorkflowPipelineChild,
   WorkflowPipelineStage,
   WorkflowPipelineApprover,
   ListWorkflowSquadsResponse,

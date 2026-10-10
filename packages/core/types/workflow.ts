@@ -166,6 +166,22 @@ export interface WorkflowPipelineIssue {
   updated_at: string;
   /** The phase:* labels the issue carries; only filled where they do not name exactly one stage. */
   phases?: string[];
+  /** The issue's sub-issues, oldest first. A parallel stage hands each branch to an agent as one. */
+  children?: WorkflowPipelineChild[];
+}
+
+/** One sub-issue of an issue in a workflow's pipeline. */
+export interface WorkflowPipelineChild {
+  id: string;
+  identifier: string;
+  title: string;
+  status: string;
+  assignee_type?: string;
+  assignee_id?: string;
+  created_at: string;
+  /** Done or cancelled: the states that wake the squad leader again. */
+  closed: boolean;
+  cancelled: boolean;
 }
 
 /** A person a human gate waits for. `id` and `name` are set only for a registered member of the workspace. */

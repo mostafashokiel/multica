@@ -316,6 +316,9 @@
     "squad_all": "모든 스쿼드",
     "squad_none": "스쿼드에 할당되지 않음",
     "no_workflows": "아직 워크플로가 없습니다. 만들면 여기에서 파이프라인을 볼 수 있습니다.",
-    "empty_filtered": "이 스쿼드에는 이 워크플로를 따르는 태스크가 없습니다."
+    "empty_filtered": "이 스쿼드에는 이 워크플로를 따르는 태스크가 없습니다.",
+    "branches_progress": "브랜치 {{total}}개 중 {{done}}개 완료",
+    "branches_cancelled": "{{count}}개 취소됨",
+    "branches": "브랜치"
   }
 }

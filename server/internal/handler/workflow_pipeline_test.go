@@ -193,3 +193,55 @@ func TestWorkflowPipelineCanBeFilteredBySquad(t *testing.T) {
 	testutil.Call(t, testHandler.WorkflowPipeline,
 		withURLParam(newRequest("GET", "/x?squad=nonsense", nil), "id", created.Workflow.ID)).Want(http.StatusBadRequest)
 }
+
+// A parallel stage hands each branch to an agent as a sub-issue; the pipeline carries them so that
+// the stage's progress can be shown. Closed means done or cancelled, the states that wake the leader.
+func TestWorkflowPipelineCarriesTheSubIssuesOfAnIssue(t *testing.T) {
+	enableWorkflows(t)
+	key := freshWorkflowKey()
+	created := createWorkflowFor(t, key)
+	wf, build := pipelineLabel(t, "wf:"+key), pipelineLabel(t, "phase:build")
+
+	parent := pipelineIssue(t, "parent", "in_progress", wf, build)
+	alone := pipelineIssue(t, "no children", "in_progress", wf, build)
+	dbfx.Issue(t, "Design: Threat model", testutil.Cols{"status": "done", "parent_issue_id": parent})
+	dbfx.Issue(t, "Design: Test strategy", testutil.Cols{"status": "in_review", "parent_issue_id": parent})
+	dbfx.Issue(t, "Design: Architecture", testutil.Cols{"status": "cancelled", "parent_issue_id": parent})
+	// A sub-issue of an issue that is not in the workflow must not leak in.
+	stranger := dbfx.Issue(t, "stranger", testutil.Cols{"status": "todo"})
+	dbfx.Issue(t, "not ours", testutil.Cols{"status": "done", "parent_issue_id": stranger})
+
+	got := getPipeline(t, created.Workflow.ID)
+
+	var kids, none []WorkflowPipelineChild
+	for _, i := range got.Stages[0].Issues {
+		switch i.ID {
+		case parent:
+			kids = i.Children
+		case alone:
+			none = i.Children
+		}
+	}
+	if none == nil || len(none) != 0 {
+		t.Errorf("an issue with no sub-issues must carry an empty list, got %#v", none)
+	}
+	if len(kids) != 3 {
+		t.Fatalf("children = %+v", kids)
+	}
+	// Oldest first, and each says whether it is closed and whether it was cancelled.
+	want := []struct {
+		title             string
+		closed, cancelled bool
+	}{{"Design: Threat model", true, false}, {"Design: Test strategy", false, false}, {"Design: Architecture", true, true}}
+	for i, w := range want {
+		c := kids[i]
+		if c.Title != w.title || c.Closed != w.closed || c.Cancelled != w.cancelled || c.Identifier == "" || c.CreatedAt == "" {
+			t.Errorf("child %d = %+v, want %+v", i, c, w)
+		}
+	}
+	for _, i := range append(append([]WorkflowPipelineIssue{}, got.NoStage...), got.Conflicting...) {
+		if i.Children == nil {
+			t.Errorf("issue %q outside the stages has null children", i.Title)
+		}
+	}
+}

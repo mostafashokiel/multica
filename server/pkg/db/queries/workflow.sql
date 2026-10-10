@@ -144,3 +144,22 @@ WHERE i.workspace_id = sqlc.arg('workspace_id')::uuid
         AND wl.name = sqlc.arg('wf_label')::text)
 ORDER BY i.updated_at DESC, i.id DESC
 LIMIT sqlc.arg('row_limit')::int;
+
+-- name: ListWorkflowPipelineChildren :many
+-- The sub-issues of the given issues, oldest first, with whether each one is
+-- closed (its status is in a done or closed category) and whether it was
+-- cancelled (closed category). Used to show the progress of a parallel stage:
+-- the leader hands each branch to an agent as a sub-issue.
+SELECT c.parent_issue_id, c.id, c.number, c.title, c.status, c.assignee_type, c.assignee_id,
+    c.created_at, c.updated_at,
+    EXISTS (SELECT 1 FROM issue_status s
+            WHERE s.workspace_id = c.workspace_id AND s.key = c.status
+              AND s.category IN ('done', 'closed'))::bool AS closed,
+    EXISTS (SELECT 1 FROM issue_status s
+            WHERE s.workspace_id = c.workspace_id AND s.key = c.status
+              AND s.category = 'closed')::bool AS cancelled
+FROM issue c
+WHERE c.workspace_id = sqlc.arg('workspace_id')::uuid
+  AND c.parent_issue_id = ANY(sqlc.arg('parent_ids')::uuid[])
+ORDER BY c.created_at, c.id
+LIMIT sqlc.arg('row_limit')::int;

@@ -867,6 +867,18 @@ export const EMPTY_LIST_WORKFLOW_SQUADS_RESPONSE: ListWorkflowSquadsResponse = {
   squads: [],
 };
 
+const WorkflowPipelineChildSchema = z.object({
+  id: z.string().optional().default(""),
+  identifier: z.string().optional().default(""),
+  title: z.string().optional().default(""),
+  status: z.string().optional().default(""),
+  assignee_type: z.string().optional(),
+  assignee_id: z.string().optional(),
+  created_at: z.string().optional().default(""),
+  closed: z.boolean().optional().default(false),
+  cancelled: z.boolean().optional().default(false),
+}).loose();
+
 const WorkflowPipelineIssueSchema = z.object({
   id: z.string().optional().default(""),
   identifier: z.string().optional().default(""),
@@ -876,6 +888,7 @@ const WorkflowPipelineIssueSchema = z.object({
   assignee_id: z.string().optional(),
   updated_at: z.string().optional().default(""),
   phases: z.array(z.string()).optional(),
+  children: z.array(WorkflowPipelineChildSchema).nullish().transform((v) => v ?? []),
 }).loose();
 
 const pipelineIssues = z.array(WorkflowPipelineIssueSchema).nullish().transform((v) => v ?? []);

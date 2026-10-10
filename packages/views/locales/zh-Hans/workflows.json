@@ -316,6 +316,9 @@
     "squad_all": "所有小队",
     "squad_none": "未分配给小队",
     "no_workflows": "还没有工作流。创建一个后即可在这里查看它的流水线。",
-    "empty_filtered": "此小队没有任务遵循此工作流。"
+    "empty_filtered": "此小队没有任务遵循此工作流。",
+    "branches_progress": "{{total}} 个分支已完成 {{done}} 个",
+    "branches_cancelled": "{{count}} 个已取消",
+    "branches": "分支"
   }
 }

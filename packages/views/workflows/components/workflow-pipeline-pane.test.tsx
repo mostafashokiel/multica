@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, screen, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { api, ApiError } from "@multica/core/api";
-import type { WorkflowPipeline, WorkflowPipelineIssue } from "@multica/core/types";
+import type { WorkflowPipeline, WorkflowPipelineChild, WorkflowPipelineIssue } from "@multica/core/types";
 import { NavigationProvider } from "../../navigation";
 import { renderWithI18n } from "../../test/i18n";
 import { WorkflowPipelinePane } from "./workflow-pipeline-pane";
@@ -131,6 +131,86 @@ describe("WorkflowPipelinePane", () => {
     expect([...document.querySelectorAll("section[aria-label] header span[aria-hidden]")].map((n) => n.textContent)).toEqual(["1", "2", "3"]);
   });
 
+  const branch = (id: string, title: string, minutes: number, over: Partial<WorkflowPipelineChild> = {}): WorkflowPipelineChild => ({
+    id,
+    identifier: `ACM-${id}`,
+    title,
+    status: "todo",
+    created_at: new Date(Date.parse("2026-10-10T21:00:00Z") + minutes * 60_000).toISOString(),
+    closed: false,
+    cancelled: false,
+    ...over,
+  });
+
+  it("shows how far the branches of a parallel stage are, with a row for each that opens its sub-issue", async () => {
+    vi.mocked(api.getWorkflowPipeline).mockResolvedValue({
+      ...empty,
+      total: 1,
+      stages: [
+        {
+          id: "design",
+          name: "Design",
+          type: "parallel",
+          approvers: [],
+          issues: [
+            issue("1", "User management", {
+              children: [
+                branch("10", "Design: Threat model", 0, { status: "done", closed: true, assignee_type: "agent", assignee_id: "a1" }),
+                branch("11", "Design: Test strategy", 0, { status: "in_progress" }),
+                branch("12", "Design: Architecture", 0, { status: "cancelled", closed: true, cancelled: true }),
+              ],
+            }),
+          ],
+        },
+      ],
+    });
+    renderPane();
+
+    const lane = await screen.findByRole("region", { name: "Design" });
+    expect(within(lane).getByText("2 of 3 branches done")).toBeInTheDocument();
+    expect(within(lane).getByText("1 cancelled")).toBeInTheDocument();
+    const rows = within(within(lane).getByRole("list", { name: "Branches" })).getAllByRole("link");
+    // Named without the stage's prefix, each a link to its own sub-issue.
+    expect(rows.map((r) => r.textContent)).toEqual(["Threat modelagent a1", "Test strategy", "Architecture"]);
+    expect(rows.map((r) => r.getAttribute("href"))).toEqual(["/acme/issues/10", "/acme/issues/11", "/acme/issues/12"]);
+    // A link is never inside another link.
+    expect(lane.querySelectorAll("a a")).toHaveLength(0);
+  });
+
+  it("counts only the newest set of branches after the stage was visited again, and only in a parallel stage", async () => {
+    vi.mocked(api.getWorkflowPipeline).mockResolvedValue({
+      ...empty,
+      total: 2,
+      stages: [
+        {
+          id: "design",
+          name: "Design",
+          type: "parallel",
+          approvers: [],
+          issues: [
+            issue("1", "Reworked", {
+              children: [
+                branch("10", "Design: A", 0, { closed: true, status: "done" }),
+                branch("11", "Design: B", 0, { closed: true, status: "done" }),
+                branch("12", "Design: A", 300),
+                branch("13", "Design: B", 301),
+              ],
+            }),
+          ],
+        },
+        // Sub-issues of an issue in an ordinary stage are not branches and are not shown.
+        { id: "build", name: "Build", type: "agent", approvers: [], issues: [issue("2", "Plain", { children: [branch("20", "Build: X", 0)] })] },
+      ],
+    });
+    renderPane();
+
+    const design = await screen.findByRole("region", { name: "Design" });
+    expect(within(design).getByText("0 of 2 branches done")).toBeInTheDocument();
+    expect(within(design).getAllByRole("link").map((l) => l.getAttribute("href"))).toEqual(["/acme/issues/1", "/acme/issues/12", "/acme/issues/13"]);
+    const build = screen.getByRole("region", { name: "Build" });
+    expect(within(build).queryByRole("list", { name: "Branches" })).toBeNull();
+  });
+
   it("keeps an issue card visibly apart from its lane: the lane has a header, the card is a bordered, raised link", async () => {
     vi.mocked(api.getWorkflowPipeline).mockResolvedValue({
       ...empty,
@@ -141,7 +221,9 @@ describe("WorkflowPipelinePane", () => {
 
     const lane = await screen.findByRole("region", { name: "Build" });
     expect(lane.querySelector("header")).not.toBeNull();
-    const card = within(lane).getByRole("link", { name: /Do the thing/ });
+    const link = within(lane).getByRole("link", { name: /Do the thing/ });
+    // The card is the raised, bordered box around the issue's link.
+    const card = link.parentElement as HTMLElement;
     expect(card.className).toContain("border");
     expect(card.className).toContain("shadow-sm");
     expect(lane.contains(card)).toBe(true);

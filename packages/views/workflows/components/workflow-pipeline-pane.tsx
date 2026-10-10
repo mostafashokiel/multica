@@ -3,9 +3,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { useWorkspaceId } from "@multica/core/hooks";
 import { useWorkspacePaths } from "@multica/core/paths";
-import { STAGE_TYPES, workflowPipelineOptions, type StageType } from "@multica/core/workflows";
+import { STAGE_TYPES, branchLabel, branchProgress, currentBranches, workflowPipelineOptions, type StageType } from "@multica/core/workflows";
 import { useActorName } from "@multica/core/workspace/hooks";
-import type { WorkflowPipelineApprover, WorkflowPipelineIssue, WorkflowPipelineStage } from "@multica/core/types";
+import type { WorkflowPipelineApprover, WorkflowPipelineChild, WorkflowPipelineIssue, WorkflowPipelineStage } from "@multica/core/types";
 import { Skeleton } from "@multica/ui/components/ui/skeleton";
 import { cn } from "@multica/ui/lib/utils";
 import { ActorAvatar } from "../../common/actor-avatar";
@@ -155,7 +155,7 @@ function StageColumn({ stage, step }: { stage: WorkflowPipelineStage; step: numb
         <ul className="flex flex-1 flex-col gap-2 p-2">
           {stage.issues.map((issue) => (
             <li key={issue.id}>
-              <IssueCard issue={issue} />
+              <IssueCard issue={issue} {...(stage.type === "parallel" ? { branchesOf: stage.name } : {})} />
             </li>
           ))}
         </ul>
@@ -208,7 +208,12 @@ function Outside({
   );
 }
 
-function IssueCard({ issue, showPhases = false }: { issue: WorkflowPipelineIssue; showPhases?: boolean }) {
+/**
+ * An issue as a card: a raised box with the issue's own link on top and, in a parallel stage, how far its
+ * branches are below. The branch rows are links of their own, so they sit beside the issue's link rather than
+ * inside it.
+ */
+function IssueCard({ issue, showPhases = false, branchesOf }: { issue: WorkflowPipelineIssue; showPhases?: boolean; branchesOf?: string }) {
   const { t } = useT("workflows");
   const wsId = useWorkspaceId();
   const p = useWorkspacePaths();
@@ -216,31 +221,79 @@ function IssueCard({ issue, showPhases = false }: { issue: WorkflowPipelineIssue
   const statusLabel = useStatusLabel(wsId);
   const { getActorName } = useActorName();
   const assignee = issue.assignee_type && issue.assignee_id ? getActorName(issue.assignee_type, issue.assignee_id) : "";
+  const branches = branchesOf === undefined ? [] : currentBranches(issue.children ?? [], branchesOf);
   return (
-    <AppLink
-      href={p.issueDetail(issue.id)}
-      className="flex flex-col gap-2 rounded-lg border border-border bg-card p-2.5 text-left shadow-sm transition-colors hover:border-ring/50 hover:bg-accent/40"
-    >
-      <span className="flex items-center gap-1.5 text-caption text-muted-foreground">
-        <StatusIcon status={issue.status} className="size-3.5 shrink-0" />
-        <span className="font-mono">{issue.identifier}</span>
-        <span className="min-w-0 flex-1 truncate">{statusLabel(issue.status)}</span>
-      </span>
-      <span className="line-clamp-3 break-words text-body font-medium leading-snug">{issue.title}</span>
-      {showPhases && issue.phases && issue.phases.length > 0 ? (
-        <span className="break-all font-mono text-caption text-muted-foreground">
-          {t(($) => $.pipeline.labels, { labels: issue.phases.join(", ") })}
+    <div className="flex flex-col rounded-lg border border-border bg-card shadow-sm transition-colors hover:border-ring/50">
+      <AppLink href={p.issueDetail(issue.id)} className="flex flex-col gap-2 rounded-lg p-2.5 text-left transition-colors hover:bg-accent/40">
+        <span className="flex items-center gap-1.5 text-caption text-muted-foreground">
+          <StatusIcon status={issue.status} className="size-3.5 shrink-0" />
+          <span className="font-mono">{issue.identifier}</span>
+          <span className="min-w-0 flex-1 truncate">{statusLabel(issue.status)}</span>
         </span>
-      ) : null}
-      <span className="flex items-center gap-1.5 text-caption text-muted-foreground">
-        {issue.assignee_type && issue.assignee_id ? (
-          <ActorAvatar actorType={issue.assignee_type as "member" | "agent"} actorId={issue.assignee_id} size="sm" />
+        <span className="line-clamp-3 break-words text-body font-medium leading-snug">{issue.title}</span>
+        {showPhases && issue.phases && issue.phases.length > 0 ? (
+          <span className="break-all font-mono text-caption text-muted-foreground">
+            {t(($) => $.pipeline.labels, { labels: issue.phases.join(", ") })}
+          </span>
         ) : null}
-        <span className="min-w-0 flex-1 truncate">
-          {assignee ? `${assignee} · ` : ""}
-          {timeAgo(issue.updated_at)}
+        <span className="flex items-center gap-1.5 text-caption text-muted-foreground">
+          {issue.assignee_type && issue.assignee_id ? (
+            <ActorAvatar actorType={issue.assignee_type as "member" | "agent"} actorId={issue.assignee_id} size="sm" />
+          ) : null}
+          <span className="min-w-0 flex-1 truncate">
+            {assignee ? `${assignee} · ` : ""}
+            {timeAgo(issue.updated_at)}
+          </span>
         </span>
-      </span>
-    </AppLink>
+      </AppLink>
+      {branches.length > 0 && branchesOf !== undefined ? <BranchProgress branches={branches} stageName={branchesOf} /> : null}
+    </div>
+  );
+}
+
+/** How far the branches of a parallel stage are: a segment each, a count, and one row per branch. */
+function BranchProgress({ branches, stageName }: { branches: WorkflowPipelineChild[]; stageName: string }) {
+  const { t } = useT("workflows");
+  const wsId = useWorkspaceId();
+  const p = useWorkspacePaths();
+  const statusLabel = useStatusLabel(wsId);
+  const { getActorName } = useActorName();
+  const progress = branchProgress(branches);
+  return (
+    <div className="flex flex-col gap-2 border-t bg-muted/30 px-2.5 py-2">
+      <div className="flex items-center justify-between gap-2 text-caption">
+        <span className="font-medium">{t(($) => $.pipeline.branches_progress, { done: progress.closed, total: progress.total })}</span>
+        {progress.cancelled > 0 ? <span className="text-warning">{t(($) => $.pipeline.branches_cancelled, { count: progress.cancelled })}</span> : null}
+      </div>
+      <div aria-hidden="true" className="flex gap-0.5">
+        {branches.map((b) => (
+          <span
+            key={b.id}
+            className={cn(
+              "h-1.5 flex-1 rounded-full",
+              b.cancelled ? "bg-warning" : b.closed ? "bg-success" : b.status === "in_progress" ? "bg-brand/70" : "bg-muted-foreground/25",
+            )}
+          />
+        ))}
+      </div>
+      <ul className="flex flex-col" aria-label={t(($) => $.pipeline.branches)}>
+        {branches.map((b) => {
+          const who = b.assignee_type && b.assignee_id ? getActorName(b.assignee_type, b.assignee_id) : "";
+          return (
+            <li key={b.id}>
+              <AppLink
+                href={p.issueDetail(b.id)}
+                title={`${branchLabel(b, stageName)} · ${b.identifier} · ${statusLabel(b.status)}`}
+                className="flex items-center gap-1.5 rounded-md px-1 py-1 text-caption hover:bg-accent/60"
+              >
+                <StatusIcon status={b.status} className="size-3.5 shrink-0" />
+                <span className="min-w-0 flex-1 truncate">{branchLabel(b, stageName)}</span>
+                {who ? <span className="max-w-[40%] shrink-0 truncate font-mono text-micro text-muted-foreground">{who}</span> : null}
+              </AppLink>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
   );
 }

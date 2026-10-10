@@ -261,6 +261,47 @@ describe("ApiClient workflows (render and apply)", () => {
     expect(result.total).toBe(3);
   });
 
+  it("reads the sub-issues of a pipeline issue, and gives every issue a list even when the server sent none", async () => {
+    stubFetch(
+      json({
+        workflow_key: "x",
+        stages: [
+          {
+            id: "design",
+            name: "Design",
+            type: "parallel",
+            issues: [
+              {
+                id: "i-1",
+                identifier: "ACM-1",
+                title: "Parent",
+                status: "in_progress",
+                updated_at: "t",
+                children: [
+                  { id: "c-1", identifier: "ACM-2", title: "Design: A", status: "done", created_at: "2026-10-10T21:00:00Z", closed: true, cancelled: false, assignee_type: "agent", assignee_id: "a-1" },
+                  { id: "c-2", title: "Design: B", status: "todo" },
+                ],
+              },
+              { id: "i-2", identifier: "ACM-3", title: "No kids", status: "todo", updated_at: "t", children: null },
+              { id: "i-3", identifier: "ACM-4", title: "Old server", status: "todo", updated_at: "t" },
+            ],
+          },
+        ],
+        total: 3,
+      }),
+    );
+    const client = new ApiClient("https://api.example.test");
+
+    const [parent, none, old] = (await client.getWorkflowPipeline("wf-1")).stages[0]!.issues;
+
+    expect(parent?.children).toHaveLength(2);
+    expect(parent?.children?.[0]).toMatchObject({ id: "c-1", closed: true, cancelled: false, assignee_id: "a-1" });
+    // A field the server left out has a safe default, never undefined.
+    expect(parent?.children?.[1]).toMatchObject({ identifier: "", created_at: "", closed: false, cancelled: false });
+    expect(none?.children).toEqual([]);
+    expect(old?.children).toEqual([]);
+  });
+
   it("asks for one squad's issues when given a squad", async () => {
     // A fresh Response per call: a body can be read once.
     const fetchMock = vi.fn().mockImplementation(async () => json({ workflow_key: "x", stages: [], total: 0 }));

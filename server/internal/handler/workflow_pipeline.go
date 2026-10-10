@@ -18,6 +18,9 @@ const (
 	// workflowPipelineLimit caps how many issues one pipeline answer carries.
 	workflowPipelineLimit = 500
 
+	// workflowPipelineChildLimit caps how many sub-issues one pipeline answer carries.
+	workflowPipelineChildLimit = 5000
+
 	workflowPhasePrefix = "phase:"
 
 	// workflowPipelineNoSquad is the squad filter that keeps only the issues
@@ -37,6 +40,24 @@ type WorkflowPipelineIssue struct {
 	// Phases are the phase:* labels the issue carries, only filled where they
 	// do not name exactly one of the workflow's stages.
 	Phases []string `json:"phases,omitempty"`
+	// Children are the issue's sub-issues, oldest first (never null). A parallel
+	// stage hands each branch to an agent as one, so these are its progress.
+	Children []WorkflowPipelineChild `json:"children"`
+}
+
+// WorkflowPipelineChild is one sub-issue of an issue in a workflow.
+type WorkflowPipelineChild struct {
+	ID           string `json:"id"`
+	Identifier   string `json:"identifier"`
+	Title        string `json:"title"`
+	Status       string `json:"status"`
+	AssigneeType string `json:"assignee_type,omitempty"`
+	AssigneeID   string `json:"assignee_id,omitempty"`
+	CreatedAt    string `json:"created_at"`
+	// Closed is true once the sub-issue's status is done or cancelled: the
+	// states that wake the squad leader again. Cancelled is true for the latter.
+	Closed    bool `json:"closed"`
+	Cancelled bool `json:"cancelled"`
 }
 
 // WorkflowPipelineApprover is one person a human gate waits for.
@@ -161,6 +182,12 @@ func (h *Handler) WorkflowPipeline(w http.ResponseWriter, r *http.Request) {
 		rows, resp.Truncated = rows[:workflowPipelineLimit], true
 	}
 	prefix := h.getIssuePrefix(r.Context(), wf.WorkspaceID)
+	children, err := h.pipelineChildren(r.Context(), wf.WorkspaceID, prefix, rows)
+	if err != nil {
+		slog.Warn("workflow pipeline: list sub-issues failed", append(logger.RequestAttrs(r), "error", err)...)
+		writeError(w, http.StatusInternalServerError, "failed to load the pipeline")
+		return
+	}
 
 	for _, row := range rows {
 		item := WorkflowPipelineIssue{
@@ -169,6 +196,10 @@ func (h *Handler) WorkflowPipeline(w http.ResponseWriter, r *http.Request) {
 			Title:      row.Title,
 			Status:     row.Status,
 			UpdatedAt:  timestampToString(row.UpdatedAt),
+			Children:   []WorkflowPipelineChild{},
+		}
+		if kids, ok := children[uuidToString(row.ID)]; ok {
+			item.Children = kids
 		}
 		if row.AssigneeType.Valid && row.AssigneeID.Valid {
 			item.AssigneeType, item.AssigneeID = row.AssigneeType.String, uuidToString(row.AssigneeID)
@@ -191,6 +222,43 @@ func (h *Handler) WorkflowPipeline(w http.ResponseWriter, r *http.Request) {
 	}
 	resp.Total = len(rows)
 	writeJSON(w, http.StatusOK, resp)
+}
+
+// pipelineChildren reads the sub-issues of the listed issues in one query and groups them by parent
+// id. A status counts as closed by its category, with done and cancelled as the fallback for a
+// workspace that has no status rows.
+func (h *Handler) pipelineChildren(ctx context.Context, workspaceID pgtype.UUID, prefix string, parents []db.ListWorkflowPipelineIssuesRow) (map[string][]WorkflowPipelineChild, error) {
+	out := map[string][]WorkflowPipelineChild{}
+	if len(parents) == 0 {
+		return out, nil
+	}
+	ids := make([]pgtype.UUID, len(parents))
+	for i, p := range parents {
+		ids[i] = p.ID
+	}
+	rows, err := h.Queries.ListWorkflowPipelineChildren(ctx, db.ListWorkflowPipelineChildrenParams{
+		WorkspaceID: workspaceID, ParentIds: ids, RowLimit: workflowPipelineChildLimit,
+	})
+	if err != nil {
+		return nil, err
+	}
+	for _, row := range rows {
+		child := WorkflowPipelineChild{
+			ID:         uuidToString(row.ID),
+			Identifier: prefix + "-" + strconv.Itoa(int(row.Number)),
+			Title:      row.Title,
+			Status:     row.Status,
+			CreatedAt:  timestampToString(row.CreatedAt),
+			Closed:     row.Closed || row.Status == "done" || row.Status == "cancelled",
+			Cancelled:  row.Cancelled || row.Status == "cancelled",
+		}
+		if row.AssigneeType.Valid && row.AssigneeID.Valid {
+			child.AssigneeType, child.AssigneeID = row.AssigneeType.String, uuidToString(row.AssigneeID)
+		}
+		parent := uuidToString(row.ParentIssueID)
+		out[parent] = append(out[parent], child)
+	}
+	return out, nil
 }
 
 // pipelineApprovers names the people of an approver group that are registered

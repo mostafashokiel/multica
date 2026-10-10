@@ -307,6 +307,78 @@ func (q *Queries) ListWorkflowAudit(ctx context.Context, arg ListWorkflowAuditPa
 	return items, nil
 }
 
+const listWorkflowPipelineChildren = `-- name: ListWorkflowPipelineChildren :many
+SELECT c.parent_issue_id, c.id, c.number, c.title, c.status, c.assignee_type, c.assignee_id,
+    c.created_at, c.updated_at,
+    EXISTS (SELECT 1 FROM issue_status s
+            WHERE s.workspace_id = c.workspace_id AND s.key = c.status
+              AND s.category IN ('done', 'closed'))::bool AS closed,
+    EXISTS (SELECT 1 FROM issue_status s
+            WHERE s.workspace_id = c.workspace_id AND s.key = c.status
+              AND s.category = 'closed')::bool AS cancelled
+FROM issue c
+WHERE c.workspace_id = $1::uuid
+  AND c.parent_issue_id = ANY($2::uuid[])
+ORDER BY c.created_at, c.id
+LIMIT $3::int
+`
+
+type ListWorkflowPipelineChildrenParams struct {
+	WorkspaceID pgtype.UUID   `json:"workspace_id"`
+	ParentIds   []pgtype.UUID `json:"parent_ids"`
+	RowLimit    int32         `json:"row_limit"`
+}
+
+type ListWorkflowPipelineChildrenRow struct {
+	ParentIssueID pgtype.UUID        `json:"parent_issue_id"`
+	ID            pgtype.UUID        `json:"id"`
+	Number        int32              `json:"number"`
+	Title         string             `json:"title"`
+	Status        string             `json:"status"`
+	AssigneeType  pgtype.Text        `json:"assignee_type"`
+	AssigneeID    pgtype.UUID        `json:"assignee_id"`
+	CreatedAt     pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
+	Closed        bool               `json:"closed"`
+	Cancelled     bool               `json:"cancelled"`
+}
+
+// The sub-issues of the given issues, oldest first, with whether each one is
+// closed (its status is in a done or closed category) and whether it was
+// cancelled (closed category). Used to show the progress of a parallel stage:
+// the leader hands each branch to an agent as a sub-issue.
+func (q *Queries) ListWorkflowPipelineChildren(ctx context.Context, arg ListWorkflowPipelineChildrenParams) ([]ListWorkflowPipelineChildrenRow, error) {
+	rows, err := q.db.Query(ctx, listWorkflowPipelineChildren, arg.WorkspaceID, arg.ParentIds, arg.RowLimit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListWorkflowPipelineChildrenRow{}
+	for rows.Next() {
+		var i ListWorkflowPipelineChildrenRow
+		if err := rows.Scan(
+			&i.ParentIssueID,
+			&i.ID,
+			&i.Number,
+			&i.Title,
+			&i.Status,
+			&i.AssigneeType,
+			&i.AssigneeID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Closed,
+			&i.Cancelled,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listWorkflowPipelineIssues = `-- name: ListWorkflowPipelineIssues :many
 SELECT i.id, i.number, i.title, i.status, i.assignee_type, i.assignee_id, i.updated_at,
     COALESCE(
