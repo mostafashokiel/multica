@@ -15,7 +15,8 @@
     "disabled_description": "Un administrateur peut activer cette fonctionnalité pour le déploiement.",
     "new_button": "Nouveau workflow",
     "edit_button": "Modifier",
-    "empty_description_create": "Un workflow définit les étapes que le travail traverse, y compris les points d'approbation humaine. Créez le premier dans le concepteur."
+    "empty_description_create": "Un workflow définit les étapes que le travail traverse, y compris les points d'approbation humaine. Créez le premier dans le concepteur.",
+    "import_button": "Importer un YAML"
   },
   "status": {
     "active": "Actif",
@@ -201,7 +202,22 @@
       "failed": "Le serveur n'a pas pu être interrogé sur ce workflow, il n'y a donc pas de verdict pour le moment."
     },
     "yaml": {
-      "hint": "C'est le texte exact qui sera enregistré, tel que le serveur l'écrit. Il est en lecture seule : modifiez le workflow sur le canevas."
+      "hint_new": "Collez le YAML d'un workflow, ou chargez un fichier exporté d'un autre espace de travail ou environnement, puis placez-le sur le canevas et enregistrez.",
+      "hint_edit": "Modifiez le texte, ou collez une version exportée ailleurs. Il doit garder la clé {{key}}. Placez-le sur le canevas, puis enregistrez une nouvelle version.",
+      "label": "YAML du workflow",
+      "apply": "Placer sur le canevas",
+      "applied": "YAML placé sur le canevas. Enregistrez pour le conserver.",
+      "load_file": "Charger un fichier",
+      "download": "Télécharger",
+      "copy": "Copier",
+      "copied": "YAML copié",
+      "copy_failed": "Copie impossible",
+      "unreadable": "Le serveur n'a pas pu lire ce texte.",
+      "key_mismatch": "Ce YAML a la clé « {{found}} », mais la clé de ce workflow est « {{expected}} » et ne peut pas changer.",
+      "too_large": "Ce fichier est trop volumineux.",
+      "same": "Identique au canevas.",
+      "line": "Ligne {{line}}",
+      "has_problems": "Ce texte pose {{count}} problèmes. Vous pouvez quand même le placer sur le canevas pour les corriger."
     },
     "tabs": {
       "canvas": "Canevas",

@@ -823,18 +823,181 @@ describe("validation", () => {
     expect(screen.getByRole("status", { name: "" })).toBeTruthy();
   });
 
-  it("shows the text a save would store, as the server wrote it", async () => {
+  it("shows the text a save would store, as the server wrote it, ready to edit", async () => {
     renderDesigner({ initial: open(), workflowId: "wf-1" });
     const user = userEvent.setup();
     await waitFor(() => expect(status()).toHaveAttribute("data-state", "valid"));
 
     await user.click(screen.getByRole("tab", { name: "YAML" }));
 
-    expect(await screen.findByTestId("code")).toHaveTextContent("canonical: text");
-    expect(screen.getByText(/exact text that will be saved/)).toBeInTheDocument();
+    const editor = (await screen.findByLabelText("Workflow YAML")) as HTMLTextAreaElement;
+    expect(editor.value).toBe("canonical: text\n");
+    expect(await screen.findByText("Same as the canvas.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Put on canvas" })).toBeDisabled();
     // The canvas is only hidden: switching back loses nothing.
     await user.click(screen.getByRole("tab", { name: "Canvas" }));
     expect(nodeNamed("build")).toBeTruthy();
+  });
+});
+
+describe("importing YAML", () => {
+  const open = () => initialFor(pilotish(), 3);
+  // The server is mocked: text containing PASTED is judged to be this other workflow, anything else is the canvas.
+  const other = (key: string) => {
+    let d = updateMetadata(pilotish(), { id: key });
+    d = addStage(d, "condition").definition;
+    d = updateStage(d, "condition-1", { name: "Imported" });
+    return d;
+  };
+  const serverReads = (def: WorkflowDefinition) =>
+    vi.mocked(api.validateWorkflow).mockImplementation(async (text: string) =>
+      text.includes("PASTED")
+        ? { parsed: true, valid: true, issues: [], canonical: stringifyForTest(def) }
+        : { parsed: true, valid: true, issues: [], canonical: stringifyForTest(pilotish()) },
+    );
+  const paste = async (text: string) => {
+    const editor = (await screen.findByLabelText("Workflow YAML")) as HTMLTextAreaElement;
+    fireEvent.change(editor, { target: { value: text } });
+    return editor;
+  };
+  const openYaml = async () => {
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("tab", { name: "YAML" }));
+    return user;
+  };
+
+  it("puts pasted text on the canvas as one change that can be undone, and it still has to be saved", async () => {
+    serverReads(other("demo"));
+    const { container } = renderDesigner({ initial: open(), workflowId: "wf-1" });
+    await waitFor(() => expect(nodeCount(container)).toBe(3));
+    const user = await openYaml();
+
+    await paste("PASTED: workflow from another workspace");
+    const apply = screen.getByRole("button", { name: "Put on canvas" });
+    await waitFor(() => expect(apply).toBeEnabled());
+    await user.click(apply);
+
+    // Back on the canvas with the new stage, and nothing is saved yet.
+    await waitFor(() => expect(nodeCount(container)).toBe(4));
+    expect(nodeNamed("condition-1")).toBeTruthy();
+    expect(toast.success).toHaveBeenCalledWith("YAML put on the canvas. Save to keep it.");
+    expect(api.saveWorkflowVersion).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Save" })).toBeEnabled();
+
+    await user.click(screen.getByRole("button", { name: "Undo" }));
+    await waitFor(() => expect(nodeCount(container)).toBe(3));
+  });
+
+  it("keeps the saved key: text with another key is refused with the reason, and nothing changes", async () => {
+    serverReads(other("somebody-elses"));
+    const { container } = renderDesigner({ initial: open(), workflowId: "wf-1" });
+    await waitFor(() => expect(nodeCount(container)).toBe(3));
+    const user = await openYaml();
+
+    await paste("PASTED");
+    const apply = screen.getByRole("button", { name: "Put on canvas" });
+    await waitFor(() => expect(apply).toBeEnabled());
+    await user.click(apply);
+
+    expect(await screen.findByText(/has the key "somebody-elses", but this workflow's key is "demo"/)).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "YAML", selected: true })).toBeTruthy();
+    expect(toast.success).not.toHaveBeenCalled();
+  });
+
+  it("accepts any key for a workflow that has never been saved", async () => {
+    serverReads(other("brand-new-key"));
+    const { container } = renderDesigner({ initial: initialFor(emptyDefinition(), 0) });
+    const user = await openYaml();
+
+    await paste("PASTED");
+    const apply = screen.getByRole("button", { name: "Put on canvas" });
+    await waitFor(() => expect(apply).toBeEnabled());
+    await user.click(apply);
+
+    await waitFor(() => expect(nodeCount(container)).toBe(4));
+    // The key came with the text, and the id field is still free to change until the first save.
+    fireEvent.click(nodeNamed("condition-1"));
+    expect(screen.getByRole("tab", { name: "Canvas", selected: true })).toBeTruthy();
+  });
+
+  it("lists what the server could not read, with the line, and offers nothing to apply", async () => {
+    vi.mocked(api.validateWorkflow).mockImplementation(async (text: string) =>
+      text.includes("BROKEN")
+        ? { parsed: false, valid: false, issues: [{ message: "unrecognized key \"nxt\"", path: "stages[1].nxt", line: 12 }, { message: "expected a list" }] }
+        : { parsed: true, valid: true, issues: [], canonical: "canonical: text\n" },
+    );
+    renderDesigner({ initial: open(), workflowId: "wf-1" });
+    await openYaml();
+
+    await paste("BROKEN: yes");
+
+    expect(await screen.findByText('stages[1].nxt: unrecognized key "nxt"')).toBeInTheDocument();
+    expect(screen.getByText("Line 12")).toBeInTheDocument();
+    expect(screen.getByText("expected a list")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Put on canvas" })).toBeDisabled();
+  });
+
+  it("can be put on the canvas with validation problems, which are then shown there", async () => {
+    vi.mocked(api.validateWorkflow).mockImplementation(async (text: string) =>
+      text.includes("PASTED")
+        ? { parsed: true, valid: false, issues: [{ code: "V004", message: "no end", stage_id: "build" }], canonical: stringifyForTest(pilotish()).replace("demo", "demo") + "# changed\n" }
+        : { parsed: true, valid: true, issues: [], canonical: stringifyForTest(pilotish()) },
+    );
+    renderDesigner({ initial: open(), workflowId: "wf-1" });
+    await openYaml();
+
+    await paste("PASTED");
+
+    expect(await screen.findByText("This text has 1 problems. You can still put it on the canvas to fix them there.")).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole("button", { name: "Put on canvas" })).toBeEnabled());
+  });
+
+  it("loads a file into the editor", async () => {
+    serverReads(other("demo"));
+    renderDesigner({ initial: open(), workflowId: "wf-1" });
+    await openYaml();
+    const input = (await screen.findByLabelText("Load file")) as HTMLInputElement;
+
+    const file = new File(["PASTED: from a file\n"], "wf.yaml", { type: "text/yaml" });
+    Object.defineProperty(file, "text", { value: () => Promise.resolve("PASTED: from a file\n") });
+    fireEvent.change(input, { target: { files: [file] } });
+
+    await waitFor(() => expect((screen.getByLabelText("Workflow YAML") as HTMLTextAreaElement).value).toBe("PASTED: from a file\n"));
+  });
+
+  it("refuses a file that is too large without reading it", async () => {
+    renderDesigner({ initial: open(), workflowId: "wf-1" });
+    await openYaml();
+    const input = (await screen.findByLabelText("Load file")) as HTMLInputElement;
+    const huge = new File(["x"], "big.yaml");
+    Object.defineProperty(huge, "size", { value: 2 * 1024 * 1024 });
+
+    fireEvent.change(input, { target: { files: [huge] } });
+
+    expect(await screen.findByText("That file is too large.")).toBeInTheDocument();
+    expect((screen.getByLabelText("Workflow YAML") as HTMLTextAreaElement).value).toBe("canonical: text\n");
+  });
+
+  it("downloads and copies the workflow's text", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    const created = vi.fn(() => "blob:x");
+    Object.defineProperty(URL, "createObjectURL", { value: created, configurable: true });
+    Object.defineProperty(URL, "revokeObjectURL", { value: vi.fn(), configurable: true });
+    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined);
+    renderDesigner({ initial: open(), workflowId: "wf-1" });
+    const user = await openYaml();
+    await screen.findByLabelText("Workflow YAML");
+    // After user-event's setup, which installs a clipboard of its own.
+    Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+
+    await user.click(screen.getByRole("button", { name: "Copy" }));
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith("canonical: text\n"));
+    expect(toast.success).toHaveBeenCalledWith("YAML copied");
+
+    await user.click(screen.getByRole("button", { name: "Download" }));
+    expect(created).toHaveBeenCalledTimes(1);
+    expect(click).toHaveBeenCalledTimes(1);
+    click.mockRestore();
   });
 });
 

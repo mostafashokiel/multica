@@ -33,6 +33,13 @@ Ouvrez **Workflows** dans la barre latérale. Les propriétaires et les administ
 - Pendant la modification, le serveur vérifie le workflow et liste tous les problèmes ; une version avec des problèmes peut être enregistrée mais pas appliquée.
 - Chaque enregistrement crée une nouvelle version immuable. Un enregistrement fait à partir d'une version périmée est refusé comme un conflit au lieu d'écraser le travail d'un autre. Les anciennes versions peuvent être restaurées comme nouvelles versions.
 
+## Déplacer un workflow vers un autre espace de travail ou environnement
+
+Un workflow est du texte brut. Sur la page d'un workflow, **Télécharger** ou **Copier** donne son YAML. Dans l'espace de travail cible, choisissez **Importer un YAML** sur la page des workflows (ou ouvrez l'onglet **YAML** d'un workflow), collez le texte ou chargez le fichier, puis choisissez **Placer sur le canevas**. Le serveur lit le texte et affiche les problèmes avec leur ligne ; le résultat est une modification annulable, et rien n'est enregistré avant que vous enregistriez.
+
+- Pour importer un nouveau workflow, la clé du texte devient sa clé. Pour ajouter une version à un workflow existant, le texte doit porter la clé de ce workflow.
+- Les agents et les personnes sont nommés dans le texte et cherchés dans l'espace de travail où vous l'appliquez. Les noms d'agents doivent correspondre exactement, et les approbateurs s'écrivent `user:<id>`, ce qui diffère d'un espace à l'autre : remplacez-les avant d'appliquer.
+
 ## Appliquer un workflow à un squad
 
 Choisissez **Appliquer à un squad** sur la page d'un workflow. La boîte de dialogue montre la consigne exacte que le chef recevra et les étiquettes utilisées. L'application :

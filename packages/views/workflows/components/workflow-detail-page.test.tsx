@@ -137,6 +137,18 @@ describe("WorkflowDetailPage", () => {
     expect(api.getWorkflow).toHaveBeenCalledWith("wf-1");
   });
 
+  it("lets anyone who can read it download or copy the YAML, to move it to another workspace", async () => {
+    vi.mocked(api.getWorkflow).mockResolvedValue({
+      workflow,
+      version: version(2, { definition: "kind: Workflow\n" }),
+    });
+    renderPage();
+    await openDefinition();
+
+    expect(await screen.findByRole("button", { name: "Download" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Copy" })).toBeEnabled();
+  });
+
   it("lists every problem with its rule code, stage and line", async () => {
     vi.mocked(api.getWorkflow).mockResolvedValue({
       workflow,

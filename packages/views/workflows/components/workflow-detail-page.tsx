@@ -28,6 +28,7 @@ import { Button } from "@multica/ui/components/ui/button";
 import { Skeleton } from "@multica/ui/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@multica/ui/components/ui/tabs";
 import { CodeBlock } from "@multica/ui/markdown";
+import { YamlExportButtons, yamlFileName } from "../designer/yaml-actions";
 import { cn } from "@multica/ui/lib/utils";
 import { LazyWorkflowDiagram } from "../designer/lazy-workflow-diagram";
 import { ApplyWorkflowDialog } from "./apply-workflow-dialog";
@@ -188,6 +189,7 @@ export function WorkflowDetailPage() {
             <TabsContent value="definition" className="flex flex-col gap-4">
               {pinnedBanner}
               <DefinitionPane
+                workflowKey={workflow.key}
                 version={shown}
                 loading={pinnedOlder && pinnedVersion.isLoading}
                 failed={pinnedOlder && pinnedVersion.isError}
@@ -370,10 +372,12 @@ function DiagramPane({
 
 function DefinitionPane({
   version,
+  workflowKey,
   loading,
   failed,
 }: {
   version: WorkflowVersion | null;
+  workflowKey: string;
   loading: boolean;
   failed: boolean;
 }) {
@@ -385,10 +389,13 @@ function DefinitionPane({
   }
   return (
     <>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <Badge variant="outline" className="font-mono tabular-nums">
           {t(($) => $.detail.version_label, { version: version.version })}
         </Badge>
+        <div className="ml-auto flex items-center gap-2">
+          <YamlExportButtons text={version.definition} fileName={yamlFileName(workflowKey)} />
+        </div>
       </div>
       <ProblemsPanel issues={version.issues ?? []} />
       <CodeBlock code={version.definition} language="yaml" mode="full" />

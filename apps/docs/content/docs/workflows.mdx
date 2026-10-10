@@ -33,6 +33,13 @@ Open **Workflows** in the sidebar. Owners and admins can create and edit; everyo
 - The server checks the workflow as you edit and lists every problem; a version with problems can be saved but not applied.
 - Each save is a new immutable version. A save made from an out-of-date version is refused as a conflict instead of overwriting someone else's work. Old versions can be restored as new ones.
 
+## Moving a workflow to another workspace or environment
+
+A workflow is plain text. On a workflow's page, **Download** or **Copy** gives you its YAML. In the target workspace, choose **Import YAML** on the Workflows page (or open the **YAML** tab of any workflow), paste the text or load the file, and choose **Put on canvas**. The server reads the text and shows any problems with their line; the result is one change you can undo, and nothing is stored until you save.
+
+- To import as a new workflow, the key in the text becomes the key. To add a version to an existing workflow, the text must carry that workflow's key.
+- Agents and people are named in the text and are looked up in the workspace you apply it in. Agent names must match exactly, and approvers are written `user:<id>`, which differs between workspaces: replace them before you apply.
+
 ## Applying a workflow to a squad
 
 Choose **Apply to squad** on a workflow page. The dialog shows the exact briefing the leader will get and the labels it uses. Applying:

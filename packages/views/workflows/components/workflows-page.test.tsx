@@ -106,6 +106,24 @@ describe("WorkflowsPage", () => {
     expect(push).toHaveBeenCalledWith("/acme/workflows/new");
   });
 
+  it("offers owners and admins an import from YAML, which opens a new workflow on the YAML tab", async () => {
+    vi.mocked(api.listWorkflows).mockResolvedValue({ workflows: [workflow()] });
+    renderPage();
+    await screen.findByText("SDLC pilot");
+
+    screen.getByRole("button", { name: "Import YAML" }).click();
+
+    expect(push).toHaveBeenCalledWith("/acme/workflows/new?tab=yaml");
+  });
+
+  it("offers no import to members", async () => {
+    member.role = "member";
+    vi.mocked(api.listWorkflows).mockResolvedValue({ workflows: [workflow()] });
+    renderPage();
+    await screen.findByText("SDLC pilot");
+    expect(screen.queryByRole("button", { name: "Import YAML" })).toBeNull();
+  });
+
   it("tells anyone else to ask an owner or admin, and offers no create button", async () => {
     member.role = "member";
     vi.mocked(api.listWorkflows).mockResolvedValue({ workflows: [] });

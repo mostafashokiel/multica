@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, Workflow } from "lucide-react";
+import { FileUp, Plus, Workflow } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useWorkspaceId } from "@multica/core/hooks";
 import { useCurrentMember } from "@multica/core/permissions";
@@ -52,7 +52,10 @@ export function WorkflowsPage() {
         count={workflows.length}
         actions={
           canCreate ? (
-            <CollectionPageHeaderAction icon={Plus} label={t(($) => $.page.new_button)} onClick={() => push(p.workflowNew())} />
+            <>
+              <CollectionPageHeaderAction icon={FileUp} label={t(($) => $.page.import_button)} onClick={() => push(`${p.workflowNew()}?tab=yaml`)} />
+              <CollectionPageHeaderAction icon={Plus} label={t(($) => $.page.new_button)} onClick={() => push(p.workflowNew())} />
+            </>
           ) : null
         }
       />

@@ -16,6 +16,7 @@ import { LayoutGrid, Redo2, Save, Undo2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { Skeleton } from "@multica/ui/components/ui/skeleton";
 import { ApiError } from "@multica/core/api";
 import { useWorkspaceId } from "@multica/core/hooks";
 import {
@@ -71,7 +72,7 @@ import { StageIcon } from "./stage-icon";
 import { ProblemsPanel, ValidationBadge } from "./problems-panel";
 import { useDefinitionValidation } from "./use-validation";
 import { VersionsPanel } from "./versions-panel";
-import { YamlPreview } from "./yaml-preview";
+import { YamlEditor } from "./yaml-editor";
 
 const DRAG_TYPE = "application/x-multica-workflow-stage";
 const isStageType = (value: string): value is StageType => (STAGE_TYPES as readonly string[]).includes(value);
@@ -89,6 +90,8 @@ export interface WorkflowDesignerProps {
   initial: DesignerInitial;
   /** Called with the new workflow's id once the first version is saved. */
   onCreated: (id: string) => void;
+  /** Open on the YAML tab, to import a workflow from text. */
+  initialTab?: "canvas" | "yaml";
 }
 
 /** Positions of the stages that exist, rounded: what is stored with a version and compared for changes. */
@@ -110,7 +113,7 @@ type Tab = "canvas" | "yaml" | "versions";
 
 type Banner = { kind: "conflict"; latest: number } | { kind: "invalid"; issues: string[] } | { kind: "failed" } | null;
 
-function DesignerInner({ workflowId, initial, onCreated }: WorkflowDesignerProps) {
+function DesignerInner({ workflowId, initial, onCreated, initialTab }: WorkflowDesignerProps) {
   const { t } = useT("workflows");
   const wsId = useWorkspaceId();
   const flow = useReactFlow();
@@ -133,7 +136,7 @@ function DesignerInner({ workflowId, initial, onCreated }: WorkflowDesignerProps
   const [note, setNote] = useState("");
   const [banner, setBanner] = useState<Banner>(null);
   const [saving, setSaving] = useState(false);
-  const [tab, setTab] = useState<Tab>("canvas");
+  const [tab, setTab] = useState<Tab>(initialTab ?? "canvas");
   const [working, setWorking] = useState(false);
   const wrapper = useRef<HTMLDivElement>(null);
 
@@ -364,6 +367,15 @@ function DesignerInner({ workflowId, initial, onCreated }: WorkflowDesignerProps
 
   // ---- problems and versions --------------------------------------------------------------------
 
+  /** Put text that was edited or pasted on the canvas: one change that can be undone, keeping the places of stages that are still there. */
+  const applyYaml = (next: WorkflowDefinition) => {
+    edit((s) => ({ definition: next, positions: resolvePositions(next, s.positions, sizeOf) }));
+    setSelectedId(null);
+    setSelectedEdgeId(null);
+    setBranchPick(null);
+    setTab("canvas");
+  };
+
   const selectStage = (id: string) => {
     setTab("canvas");
     setSelectedId(id);
@@ -576,7 +588,11 @@ function DesignerInner({ workflowId, initial, onCreated }: WorkflowDesignerProps
 
             {tab === "yaml" ? (
               <section className="absolute inset-0" aria-label={t(($) => $.editor.tabs.yaml)}>
-                <YamlPreview canonical={validation.canonical} />
+                {validation.canonical === undefined ? (
+                  <Skeleton className="m-4 h-64" aria-hidden="true" />
+                ) : (
+                  <YamlEditor canonical={validation.canonical} lockedKey={isNew ? null : definition.metadata.id} onApply={applyYaml} />
+                )}
               </section>
             ) : null}
             {tab === "versions" && workflowId !== null ? (

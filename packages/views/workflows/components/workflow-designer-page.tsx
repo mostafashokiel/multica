@@ -106,7 +106,9 @@ function DesignerLoaded({
 }) {
   const { t } = useT("workflows");
   const p = useWorkspacePaths();
-  const { replace } = useNavigation();
+  const { replace, searchParams } = useNavigation();
+  // The list page sends people here with ?tab=yaml to import a workflow from text.
+  const initialTab = workflowId === null && searchParams.get("tab") === "yaml" ? "yaml" : undefined;
   const [initial] = useState<DesignerInitial | "unreadable">(() => {
     if (loaded === undefined) return { definition: emptyDefinition(), positions: {}, version: 0 };
     if (loaded.version === null || loaded.version.definition === undefined) {
@@ -134,6 +136,7 @@ function DesignerLoaded({
           workflowId={workflowId}
           initial={stable}
           onCreated={(id) => replace(p.workflowEdit(id))}
+          {...(initialTab === undefined ? {} : { initialTab })}
         />
       </Suspense>
     </>

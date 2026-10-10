@@ -25,12 +25,13 @@ vi.mock("@multica/core/paths", () => ({
   }),
 }));
 // The canvas has its own tests; here only what the page hands the designer matters.
-type StubProps = { workflowId: string | null; initial: { definition: { metadata: { id: string }; stages: unknown[] }; positions: Record<string, unknown>; version: number }; onCreated: (id: string) => void };
+type StubProps = { initialTab?: string; workflowId: string | null; initial: { definition: { metadata: { id: string }; stages: unknown[] }; positions: Record<string, unknown>; version: number }; onCreated: (id: string) => void };
 vi.mock("../designer/workflow-designer", () => ({
   default: (props: StubProps) => (
     <div
       data-testid="designer"
       data-workflow-id={props.workflowId ?? ""}
+      data-initial-tab={props.initialTab ?? ""}
       data-version={props.initial.version}
       data-key={props.initial.definition.metadata.id}
       data-stages={props.initial.definition.stages.length}
@@ -69,12 +70,12 @@ function version(overrides: Partial<WorkflowVersion> = {}): WorkflowVersion {
 }
 
 let client: QueryClient;
-function renderPage(pathname: string) {
+function renderPage(pathname: string, search = "") {
   client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return renderWithI18n(
     <QueryClientProvider client={client}>
       <NavigationProvider
-        value={{ pathname, searchParams: new URLSearchParams(), hash: "", push: vi.fn(), replace, back: vi.fn(), getShareableUrl: (v) => v }}
+        value={{ pathname, searchParams: new URLSearchParams(search), hash: "", push: vi.fn(), replace, back: vi.fn(), getShareableUrl: (v) => v }}
       >
         <WorkflowDesignerPage />
       </NavigationProvider>
@@ -99,6 +100,15 @@ describe("WorkflowDesignerPage", () => {
     expect(designer).toHaveAttribute("data-stages", "0");
     expect(api.getWorkflow).not.toHaveBeenCalled();
     expect(screen.getByRole("heading", { name: "New workflow" })).toBeInTheDocument();
+  });
+
+  it("opens a new workflow on the YAML tab when sent here to import one, and only a new one", async () => {
+    const view = renderPage("/acme/workflows/new", "tab=yaml");
+    expect(await screen.findByTestId("designer")).toHaveAttribute("data-initial-tab", "yaml");
+    view.unmount();
+
+    renderPage("/acme/workflows/new");
+    expect(await screen.findByTestId("designer")).toHaveAttribute("data-initial-tab", "");
   });
 
   it("moves to the edit URL once the first version is saved", async () => {

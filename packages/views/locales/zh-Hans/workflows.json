@@ -15,7 +15,8 @@
     "disabled_description": "管理员可以在部署中开启此功能。",
     "new_button": "新建工作流",
     "edit_button": "编辑",
-    "empty_description_create": "工作流定义了工作流转的各个阶段，包括人工审批关卡。在设计器中创建第一个吧。"
+    "empty_description_create": "工作流定义了工作流转的各个阶段，包括人工审批关卡。在设计器中创建第一个吧。",
+    "import_button": "导入 YAML"
   },
   "status": {
     "active": "启用",
@@ -199,7 +200,22 @@
       "failed": "无法向服务器查询此工作流，目前没有检查结果。"
     },
     "yaml": {
-      "hint": "这是将被保存的确切文本，由服务器生成。它是只读的：请在画布上修改工作流。"
+      "hint_new": "粘贴工作流的 YAML，或加载从其他工作区或环境导出的文件，然后放到画布上并保存。",
+      "hint_edit": "修改文本，或粘贴在别处导出的版本。键必须保持为 {{key}}。放到画布后保存为新版本。",
+      "label": "工作流 YAML",
+      "apply": "放到画布",
+      "applied": "YAML 已放到画布。请保存以保留。",
+      "load_file": "加载文件",
+      "download": "下载",
+      "copy": "复制",
+      "copied": "已复制 YAML",
+      "copy_failed": "无法复制",
+      "unreadable": "服务器无法读取这段文本。",
+      "key_mismatch": "这份 YAML 的键是“{{found}}”，但此工作流的键是“{{expected}}”，且无法更改。",
+      "too_large": "文件太大。",
+      "same": "与画布相同。",
+      "line": "第 {{line}} 行",
+      "has_problems": "这段文本有 {{count}} 个问题。你仍可把它放到画布上，在那里修复。"
     },
     "tabs": {
       "canvas": "画布",

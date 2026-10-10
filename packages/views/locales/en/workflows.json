@@ -15,7 +15,8 @@
     "disabled_description": "An administrator can turn this feature on for the deployment.",
     "new_button": "New workflow",
     "edit_button": "Edit",
-    "empty_description_create": "A workflow defines the stages work moves through, including human approval gates. Create the first one in the designer."
+    "empty_description_create": "A workflow defines the stages work moves through, including human approval gates. Create the first one in the designer.",
+    "import_button": "Import YAML"
   },
   "status": {
     "active": "Active",
@@ -201,7 +202,22 @@
       "failed": "The server couldn't be asked about this workflow, so there is no verdict right now."
     },
     "yaml": {
-      "hint": "This is the exact text that will be saved, as the server writes it. It is read only: change the workflow on the canvas."
+      "hint_new": "Paste a workflow's YAML, or load a file exported from another workspace or environment, then put it on the canvas and save.",
+      "hint_edit": "Change the text, or paste a version exported elsewhere. It must keep the key {{key}}. Put it on the canvas, then save a new version.",
+      "label": "Workflow YAML",
+      "apply": "Put on canvas",
+      "applied": "YAML put on the canvas. Save to keep it.",
+      "load_file": "Load file",
+      "download": "Download",
+      "copy": "Copy",
+      "copied": "YAML copied",
+      "copy_failed": "Could not copy",
+      "unreadable": "The server could not read this text.",
+      "key_mismatch": "This YAML has the key \"{{found}}\", but this workflow's key is \"{{expected}}\" and cannot change.",
+      "too_large": "That file is too large.",
+      "same": "Same as the canvas.",
+      "line": "Line {{line}}",
+      "has_problems": "This text has {{count}} problems. You can still put it on the canvas to fix them there."
     },
     "tabs": {
       "canvas": "Canvas",
