@@ -88,7 +88,7 @@
     "preview_label": "负责人将收到的内容",
     "preview_failed": "无法预览此版本。",
     "labels_title": "使用的标签",
-    "labels_hint": "请创建缺少的标签；应用时不会自动创建标签。",
+    "labels_hint": "缺少的标签由 leader 在第一次需要时自行创建。应用时不会创建标签。",
     "conflict_title": "此小队已在使用另一个工作流",
     "conflict_body": "它正在使用“{{workflow}}”。要替换为“{{key}}”吗？",
     "conflict_body_unnamed": "要替换为“{{key}}”吗？",

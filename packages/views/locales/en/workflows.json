@@ -88,7 +88,7 @@
     "preview_label": "What the leader will be told",
     "preview_failed": "Couldn't preview this version.",
     "labels_title": "Labels used",
-    "labels_hint": "Create any that are missing; applying does not create labels.",
+    "labels_hint": "The leader creates any that are missing the first time it needs them. Applying does not create labels.",
     "conflict_title": "This squad already follows another workflow",
     "conflict_body": "It follows \"{{workflow}}\". Replace it with \"{{key}}\"?",
     "conflict_body_unnamed": "Replace it with \"{{key}}\"?",

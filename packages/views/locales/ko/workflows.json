@@ -88,7 +88,7 @@
     "preview_label": "리더에게 전달될 내용",
     "preview_failed": "이 버전을 미리 볼 수 없습니다.",
     "labels_title": "사용되는 라벨",
-    "labels_hint": "없는 라벨은 직접 만들어 주세요. 적용해도 라벨은 만들어지지 않습니다.",
+    "labels_hint": "없는 라벨은 리더가 처음 필요할 때 직접 만듭니다. 적용해도 라벨은 만들어지지 않습니다.",
     "conflict_title": "이 스쿼드는 이미 다른 워크플로를 따르고 있습니다",
     "conflict_body": "현재 \"{{workflow}}\"을(를) 따르고 있습니다. \"{{key}}\"(으)로 교체할까요?",
     "conflict_body_unnamed": "\"{{key}}\"(으)로 교체할까요?",

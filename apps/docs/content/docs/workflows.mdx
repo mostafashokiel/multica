@@ -41,7 +41,7 @@ Choose **Apply to squad** on a workflow page. The dialog shows the exact briefin
 - adds the agents the stages name, and the people in the approver groups, to the squad's members, and tells you about any it could not find;
 - warns you when an approver cannot wake the leader or reach an agent, because that agent is private to someone else. Multica checks access as the person whose comment started the chain, so every agent in the workflow must be runnable by every approver. See [Agents](/agents).
 
-Applying does not create labels. Create `wf:<key>` and one `phase:<stage>` label per stage first; the dialog lists them.
+Applying does not create labels, and you do not have to: every issue assigned to the squad follows the workflow, and the leader adds the `wf:<key>` label and each `phase:<stage>` label itself, creating any the workspace does not have yet. The dialog lists them so you know what to expect.
 
 ## Running an issue through a workflow
 

@@ -41,7 +41,7 @@ Choisissez **Appliquer à un squad** sur la page d'un workflow. La boîte de dia
 - ajoute aux membres du squad les agents que nomment les étapes et les personnes des groupes d'approbateurs, et signale ceux qu'elle n'a pas trouvés ;
 - avertit lorsqu'un approbateur ne peut pas réveiller le chef ou atteindre un agent, parce que cet agent est privé à quelqu'un d'autre. Multica vérifie l'accès au nom de la personne dont le commentaire a lancé la chaîne : chaque agent du workflow doit donc pouvoir être exécuté par chaque approbateur. Voir [Agents](/agents).
 
-L'application ne crée pas d'étiquettes. Créez d'abord `wf:<key>` et une étiquette `phase:<stage>` par étape ; la boîte de dialogue les liste.
+L'application ne crée pas d'étiquettes, et vous n'avez pas à le faire : toute tâche assignée au squad suit le workflow, et le chef pose lui-même `wf:<key>` et chaque étiquette `phase:<stage>`, en créant celles que l'espace de travail n'a pas encore. La boîte de dialogue les liste pour que vous sachiez à quoi vous attendre.
 
 ## Faire passer une tâche dans un workflow
 
