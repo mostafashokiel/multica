@@ -122,7 +122,7 @@ describe("WorkflowPipelinePane", () => {
     // Lanes with work are wide and say how many; empty ones are narrow and marked, with no placeholder text on screen.
     expect(plan).toHaveAttribute("data-empty", "true");
     expect(build).not.toHaveAttribute("data-empty");
-    expect(plan.className).toContain("w-44");
+    expect(plan.className).toContain("w-48");
     expect(build.className).toContain("w-72");
     // The count is the highlighted badge (the other "2" is the lane's step number).
     expect([...build.querySelectorAll("header span")].find((n) => n.className.includes("text-brand"))?.textContent).toBe("2");

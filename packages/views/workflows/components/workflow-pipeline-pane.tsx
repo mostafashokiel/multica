@@ -112,31 +112,29 @@ function StageColumn({ stage, step }: { stage: WorkflowPipelineStage; step: numb
     <section
       aria-label={stage.name}
       data-empty={count === 0 || undefined}
-      className={cn("flex shrink-0 flex-col overflow-hidden rounded-xl border bg-muted/40", count === 0 ? "w-44" : "w-72")}
+      className={cn("flex shrink-0 flex-col overflow-hidden rounded-xl border bg-muted/40", count === 0 ? "w-48" : "w-72")}
     >
       <div aria-hidden="true" className={cn("h-1 shrink-0", known ? LANE_BAR[stage.type as StageType] : "bg-muted-foreground")} />
       <header className="flex flex-col gap-1.5 border-b bg-background px-3 py-2.5">
-        <div className="flex items-start gap-2">
+        <div className="flex items-center gap-2 text-caption text-muted-foreground">
           <span
             aria-hidden="true"
-            className="mt-px grid size-5 shrink-0 place-items-center rounded-full bg-muted text-micro font-medium tabular-nums text-muted-foreground"
+            className="grid size-5 shrink-0 place-items-center rounded-full bg-muted text-micro font-medium tabular-nums"
           >
             {step}
           </span>
-          <h3 className="min-w-0 flex-1 break-words text-body font-medium leading-snug">{stage.name}</h3>
+          {isStageType(stage.type) ? <StageIcon type={stage.type} /> : null}
+          <span className="min-w-0 flex-1 truncate">{type}</span>
           <span
             className={cn(
-              "min-w-6 shrink-0 rounded-full px-1.5 text-center text-caption tabular-nums",
+              "min-w-6 shrink-0 rounded-full px-1.5 text-center tabular-nums",
               count > 0 ? "bg-brand/10 font-medium text-brand" : "text-muted-foreground",
             )}
           >
             {count}
           </span>
         </div>
-        <p className="flex items-center gap-1.5 text-caption text-muted-foreground">
-          {isStageType(stage.type) ? <StageIcon type={stage.type} /> : null}
-          {type}
-        </p>
+        <h3 className="break-words text-body font-medium leading-snug">{stage.name}</h3>
         {stage.type === "human_gate" ? (
           <p
             className={cn(
