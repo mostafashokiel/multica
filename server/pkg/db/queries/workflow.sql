@@ -163,3 +163,15 @@ WHERE c.workspace_id = sqlc.arg('workspace_id')::uuid
   AND c.parent_issue_id = ANY(sqlc.arg('parent_ids')::uuid[])
 ORDER BY c.created_at, c.id
 LIMIT sqlc.arg('row_limit')::int;
+
+-- name: DeleteArchivedWorkflow :execrows
+-- Removes the workflow head, but only while it is archived: an active one must be
+-- archived first, and the guard holds even if someone restores it in between.
+DELETE FROM workflow
+WHERE id = $1 AND workspace_id = $2 AND status = 'archived';
+
+-- name: DeleteWorkflowVersions :exec
+DELETE FROM workflow_version WHERE workflow_id = $1 AND workspace_id = $2;
+
+-- name: DeleteWorkflowAudit :exec
+DELETE FROM workflow_audit WHERE workflow_id = $1 AND workspace_id = $2;

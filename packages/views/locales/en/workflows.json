@@ -16,7 +16,9 @@
     "new_button": "New workflow",
     "edit_button": "Edit",
     "empty_description_create": "A workflow defines the stages work moves through, including human approval gates. Create the first one in the designer.",
-    "import_button": "Import YAML"
+    "import_button": "Import YAML",
+    "show_archived": "Show archived",
+    "hide_archived": "Hide archived"
   },
   "status": {
     "active": "Active",
@@ -335,5 +337,28 @@
     "done": "Workflow renamed",
     "conflict": "Someone changed this workflow while this was open. It has been reloaded: try again.",
     "failed": "Couldn't rename the workflow."
+  },
+  "lifecycle": {
+    "title": "Archive and delete",
+    "active_hint": "Archiving hides the workflow from the list and stops edits and applies. Squads that follow it keep their briefing. You can restore it later.",
+    "archived_hint": "This workflow is archived: hidden from the list, and it cannot be edited or applied. Restore it, or delete it for good.",
+    "archive": "Archive",
+    "restore": "Restore",
+    "delete_button": "Delete permanently",
+    "cancel": "Cancel",
+    "archive_title": "Archive \"{{name}}\"?",
+    "archive_description": "It disappears from the workflow list (Show archived brings it back) and cannot be edited or applied while archived. Squads that already follow it keep their briefing, and issues keep their labels.",
+    "archived_done": "Workflow archived",
+    "restored_done": "Workflow restored",
+    "conflict": "Someone changed this workflow first. It has been reloaded: try again.",
+    "failed": "Couldn't change the workflow.",
+    "delete_title": "Delete \"{{name}}\" permanently?",
+    "delete_description": "All its versions and its history are removed, and this cannot be undone. Issues that carry its labels are not touched.",
+    "delete_type_key": "Type the key {{key}} to confirm",
+    "delete_confirm": "Delete permanently",
+    "deleted_done": "Workflow deleted",
+    "delete_in_use": "These squads still follow it: {{squads}}. Apply another workflow to them or remove its block from their instructions first.",
+    "delete_not_archived": "Archive the workflow first.",
+    "delete_failed": "Couldn't delete the workflow."
   }
 }

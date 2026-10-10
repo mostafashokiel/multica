@@ -240,10 +240,12 @@ export interface CreateWorkflowRequest {
   note?: string;
 }
 
-/** Change a workflow's name or description. `revision` is the one the caller loaded: a stale one answers 409. */
+/** Change a workflow's name or description, or archive or restore it. `revision` is the one the caller loaded: a stale one answers 409. */
 export interface UpdateWorkflowRequest {
   name?: string;
   description?: string;
+  /** Archive (hide, stop edits and applies) or restore. */
+  status?: "active" | "archived";
   revision: number;
 }
 

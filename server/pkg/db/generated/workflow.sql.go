@@ -73,6 +73,54 @@ func (q *Queries) CreateWorkflow(ctx context.Context, arg CreateWorkflowParams) 
 	return i, err
 }
 
+const deleteArchivedWorkflow = `-- name: DeleteArchivedWorkflow :execrows
+DELETE FROM workflow
+WHERE id = $1 AND workspace_id = $2 AND status = 'archived'
+`
+
+type DeleteArchivedWorkflowParams struct {
+	ID          pgtype.UUID `json:"id"`
+	WorkspaceID pgtype.UUID `json:"workspace_id"`
+}
+
+// Removes the workflow head, but only while it is archived: an active one must be
+// archived first, and the guard holds even if someone restores it in between.
+func (q *Queries) DeleteArchivedWorkflow(ctx context.Context, arg DeleteArchivedWorkflowParams) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteArchivedWorkflow, arg.ID, arg.WorkspaceID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const deleteWorkflowAudit = `-- name: DeleteWorkflowAudit :exec
+DELETE FROM workflow_audit WHERE workflow_id = $1 AND workspace_id = $2
+`
+
+type DeleteWorkflowAuditParams struct {
+	WorkflowID  pgtype.UUID `json:"workflow_id"`
+	WorkspaceID pgtype.UUID `json:"workspace_id"`
+}
+
+func (q *Queries) DeleteWorkflowAudit(ctx context.Context, arg DeleteWorkflowAuditParams) error {
+	_, err := q.db.Exec(ctx, deleteWorkflowAudit, arg.WorkflowID, arg.WorkspaceID)
+	return err
+}
+
+const deleteWorkflowVersions = `-- name: DeleteWorkflowVersions :exec
+DELETE FROM workflow_version WHERE workflow_id = $1 AND workspace_id = $2
+`
+
+type DeleteWorkflowVersionsParams struct {
+	WorkflowID  pgtype.UUID `json:"workflow_id"`
+	WorkspaceID pgtype.UUID `json:"workspace_id"`
+}
+
+func (q *Queries) DeleteWorkflowVersions(ctx context.Context, arg DeleteWorkflowVersionsParams) error {
+	_, err := q.db.Exec(ctx, deleteWorkflowVersions, arg.WorkflowID, arg.WorkspaceID)
+	return err
+}
+
 const getWorkflow = `-- name: GetWorkflow :one
 SELECT id, workspace_id, key, name, description, status, latest_version, revision, created_by_type, created_by_id, created_at, updated_at FROM workflow
 WHERE id = $1 AND workspace_id = $2

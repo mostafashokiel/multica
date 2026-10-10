@@ -315,6 +315,25 @@ describe("ApiClient workflows (render and apply)", () => {
     expect(result).toMatchObject({ id: "wf-1", name: "New name", revision: 6 });
   });
 
+  it("asks for archived workflows only when told to, and deletes with a DELETE", async () => {
+    const fetchMock = vi.fn().mockImplementation(async () => json({ workflows: [] }));
+    vi.stubGlobal("fetch", fetchMock);
+    const client = new ApiClient("https://api.example.test");
+
+    await client.listWorkflows();
+    await client.listWorkflows({ includeArchived: true });
+
+    expect(String(fetchMock.mock.calls[0]?.[0])).toBe("https://api.example.test/api/workflows");
+    expect(String(fetchMock.mock.calls[1]?.[0])).toBe("https://api.example.test/api/workflows?include_archived=true");
+
+    const del = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+    vi.stubGlobal("fetch", del);
+    await client.deleteWorkflow("wf-1");
+    const [url, init] = del.mock.calls[0] as [string, RequestInit];
+    expect(String(url)).toBe("https://api.example.test/api/workflows/wf-1");
+    expect(init.method).toBe("DELETE");
+  });
+
   it("asks for one squad's issues when given a squad", async () => {
     // A fresh Response per call: a body can be read once.
     const fetchMock = vi.fn().mockImplementation(async () => json({ workflow_key: "x", stages: [], total: 0 }));

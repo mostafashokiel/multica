@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, screen, within } from "@testing-library/react";
+import { cleanup, screen, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { api, ApiError } from "@multica/core/api";
 import type { Workflow } from "@multica/core/types";
@@ -104,6 +104,24 @@ describe("WorkflowsPage", () => {
     expect(buttons.length).toBeGreaterThan(0);
     buttons[buttons.length - 1]!.click();
     expect(push).toHaveBeenCalledWith("/acme/workflows/new");
+  });
+
+  it("hides archived workflows until asked, and asks the server for them when shown", async () => {
+    vi.mocked(api.listWorkflows).mockImplementation(async (opts) =>
+      opts?.includeArchived === true
+        ? { workflows: [workflow(), workflow({ id: "wf-9", key: "old-flow", name: "Old flow", status: "archived" })] }
+        : { workflows: [workflow()] },
+    );
+    renderPage();
+    await screen.findByText("SDLC pilot");
+    expect(screen.queryByText("Old flow")).toBeNull();
+
+    screen.getByRole("button", { name: "Show archived" }).click();
+
+    expect(await screen.findByText("Old flow")).toBeInTheDocument();
+    expect(api.listWorkflows).toHaveBeenLastCalledWith({ includeArchived: true });
+    screen.getByRole("button", { name: "Hide archived" }).click();
+    await waitFor(() => expect(screen.queryByText("Old flow")).toBeNull());
   });
 
   it("offers owners and admins an import from YAML, which opens a new workflow on the YAML tab", async () => {

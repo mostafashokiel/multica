@@ -1,6 +1,7 @@
 "use client";
 
-import { FileUp, Plus, Workflow } from "lucide-react";
+import { useState } from "react";
+import { Archive, FileUp, Plus, Workflow } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useWorkspaceId } from "@multica/core/hooks";
 import { useCurrentMember } from "@multica/core/permissions";
@@ -37,7 +38,9 @@ const GRID_COLS =
 export function WorkflowsPage() {
   const { t } = useT("workflows");
   const wsId = useWorkspaceId();
-  const { data: workflows = [], isLoading, error } = useQuery(workflowListOptions(wsId));
+  // Archived workflows are hidden unless asked for, so there has to be a way to ask.
+  const [showArchived, setShowArchived] = useState(false);
+  const { data: workflows = [], isLoading, error } = useQuery(workflowListOptions(wsId, true, showArchived));
   const p = useWorkspacePaths();
   const { push } = useNavigation();
   // Only owners and admins can create workflows; nobody else is offered the button.
@@ -51,12 +54,21 @@ export function WorkflowsPage() {
         title={t(($) => $.page.title)}
         count={workflows.length}
         actions={
-          canCreate ? (
-            <>
-              <CollectionPageHeaderAction icon={FileUp} label={t(($) => $.page.import_button)} onClick={() => push(`${p.workflowNew()}?tab=yaml`)} />
-              <CollectionPageHeaderAction icon={Plus} label={t(($) => $.page.new_button)} onClick={() => push(p.workflowNew())} />
-            </>
-          ) : null
+          <>
+            {!error ? (
+              <CollectionPageHeaderAction
+                icon={Archive}
+                label={showArchived ? t(($) => $.page.hide_archived) : t(($) => $.page.show_archived)}
+                onClick={() => setShowArchived((v) => !v)}
+              />
+            ) : null}
+            {canCreate ? (
+              <>
+                <CollectionPageHeaderAction icon={FileUp} label={t(($) => $.page.import_button)} onClick={() => push(`${p.workflowNew()}?tab=yaml`)} />
+                <CollectionPageHeaderAction icon={Plus} label={t(($) => $.page.new_button)} onClick={() => push(p.workflowNew())} />
+              </>
+            ) : null}
+          </>
         }
       />
       {error ? (

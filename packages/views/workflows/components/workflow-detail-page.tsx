@@ -33,6 +33,7 @@ import { cn } from "@multica/ui/lib/utils";
 import { LazyWorkflowDiagram } from "../designer/lazy-workflow-diagram";
 import { ApplyWorkflowDialog } from "./apply-workflow-dialog";
 import { RenameWorkflowDialog } from "./rename-workflow-dialog";
+import { WorkflowLifecycle } from "./workflow-lifecycle";
 import { BreadcrumbHeader } from "../../layout/breadcrumb-header";
 import { CollectionPageState } from "../../layout/collection-page";
 import { PAGE_GUTTER, PAGE_RAIL } from "../../layout/page-header";
@@ -178,7 +179,7 @@ export function WorkflowDetailPage() {
       {header}
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className={cn(PAGE_RAIL, PAGE_GUTTER, "flex flex-col gap-4 py-6 md:grid md:grid-cols-[260px_minmax(0,1fr)] md:gap-6")}>
-          <WorkflowInspector workflow={workflow} latest={latest} />
+          <WorkflowInspector workflow={workflow} latest={latest} manager={role === "owner" || role === "admin"} onDeleted={() => push(p.workflows())} />
           <Tabs value={tab} onValueChange={(value) => setTab(value as DetailTab)} className="min-w-0">
             <TabsList>
               <TabsTrigger value="diagram">{t(($) => $.detail.tabs.diagram)}</TabsTrigger>
@@ -238,9 +239,13 @@ export function WorkflowDetailPage() {
 function WorkflowInspector({
   workflow,
   latest,
+  manager,
+  onDeleted,
 }: {
   workflow: WorkflowRecord;
   latest: WorkflowVersion | null;
+  manager: boolean;
+  onDeleted: () => void;
 }) {
   const { t } = useT("workflows");
   const timeAgo = useTimeAgo();
@@ -285,6 +290,7 @@ function WorkflowInspector({
         </Field>
       </dl>
       <UsedBy workflowId={workflow.id} latestVersion={workflow.latest_version} />
+      {manager ? <WorkflowLifecycle workflow={workflow} onDeleted={onDeleted} /> : null}
     </section>
   );
 }

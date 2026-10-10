@@ -4264,10 +4264,10 @@ export class ApiClient {
   // With the flag off every endpoint answers 403 `workflows_disabled`; that
   // is left to throw so the page can say the feature is not enabled.
 
-  async listWorkflows(): Promise<ListWorkflowsResponse> {
+  async listWorkflows(opts?: { includeArchived?: boolean }): Promise<ListWorkflowsResponse> {
     let raw: unknown;
     try {
-      raw = await this.fetch<unknown>(`/api/workflows`);
+      raw = await this.fetch<unknown>(`/api/workflows${opts?.includeArchived === true ? "?include_archived=true" : ""}`);
     } catch (error) {
       // A backend that predates workflows has no such route.
       if (error instanceof Error && "status" in error && (error as { status?: number }).status === 404) {
@@ -4288,7 +4288,15 @@ export class ApiClient {
     });
   }
 
-  /** Change a workflow's name or description (not its definition: that is a new version). */
+  /**
+   * Remove an archived workflow with its versions and audit trail. A workflow that is not archived
+   * answers 409 `workflow_not_archived`; one a squad still follows, 409 `workflow_in_use` with the squads' names.
+   */
+  async deleteWorkflow(id: string): Promise<void> {
+    await this.fetch<void>(`/api/workflows/${encodeURIComponent(id)}`, { method: "DELETE" });
+  }
+
+  /** Change a workflow's name or description, or archive or restore it (not its definition: that is a new version). */
   async updateWorkflow(id: string, data: UpdateWorkflowRequest): Promise<Workflow> {
     const raw = await this.fetch<unknown>(`/api/workflows/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(data) });
     return parseWithFallback(raw, WorkflowSchema, EMPTY_WORKFLOW, { endpoint: "PATCH /api/workflows/{id}" });

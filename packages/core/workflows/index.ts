@@ -16,6 +16,7 @@ export { BRANCH_BATCH_WINDOW_MS, branchLabel, branchProgress, currentBranches, t
 export {
   useApplyWorkflow,
   useCreateWorkflow,
+  useDeleteWorkflow,
   useRestoreWorkflowVersion,
   useSaveWorkflowVersion,
   useUpdateWorkflow,

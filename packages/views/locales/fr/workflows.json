@@ -16,7 +16,9 @@
     "new_button": "Nouveau workflow",
     "edit_button": "Modifier",
     "empty_description_create": "Un workflow définit les étapes que le travail traverse, y compris les points d'approbation humaine. Créez le premier dans le concepteur.",
-    "import_button": "Importer un YAML"
+    "import_button": "Importer un YAML",
+    "show_archived": "Afficher les archivés",
+    "hide_archived": "Masquer les archivés"
   },
   "status": {
     "active": "Actif",
@@ -335,5 +337,28 @@
     "done": "Workflow renommé",
     "conflict": "Quelqu'un a modifié ce workflow pendant que cette fenêtre était ouverte. Il a été rechargé : réessayez.",
     "failed": "Impossible de renommer le workflow."
+  },
+  "lifecycle": {
+    "title": "Archiver et supprimer",
+    "active_hint": "Archiver masque le workflow de la liste et empêche de le modifier ou de l'appliquer. Les squads qui le suivent gardent leur consigne. Vous pourrez le restaurer.",
+    "archived_hint": "Ce workflow est archivé : masqué de la liste, il ne peut être ni modifié ni appliqué. Restaurez-le ou supprimez-le définitivement.",
+    "archive": "Archiver",
+    "restore": "Restaurer",
+    "delete_button": "Supprimer définitivement",
+    "cancel": "Annuler",
+    "archive_title": "Archiver « {{name}} » ?",
+    "archive_description": "Il disparaît de la liste des workflows (« Afficher les archivés » le ramène) et ne peut être ni modifié ni appliqué tant qu'il est archivé. Les squads qui le suivent déjà gardent leur consigne, et les tâches gardent leurs étiquettes.",
+    "archived_done": "Workflow archivé",
+    "restored_done": "Workflow restauré",
+    "conflict": "Quelqu'un a modifié ce workflow avant vous. Il a été rechargé : réessayez.",
+    "failed": "Impossible de modifier le workflow.",
+    "delete_title": "Supprimer « {{name}} » définitivement ?",
+    "delete_description": "Toutes ses versions et son historique sont supprimés, sans retour possible. Les tâches qui portent ses étiquettes ne sont pas touchées.",
+    "delete_type_key": "Saisissez la clé {{key}} pour confirmer",
+    "delete_confirm": "Supprimer définitivement",
+    "deleted_done": "Workflow supprimé",
+    "delete_in_use": "Ces squads le suivent encore : {{squads}}. Appliquez-leur un autre workflow ou retirez ce bloc de leurs instructions d'abord.",
+    "delete_not_archived": "Archivez d'abord le workflow.",
+    "delete_failed": "Impossible de supprimer le workflow."
   }
 }

@@ -41,6 +41,10 @@ Un workflow est du texte brut. Sur la page d'un workflow, **Télécharger** ou *
 - Pour importer un nouveau workflow, la clé du texte devient sa clé. Pour ajouter une version à un workflow existant, le texte doit porter la clé de ce workflow.
 - Les agents et les personnes sont nommés dans le texte et cherchés dans l'espace de travail où vous l'appliquez. Les noms d'agents doivent correspondre exactement, et les approbateurs s'écrivent `user:<id>`, ce qui diffère d'un espace à l'autre : remplacez-les avant d'appliquer.
 
+## Archiver et supprimer un workflow
+
+Sur la page d'un workflow, les propriétaires et administrateurs trouvent **Archiver et supprimer**. **Archiver** masque le workflow de la liste (**Afficher les archivés** le ramène) et empêche de le modifier ou de l'appliquer ; les squads qui le suivent déjà gardent leur consigne, et les tâches gardent leurs étiquettes. **Restaurer** annule l'archivage. Seul un workflow archivé peut être **supprimé définitivement**, en saisissant sa clé : toutes ses versions et son historique sont supprimés, sans retour possible. Un workflow qu'un squad suit encore ne peut pas être supprimé : appliquez d'abord un autre workflow à ce squad, ou retirez ce bloc de ses instructions.
+
 ## Appliquer un workflow à un squad
 
 Choisissez **Appliquer à un squad** sur la page d'un workflow. La boîte de dialogue montre la consigne exacte que le chef recevra et les étiquettes utilisées. L'application :

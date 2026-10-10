@@ -16,7 +16,9 @@
     "new_button": "新建工作流",
     "edit_button": "编辑",
     "empty_description_create": "工作流定义了工作流转的各个阶段，包括人工审批关卡。在设计器中创建第一个吧。",
-    "import_button": "导入 YAML"
+    "import_button": "导入 YAML",
+    "show_archived": "显示已归档",
+    "hide_archived": "隐藏已归档"
   },
   "status": {
     "active": "启用",
@@ -331,5 +333,28 @@
     "done": "工作流已重命名",
     "conflict": "在此期间有人修改了这个工作流，已重新加载，请再试一次。",
     "failed": "无法重命名工作流。"
+  },
+  "lifecycle": {
+    "title": "归档与删除",
+    "active_hint": "归档会把工作流从列表中隐藏，并停止编辑和应用。正在使用它的小队保留原有说明。之后可以恢复。",
+    "archived_hint": "此工作流已归档：不在列表中显示，也不能编辑或应用。可以恢复，或永久删除。",
+    "archive": "归档",
+    "restore": "恢复",
+    "delete_button": "永久删除",
+    "cancel": "取消",
+    "archive_title": "归档“{{name}}”？",
+    "archive_description": "它会从工作流列表中消失（“显示已归档”可再次看到），归档期间不能编辑或应用。已经在使用它的小队保留原有说明，任务也保留标签。",
+    "archived_done": "工作流已归档",
+    "restored_done": "工作流已恢复",
+    "conflict": "有人先修改了这个工作流，已重新加载，请再试一次。",
+    "failed": "无法修改工作流。",
+    "delete_title": "永久删除“{{name}}”？",
+    "delete_description": "它的所有版本和历史都会被删除，且无法撤销。带有其标签的任务不受影响。",
+    "delete_type_key": "输入键 {{key}} 以确认",
+    "delete_confirm": "永久删除",
+    "deleted_done": "工作流已删除",
+    "delete_in_use": "这些小队仍在使用它：{{squads}}。请先给它们应用其他工作流，或从其说明中移除该部分。",
+    "delete_not_archived": "请先归档该工作流。",
+    "delete_failed": "无法删除工作流。"
   }
 }

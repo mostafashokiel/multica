@@ -21,6 +21,7 @@ vi.mock("@multica/core/api", async (importOriginal) => ({
     renderWorkflow: vi.fn(),
     applyWorkflow: vi.fn(),
     updateWorkflow: vi.fn(),
+    deleteWorkflow: vi.fn(),
   },
 }));
 const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
@@ -117,6 +118,7 @@ beforeEach(() => {
   vi.mocked(api.renderWorkflow).mockReset();
   vi.mocked(api.applyWorkflow).mockReset();
   vi.mocked(api.updateWorkflow).mockReset();
+  vi.mocked(api.deleteWorkflow).mockReset();
   toast.success.mockReset();
   toast.error.mockReset();
   member.role = "owner";
@@ -831,5 +833,87 @@ describe("renaming a workflow", () => {
   it("limits the name to what the server accepts", async () => {
     const { dialog } = await open();
     expect((within(dialog).getByLabelText("Name") as HTMLInputElement).maxLength).toBe(120);
+  });
+});
+
+describe("archiving, restoring and deleting a workflow", () => {
+  const load = (over: Partial<Workflow> = {}) => {
+    vi.mocked(api.getWorkflow).mockResolvedValue({ workflow: { ...workflow, ...over }, version: version(2, { definition: "kind: Workflow\n" }) });
+    renderPage();
+    return userEvent.setup();
+  };
+  const section = async () => within(await screen.findByRole("group", { name: "Archive and delete" }));
+
+  it("offers owners and admins the section, and nobody else", async () => {
+    member.role = "member";
+    load();
+    await screen.findByRole("heading", { name: "SDLC pilot" });
+    expect(screen.queryByRole("group", { name: "Archive and delete" })).toBeNull();
+  });
+
+  it("archives after a confirmation that says what it means, with the revision it loaded", async () => {
+    vi.mocked(api.updateWorkflow).mockResolvedValue({ ...workflow, status: "archived", revision: 6 });
+    const user = load();
+    await user.click((await section()).getByRole("button", { name: "Archive" }));
+
+    const dialog = await screen.findByRole("alertdialog");
+    expect(within(dialog).getByText(/Archive "SDLC pilot"\?/)).toBeInTheDocument();
+    expect(within(dialog).getByText(/Squads that already follow it keep their briefing/)).toBeInTheDocument();
+    expect(api.updateWorkflow).not.toHaveBeenCalled();
+    await user.click(within(dialog).getByRole("button", { name: "Archive" }));
+
+    await waitFor(() => expect(api.updateWorkflow).toHaveBeenCalledWith("wf-1", { status: "archived", revision: 5 }));
+    expect(toast.success).toHaveBeenCalledWith("Workflow archived");
+  });
+
+  it("does not archive when the confirmation is cancelled", async () => {
+    const user = load();
+    await user.click((await section()).getByRole("button", { name: "Archive" }));
+    await user.click(within(await screen.findByRole("alertdialog")).getByRole("button", { name: "Cancel" }));
+    expect(api.updateWorkflow).not.toHaveBeenCalled();
+  });
+
+  it("restores an archived workflow, and offers deleting it, but not archiving again", async () => {
+    vi.mocked(api.updateWorkflow).mockResolvedValue({ ...workflow, status: "active", revision: 6 });
+    const user = load({ status: "archived" });
+    const lifecycle = await section();
+    expect(lifecycle.queryByRole("button", { name: "Archive" })).toBeNull();
+    expect(lifecycle.getByText(/This workflow is archived/)).toBeInTheDocument();
+
+    await user.click(lifecycle.getByRole("button", { name: "Restore" }));
+
+    await waitFor(() => expect(api.updateWorkflow).toHaveBeenCalledWith("wf-1", { status: "active", revision: 5 }));
+    expect(toast.success).toHaveBeenCalledWith("Workflow restored");
+  });
+
+  it("deletes only after the key is typed, then goes back to the list", async () => {
+    vi.mocked(api.deleteWorkflow).mockResolvedValue(undefined);
+    const user = load({ status: "archived" });
+    await user.click((await section()).getByRole("button", { name: "Delete permanently" }));
+
+    const dialog = await screen.findByRole("dialog");
+    const confirm = within(dialog).getByRole("button", { name: "Delete permanently" });
+    expect(confirm).toBeDisabled();
+    await user.type(within(dialog).getByLabelText(/Type the key sdlc-pilot to confirm/), "sdlc-pil");
+    expect(confirm).toBeDisabled();
+    await user.type(within(dialog).getByLabelText(/Type the key sdlc-pilot to confirm/), "ot");
+    expect(confirm).toBeEnabled();
+    await user.click(confirm);
+
+    await waitFor(() => expect(api.deleteWorkflow).toHaveBeenCalledWith("wf-1"));
+    expect(toast.success).toHaveBeenCalledWith("Workflow deleted");
+    expect(push).toHaveBeenCalledWith("/acme/workflows");
+  });
+
+  it("names the squads that still follow it when the server refuses, and stays put", async () => {
+    vi.mocked(api.deleteWorkflow).mockRejectedValue(new ApiError("in use", 409, "Conflict", { code: "workflow_in_use", squads: ["Alpha", "Zed"] }));
+    const user = load({ status: "archived" });
+    await user.click((await section()).getByRole("button", { name: "Delete permanently" }));
+    const dialog = await screen.findByRole("dialog");
+    await user.type(within(dialog).getByLabelText(/Type the key/), "sdlc-pilot");
+    await user.click(within(dialog).getByRole("button", { name: "Delete permanently" }));
+
+    expect(await within(dialog).findByText(/These squads still follow it: Alpha, Zed/)).toBeInTheDocument();
+    expect(push).not.toHaveBeenCalled();
   });
 });

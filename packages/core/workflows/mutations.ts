@@ -67,3 +67,15 @@ export function useUpdateWorkflow(wsId: string, workflowId: string) {
     onSettled: () => qc.invalidateQueries({ queryKey: workflowKeys.all(wsId) }),
   });
 }
+
+/** Delete an archived workflow for good. Everything cached about it is dropped, and the lists refresh. */
+export function useDeleteWorkflow(wsId: string, workflowId: string) {
+  const qc = useQueryClient();
+  return useMutation<void, Error, void>({
+    mutationFn: () => api.deleteWorkflow(workflowId),
+    onSuccess: () => {
+      qc.removeQueries({ queryKey: workflowKeys.detail(wsId, workflowId) });
+      return qc.invalidateQueries({ queryKey: workflowKeys.all(wsId) });
+    },
+  });
+}

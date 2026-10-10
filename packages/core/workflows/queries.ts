@@ -9,6 +9,8 @@ import { api } from "../api";
 export const workflowKeys = {
   all: (wsId: string) => ["workflows", wsId] as const,
   list: (wsId: string) => [...workflowKeys.all(wsId), "list"] as const,
+  /** The list with archived workflows in it. */
+  listWithArchived: (wsId: string) => [...workflowKeys.all(wsId), "list", "with-archived"] as const,
   detail: (wsId: string, id: string) => [...workflowKeys.all(wsId), "detail", id] as const,
   versions: (wsId: string, id: string) => [...workflowKeys.all(wsId), "versions", id] as const,
   version: (wsId: string, id: string, version: number) =>
@@ -21,10 +23,10 @@ export const workflowKeys = {
 /** The pipeline's squad filter that keeps only the issues assigned to no squad. */
 export const WorkflowPipelineSquadNone = "none";
 
-export function workflowListOptions(wsId: string, enabled = true) {
+export function workflowListOptions(wsId: string, enabled = true, includeArchived = false) {
   return queryOptions({
-    queryKey: workflowKeys.list(wsId),
-    queryFn: () => api.listWorkflows(),
+    queryKey: includeArchived ? workflowKeys.listWithArchived(wsId) : workflowKeys.list(wsId),
+    queryFn: () => api.listWorkflows(includeArchived ? { includeArchived: true } : undefined),
     select: (data) => data.workflows,
     enabled,
     // A 403 means the feature is off for this workspace; retrying will not

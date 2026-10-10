@@ -146,6 +146,7 @@ const (
 	EventWorkflowCreated        = "workflow:created"
 	EventWorkflowUpdated        = "workflow:updated"
 	EventWorkflowVersionCreated = "workflow:version_created"
+	EventWorkflowDeleted        = "workflow:deleted"
 
 	// Daemon events
 	EventDaemonHeartbeat               = "daemon:heartbeat"

@@ -126,7 +126,9 @@ decides from it whether the gate is approved, rejected or still open.
 ## Who may do what
 
 - Any workspace member can read workflows and preview a rendering.
-- Only a **human** workspace owner or admin can apply a workflow (and change one).
+- Only a **human** workspace owner or admin can apply a workflow (and change one). The same goes for
+  archiving and restoring it, and for deleting an archived workflow for good (refused while a squad still
+  follows it; removes its versions and history).
   An agent cannot, even one acting for an owner: the workflow decides who approves
   what, so it is not something a run may rewrite. If a task needs an apply, say so
   in a comment and let a person run it.

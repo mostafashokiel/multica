@@ -41,6 +41,10 @@ A workflow is plain text. On a workflow's page, **Download** or **Copy** gives y
 - To import as a new workflow, the key in the text becomes the key. To add a version to an existing workflow, the text must carry that workflow's key.
 - Agents and people are named in the text and are looked up in the workspace you apply it in. Agent names must match exactly, and approvers are written `user:<id>`, which differs between workspaces: replace them before you apply.
 
+## Archiving and deleting a workflow
+
+On a workflow's page, owners and admins find **Archive and delete**. **Archive** hides the workflow from the list (**Show archived** brings it back) and stops edits and applies; squads that already follow it keep their briefing, and issues keep their labels. **Restore** undoes it. Only an archived workflow can be **deleted permanently**, after typing its key: all its versions and its history are removed and this cannot be undone. A workflow that a squad still follows cannot be deleted: apply another workflow to that squad, or take the block out of its instructions, first.
+
 ## Applying a workflow to a squad
 
 Choose **Apply to squad** on a workflow page. The dialog shows the exact briefing the leader will get and the labels it uses. Applying:
