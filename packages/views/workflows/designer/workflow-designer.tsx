@@ -694,6 +694,9 @@ function describeFailure(error: unknown): Banner {
       const lines = issues.map((i) => `${typeof i.path === "string" && i.path !== "" ? `${i.path}: ` : ""}${typeof i.message === "string" ? i.message : ""}`);
       return { kind: "invalid", issues: lines };
     }
+    // Any other refusal of what was sent (a name too long, a layout out of range) says why in its message.
+    const reason = typeof body === "object" && body !== null && "error" in body ? (body as { error?: unknown }).error : undefined;
+    if (error.status === 400 && typeof reason === "string" && reason !== "") return { kind: "invalid", issues: [reason] };
   }
   return { kind: "failed" };
 }

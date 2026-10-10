@@ -207,6 +207,20 @@ func writeInvalidDefinition(w http.ResponseWriter, message string, issues []work
 	})
 }
 
+// defaultWorkflowName is the name a workflow gets when the caller gives none: its description on one
+// line, shortened to fit, else its key. A long description must not stop a workflow from being created;
+// a name the caller chose themselves that is too long is still refused.
+func defaultWorkflowName(description, key string) string {
+	line := strings.Join(strings.Fields(description), " ")
+	if line == "" {
+		return key
+	}
+	if runes := []rune(line); len(runes) > maxWorkflowNameLen {
+		return strings.TrimSpace(string(runes[:maxWorkflowNameLen-1])) + "…"
+	}
+	return line
+}
+
 func trimmedWorkflowText(w http.ResponseWriter, raw string, limit int, field string) (string, bool) {
 	value := strings.TrimSpace(raw)
 	if len([]rune(value)) > limit {
@@ -562,10 +576,7 @@ func (h *Handler) CreateWorkflow(w http.ResponseWriter, r *http.Request) {
 	}
 	name := strings.TrimSpace(req.Name)
 	if name == "" {
-		name = strings.TrimSpace(def.Metadata.Description)
-	}
-	if name == "" {
-		name = key
+		name = defaultWorkflowName(def.Metadata.Description, key)
 	}
 	name, ok = trimmedWorkflowText(w, name, maxWorkflowNameLen, "name")
 	if !ok {

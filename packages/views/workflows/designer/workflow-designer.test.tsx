@@ -161,6 +161,19 @@ describe("a new workflow", () => {
   });
 });
 
+describe("saving a workflow the server refuses for another reason", () => {
+  it("shows the server's reason rather than a bare failure", async () => {
+    vi.mocked(api.createWorkflow).mockRejectedValue(new ApiError("name is longer than 120 characters", 400, "Bad Request", { error: "name is longer than 120 characters" }));
+    renderDesigner({ initial: initialFor(updateMetadata(emptyDefinition(), { id: "demo" }), 0) });
+    const user = userEvent.setup();
+    await user.click(within(screen.getByLabelText("Stages")).getByRole("button", { name: "End" }));
+
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("name is longer than 120 characters");
+  });
+});
+
 describe("saving a new workflow under a key that is taken", () => {
   it("says that the key is taken and what to do, not just that saving failed, and keeps the work", async () => {
     vi.mocked(api.createWorkflow).mockRejectedValue(new ApiError('a workflow with the key "demo" already exists', 409, "Conflict", { error: 'a workflow with the key "demo" already exists' }));

@@ -143,6 +143,43 @@ func TestCreateWorkflowStoresTheCanonicalDefinitionAsVersionOne(t *testing.T) {
 	}
 }
 
+// The designer sends no name, so the name comes from the description. A description longer than a
+// name may be must shorten it, not make the save fail.
+func TestCreateWorkflowNamesItselfFromALongDescription(t *testing.T) {
+	enableWorkflows(t)
+	long := strings.Repeat("An agent does the work and a person decides. ", 6)
+	var out workflowCreated
+	testutil.Call(t, testHandler.CreateWorkflow, newRequest("POST", "/api/workflows", map[string]any{
+		"definition": workflowYAML(freshWorkflowKey(), long),
+	})).Want(http.StatusCreated).JSON(&out)
+
+	if n := len([]rune(out.Workflow.Name)); n > maxWorkflowNameLen || n < maxWorkflowNameLen-10 || !strings.HasSuffix(out.Workflow.Name, "…") {
+		t.Fatalf("name = %q (%d characters), want it shortened to about %d ending in an ellipsis", out.Workflow.Name, n, maxWorkflowNameLen)
+	}
+	if !strings.HasPrefix(out.Workflow.Name, "An agent does the work") {
+		t.Errorf("name = %q", out.Workflow.Name)
+	}
+	if out.Workflow.Description != strings.TrimSpace(long) {
+		t.Errorf("the description must stay whole, got %d characters", len(out.Workflow.Description))
+	}
+
+	// A short description is the name as it is; none at all gives the key.
+	short := freshWorkflowKey()
+	testutil.Call(t, testHandler.CreateWorkflow, newRequest("POST", "/api/workflows", map[string]any{
+		"definition": workflowYAML(short, "Short and clear"),
+	})).Want(http.StatusCreated).JSON(&out)
+	if out.Workflow.Name != "Short and clear" {
+		t.Errorf("name = %q", out.Workflow.Name)
+	}
+	bare := freshWorkflowKey()
+	testutil.Call(t, testHandler.CreateWorkflow, newRequest("POST", "/api/workflows", map[string]any{
+		"definition": workflowYAML(bare, ""),
+	})).Want(http.StatusCreated).JSON(&out)
+	if out.Workflow.Name != bare {
+		t.Errorf("name = %q, want the key %q", out.Workflow.Name, bare)
+	}
+}
+
 func TestCreateWorkflowRejectsBadInput(t *testing.T) {
 	enableWorkflows(t)
 	key := freshWorkflowKey()
