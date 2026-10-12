@@ -148,8 +148,9 @@ LIMIT sqlc.arg('row_limit')::int;
 -- name: ListWorkflowPipelineChildren :many
 -- The sub-issues of the given issues, oldest first, with whether each one is
 -- closed (its status is in a done or closed category) and whether it was
--- cancelled (closed category). Used to show the progress of a parallel stage:
--- the leader hands each branch to an agent as a sub-issue.
+-- cancelled (closed category), how long agents have worked on it, and when it
+-- was closed. Used to show the progress of a parallel stage: the leader hands
+-- each branch to an agent as a sub-issue.
 SELECT c.parent_issue_id, c.id, c.number, c.title, c.status, c.assignee_type, c.assignee_id,
     c.created_at, c.updated_at,
     EXISTS (SELECT 1 FROM issue_status s
@@ -157,7 +158,15 @@ SELECT c.parent_issue_id, c.id, c.number, c.title, c.status, c.assignee_type, c.
               AND s.category IN ('done', 'closed'))::bool AS closed,
     EXISTS (SELECT 1 FROM issue_status s
             WHERE s.workspace_id = c.workspace_id AND s.key = c.status
-              AND s.category = 'closed')::bool AS cancelled
+              AND s.category = 'closed')::bool AS cancelled,
+    COALESCE((SELECT sum(extract(epoch FROM (COALESCE(t.completed_at, now()) - t.started_at)))
+              FROM agent_task_queue t
+              WHERE t.issue_id = c.id AND t.started_at IS NOT NULL), 0)::bigint AS work_seconds,
+    COALESCE((SELECT ag.name FROM agent ag WHERE ag.id = c.assignee_id AND c.assignee_type = 'agent'), '')::text AS assignee_name,
+    (SELECT max(a.created_at) FROM activity_log a
+     WHERE a.issue_id = c.id AND a.action = 'status_changed'
+       AND a.details ->> 'to' IN (SELECT s.key FROM issue_status s
+                                  WHERE s.workspace_id = c.workspace_id AND s.category IN ('done', 'closed')))::timestamptz AS closed_at
 FROM issue c
 WHERE c.workspace_id = sqlc.arg('workspace_id')::uuid
   AND c.parent_issue_id = ANY(sqlc.arg('parent_ids')::uuid[])
@@ -175,3 +184,59 @@ DELETE FROM workflow_version WHERE workflow_id = $1 AND workspace_id = $2;
 
 -- name: DeleteWorkflowAudit :exec
 DELETE FROM workflow_audit WHERE workflow_id = $1 AND workspace_id = $2;
+
+-- name: GetWorkflowByKey :one
+SELECT * FROM workflow WHERE workspace_id = $1 AND key = $2;
+
+-- name: GetIssueWorkflowKey :one
+-- The key of the workflow an issue follows: its wf:<key> label.
+SELECT substr(l.name, 4)::text AS key
+FROM issue_to_label il
+JOIN issue_label l ON l.id = il.label_id
+WHERE il.issue_id = sqlc.arg('issue_id')::uuid
+  AND l.workspace_id = sqlc.arg('workspace_id')::uuid
+  AND l.resource_type = 'issue'
+  AND l.name LIKE 'wf:%'
+ORDER BY l.name
+LIMIT 1;
+
+-- name: ListWorkflowStageEvents :many
+-- When the given issues entered and left their stages, in order.
+SELECT issue_id, stage_id, kind, occurred_at
+FROM workflow_stage_event
+WHERE workspace_id = sqlc.arg('workspace_id')::uuid
+  AND issue_id = ANY(sqlc.arg('issue_ids')::uuid[])
+ORDER BY issue_id, occurred_at, id;
+
+-- name: ListWorkflowRunTasks :many
+-- The agent runs on the given issues (the issue itself and its sub-issues) that have started.
+SELECT t.issue_id, a.name AS agent_name, t.started_at, t.completed_at
+FROM agent_task_queue t
+JOIN agent a ON a.id = t.agent_id
+WHERE t.issue_id = ANY(sqlc.arg('issue_ids')::uuid[])
+  AND t.started_at IS NOT NULL
+  AND a.workspace_id = sqlc.arg('workspace_id')::uuid
+ORDER BY t.issue_id, t.started_at;
+
+-- name: ListWorkflowRunComments :many
+-- The comments people wrote on the given issues: their time is when a gate was answered.
+SELECT c.issue_id, c.author_id, c.created_at
+FROM comment c
+WHERE c.workspace_id = sqlc.arg('workspace_id')::uuid
+  AND c.issue_id = ANY(sqlc.arg('issue_ids')::uuid[])
+  AND c.author_type = 'member'
+ORDER BY c.issue_id, c.created_at
+LIMIT sqlc.arg('row_limit')::int;
+
+-- name: ListWorkflowRunIssues :many
+-- The issues that follow a workflow and entered a stage since a given time, newest first.
+SELECT i.id, i.number, i.title, i.status
+FROM issue i
+WHERE i.workspace_id = sqlc.arg('workspace_id')::uuid
+  AND EXISTS (SELECT 1 FROM issue_to_label wa JOIN issue_label wl ON wl.id = wa.label_id
+              WHERE wa.issue_id = i.id AND wl.workspace_id = i.workspace_id
+                AND wl.resource_type = 'issue' AND wl.name = sqlc.arg('wf_label')::text)
+  AND EXISTS (SELECT 1 FROM workflow_stage_event e
+              WHERE e.issue_id = i.id AND e.kind = 'entered' AND e.occurred_at >= sqlc.arg('since')::timestamptz)
+ORDER BY i.created_at DESC, i.id DESC
+LIMIT sqlc.arg('row_limit')::int;

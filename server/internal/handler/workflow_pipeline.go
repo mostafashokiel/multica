@@ -21,6 +21,9 @@ const (
 	// workflowPipelineChildLimit caps how many sub-issues one pipeline answer carries.
 	workflowPipelineChildLimit = 5000
 
+	// workflowTypicalMinSamples is how many finished stays a stage needs before its typical time is given.
+	workflowTypicalMinSamples = 2
+
 	workflowPhasePrefix = "phase:"
 
 	// workflowPipelineNoSquad is the squad filter that keeps only the issues
@@ -43,6 +46,10 @@ type WorkflowPipelineIssue struct {
 	// Children are the issue's sub-issues, oldest first (never null). A parallel
 	// stage hands each branch to an agent as one, so these are its progress.
 	Children []WorkflowPipelineChild `json:"children"`
+	// StageEnteredAt is when the issue entered the stage it is in now, and RunStartedAt when it entered
+	// the first one. Both come from the record of phase label changes; absent when there is none.
+	StageEnteredAt *string `json:"stage_entered_at,omitempty"`
+	RunStartedAt   *string `json:"run_started_at,omitempty"`
 }
 
 // WorkflowPipelineChild is one sub-issue of an issue in a workflow.
@@ -54,6 +61,9 @@ type WorkflowPipelineChild struct {
 	AssigneeType string `json:"assignee_type,omitempty"`
 	AssigneeID   string `json:"assignee_id,omitempty"`
 	CreatedAt    string `json:"created_at"`
+	// WorkSeconds is how long agents have worked on it; ClosedAt is when it was closed, if it is.
+	WorkSeconds int64   `json:"work_seconds"`
+	ClosedAt    *string `json:"closed_at,omitempty"`
 	// Closed is true once the sub-issue's status is done or cancelled: the
 	// states that wake the squad leader again. Cancelled is true for the latter.
 	Closed    bool `json:"closed"`
@@ -78,6 +88,10 @@ type WorkflowPipelineStage struct {
 	// Approvers are the people a human gate waits for, in the order the workflow lists them.
 	Approvers []WorkflowPipelineApprover `json:"approvers"`
 	Issues    []WorkflowPipelineIssue    `json:"issues"`
+	// TypicalSeconds is the median time issues of this workflow stayed in the stage, from the stays that are
+	// over, when there are at least TypicalSamples of them to say (workflowTypicalMinSamples).
+	TypicalSeconds *int64 `json:"typical_seconds,omitempty"`
+	TypicalSamples int    `json:"typical_samples"`
 }
 
 // WorkflowPipelineResponse says where the issues of a workflow stand.
@@ -189,6 +203,13 @@ func (h *Handler) WorkflowPipeline(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	stays, err := h.pipelineStays(r.Context(), wf.WorkspaceID, rows)
+	if err != nil {
+		slog.Warn("workflow pipeline: read stage events failed", append(logger.RequestAttrs(r), "error", err)...)
+		writeError(w, http.StatusInternalServerError, "failed to load the pipeline")
+		return
+	}
+
 	for _, row := range rows {
 		item := WorkflowPipelineIssue{
 			ID:         uuidToString(row.ID),
@@ -200,6 +221,14 @@ func (h *Handler) WorkflowPipeline(w http.ResponseWriter, r *http.Request) {
 		}
 		if kids, ok := children[uuidToString(row.ID)]; ok {
 			item.Children = kids
+		}
+		if own := stays[uuidToString(row.ID)]; len(own) > 0 {
+			started := timestampToString(pgtype.Timestamptz{Time: own[0].EnteredAt, Valid: true})
+			item.RunStartedAt = &started
+			if cur, ok := workflow.CurrentStay(own); ok && len(row.Phases) == 1 && strings.TrimPrefix(row.Phases[0], workflowPhasePrefix) == cur.StageID {
+				entered := timestampToString(pgtype.Timestamptz{Time: cur.EnteredAt, Valid: true})
+				item.StageEnteredAt = &entered
+			}
 		}
 		if row.AssigneeType.Valid && row.AssigneeID.Valid {
 			item.AssigneeType, item.AssigneeID = row.AssigneeType.String, uuidToString(row.AssigneeID)
@@ -220,8 +249,43 @@ func (h *Handler) WorkflowPipeline(w http.ResponseWriter, r *http.Request) {
 			resp.Conflicting = append(resp.Conflicting, item)
 		}
 	}
+	var all []workflow.StageStay
+	for _, own := range stays {
+		all = append(all, own...)
+	}
+	for stage, durations := range workflow.StageDurations(all) {
+		if i, known := index[stage]; known && len(durations) >= workflowTypicalMinSamples {
+			typical := workflow.Median(durations)
+			resp.Stages[i].TypicalSeconds, resp.Stages[i].TypicalSamples = &typical, len(durations)
+		}
+	}
 	resp.Total = len(rows)
 	writeJSON(w, http.StatusOK, resp)
+}
+
+// pipelineStays pairs the recorded stage entries and exits of the listed issues into stays, by issue id.
+func (h *Handler) pipelineStays(ctx context.Context, workspaceID pgtype.UUID, rows []db.ListWorkflowPipelineIssuesRow) (map[string][]workflow.StageStay, error) {
+	out := map[string][]workflow.StageStay{}
+	if len(rows) == 0 {
+		return out, nil
+	}
+	ids := make([]pgtype.UUID, len(rows))
+	for i, row := range rows {
+		ids[i] = row.ID
+	}
+	events, err := h.Queries.ListWorkflowStageEvents(ctx, db.ListWorkflowStageEventsParams{WorkspaceID: workspaceID, IssueIds: ids})
+	if err != nil {
+		return nil, err
+	}
+	byIssue := map[string][]workflow.StageEvent{}
+	for _, e := range events {
+		key := uuidToString(e.IssueID)
+		byIssue[key] = append(byIssue[key], workflow.StageEvent{StageID: e.StageID, Kind: e.Kind, At: e.OccurredAt.Time})
+	}
+	for key, evs := range byIssue {
+		out[key] = workflow.Stays(evs)
+	}
+	return out, nil
 }
 
 // pipelineChildren reads the sub-issues of the listed issues in one query and groups them by parent
@@ -244,16 +308,21 @@ func (h *Handler) pipelineChildren(ctx context.Context, workspaceID pgtype.UUID,
 	}
 	for _, row := range rows {
 		child := WorkflowPipelineChild{
-			ID:         uuidToString(row.ID),
-			Identifier: prefix + "-" + strconv.Itoa(int(row.Number)),
-			Title:      row.Title,
-			Status:     row.Status,
-			CreatedAt:  timestampToString(row.CreatedAt),
-			Closed:     row.Closed || row.Status == "done" || row.Status == "cancelled",
-			Cancelled:  row.Cancelled || row.Status == "cancelled",
+			WorkSeconds: row.WorkSeconds,
+			ID:          uuidToString(row.ID),
+			Identifier:  prefix + "-" + strconv.Itoa(int(row.Number)),
+			Title:       row.Title,
+			Status:      row.Status,
+			CreatedAt:   timestampToString(row.CreatedAt),
+			Closed:      row.Closed || row.Status == "done" || row.Status == "cancelled",
+			Cancelled:   row.Cancelled || row.Status == "cancelled",
 		}
 		if row.AssigneeType.Valid && row.AssigneeID.Valid {
 			child.AssigneeType, child.AssigneeID = row.AssigneeType.String, uuidToString(row.AssigneeID)
+		}
+		if row.ClosedAt.Valid {
+			closed := timestampToString(row.ClosedAt)
+			child.ClosedAt = &closed
 		}
 		parent := uuidToString(row.ParentIssueID)
 		out[parent] = append(out[parent], child)

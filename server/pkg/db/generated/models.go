@@ -1747,6 +1747,16 @@ type WorkflowAudit struct {
 	CreatedAt   pgtype.Timestamptz `json:"created_at"`
 }
 
+type WorkflowStageEvent struct {
+	ID          pgtype.UUID        `json:"id"`
+	WorkspaceID pgtype.UUID        `json:"workspace_id"`
+	IssueID     pgtype.UUID        `json:"issue_id"`
+	StageID     string             `json:"stage_id"`
+	Kind        string             `json:"kind"`
+	Source      string             `json:"source"`
+	OccurredAt  pgtype.Timestamptz `json:"occurred_at"`
+}
+
 type WorkflowVersion struct {
 	ID            pgtype.UUID        `json:"id"`
 	WorkspaceID   pgtype.UUID        `json:"workspace_id"`

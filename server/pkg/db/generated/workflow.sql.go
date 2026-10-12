@@ -121,6 +121,31 @@ func (q *Queries) DeleteWorkflowVersions(ctx context.Context, arg DeleteWorkflow
 	return err
 }
 
+const getIssueWorkflowKey = `-- name: GetIssueWorkflowKey :one
+SELECT substr(l.name, 4)::text AS key
+FROM issue_to_label il
+JOIN issue_label l ON l.id = il.label_id
+WHERE il.issue_id = $1::uuid
+  AND l.workspace_id = $2::uuid
+  AND l.resource_type = 'issue'
+  AND l.name LIKE 'wf:%'
+ORDER BY l.name
+LIMIT 1
+`
+
+type GetIssueWorkflowKeyParams struct {
+	IssueID     pgtype.UUID `json:"issue_id"`
+	WorkspaceID pgtype.UUID `json:"workspace_id"`
+}
+
+// The key of the workflow an issue follows: its wf:<key> label.
+func (q *Queries) GetIssueWorkflowKey(ctx context.Context, arg GetIssueWorkflowKeyParams) (string, error) {
+	row := q.db.QueryRow(ctx, getIssueWorkflowKey, arg.IssueID, arg.WorkspaceID)
+	var key string
+	err := row.Scan(&key)
+	return key, err
+}
+
 const getWorkflow = `-- name: GetWorkflow :one
 SELECT id, workspace_id, key, name, description, status, latest_version, revision, created_by_type, created_by_id, created_at, updated_at FROM workflow
 WHERE id = $1 AND workspace_id = $2
@@ -133,6 +158,35 @@ type GetWorkflowParams struct {
 
 func (q *Queries) GetWorkflow(ctx context.Context, arg GetWorkflowParams) (Workflow, error) {
 	row := q.db.QueryRow(ctx, getWorkflow, arg.ID, arg.WorkspaceID)
+	var i Workflow
+	err := row.Scan(
+		&i.ID,
+		&i.WorkspaceID,
+		&i.Key,
+		&i.Name,
+		&i.Description,
+		&i.Status,
+		&i.LatestVersion,
+		&i.Revision,
+		&i.CreatedByType,
+		&i.CreatedByID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getWorkflowByKey = `-- name: GetWorkflowByKey :one
+SELECT id, workspace_id, key, name, description, status, latest_version, revision, created_by_type, created_by_id, created_at, updated_at FROM workflow WHERE workspace_id = $1 AND key = $2
+`
+
+type GetWorkflowByKeyParams struct {
+	WorkspaceID pgtype.UUID `json:"workspace_id"`
+	Key         string      `json:"key"`
+}
+
+func (q *Queries) GetWorkflowByKey(ctx context.Context, arg GetWorkflowByKeyParams) (Workflow, error) {
+	row := q.db.QueryRow(ctx, getWorkflowByKey, arg.WorkspaceID, arg.Key)
 	var i Workflow
 	err := row.Scan(
 		&i.ID,
@@ -363,7 +417,15 @@ SELECT c.parent_issue_id, c.id, c.number, c.title, c.status, c.assignee_type, c.
               AND s.category IN ('done', 'closed'))::bool AS closed,
     EXISTS (SELECT 1 FROM issue_status s
             WHERE s.workspace_id = c.workspace_id AND s.key = c.status
-              AND s.category = 'closed')::bool AS cancelled
+              AND s.category = 'closed')::bool AS cancelled,
+    COALESCE((SELECT sum(extract(epoch FROM (COALESCE(t.completed_at, now()) - t.started_at)))
+              FROM agent_task_queue t
+              WHERE t.issue_id = c.id AND t.started_at IS NOT NULL), 0)::bigint AS work_seconds,
+    COALESCE((SELECT ag.name FROM agent ag WHERE ag.id = c.assignee_id AND c.assignee_type = 'agent'), '')::text AS assignee_name,
+    (SELECT max(a.created_at) FROM activity_log a
+     WHERE a.issue_id = c.id AND a.action = 'status_changed'
+       AND a.details ->> 'to' IN (SELECT s.key FROM issue_status s
+                                  WHERE s.workspace_id = c.workspace_id AND s.category IN ('done', 'closed')))::timestamptz AS closed_at
 FROM issue c
 WHERE c.workspace_id = $1::uuid
   AND c.parent_issue_id = ANY($2::uuid[])
@@ -389,12 +451,16 @@ type ListWorkflowPipelineChildrenRow struct {
 	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
 	Closed        bool               `json:"closed"`
 	Cancelled     bool               `json:"cancelled"`
+	WorkSeconds   int64              `json:"work_seconds"`
+	AssigneeName  string             `json:"assignee_name"`
+	ClosedAt      pgtype.Timestamptz `json:"closed_at"`
 }
 
 // The sub-issues of the given issues, oldest first, with whether each one is
 // closed (its status is in a done or closed category) and whether it was
-// cancelled (closed category). Used to show the progress of a parallel stage:
-// the leader hands each branch to an agent as a sub-issue.
+// cancelled (closed category), how long agents have worked on it, and when it
+// was closed. Used to show the progress of a parallel stage: the leader hands
+// each branch to an agent as a sub-issue.
 func (q *Queries) ListWorkflowPipelineChildren(ctx context.Context, arg ListWorkflowPipelineChildrenParams) ([]ListWorkflowPipelineChildrenRow, error) {
 	rows, err := q.db.Query(ctx, listWorkflowPipelineChildren, arg.WorkspaceID, arg.ParentIds, arg.RowLimit)
 	if err != nil {
@@ -416,6 +482,9 @@ func (q *Queries) ListWorkflowPipelineChildren(ctx context.Context, arg ListWork
 			&i.UpdatedAt,
 			&i.Closed,
 			&i.Cancelled,
+			&i.WorkSeconds,
+			&i.AssigneeName,
+			&i.ClosedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -506,6 +575,201 @@ func (q *Queries) ListWorkflowPipelineIssues(ctx context.Context, arg ListWorkfl
 			&i.AssigneeID,
 			&i.UpdatedAt,
 			&i.Phases,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listWorkflowRunComments = `-- name: ListWorkflowRunComments :many
+SELECT c.issue_id, c.author_id, c.created_at
+FROM comment c
+WHERE c.workspace_id = $1::uuid
+  AND c.issue_id = ANY($2::uuid[])
+  AND c.author_type = 'member'
+ORDER BY c.issue_id, c.created_at
+LIMIT $3::int
+`
+
+type ListWorkflowRunCommentsParams struct {
+	WorkspaceID pgtype.UUID   `json:"workspace_id"`
+	IssueIds    []pgtype.UUID `json:"issue_ids"`
+	RowLimit    int32         `json:"row_limit"`
+}
+
+type ListWorkflowRunCommentsRow struct {
+	IssueID   pgtype.UUID        `json:"issue_id"`
+	AuthorID  pgtype.UUID        `json:"author_id"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+}
+
+// The comments people wrote on the given issues: their time is when a gate was answered.
+func (q *Queries) ListWorkflowRunComments(ctx context.Context, arg ListWorkflowRunCommentsParams) ([]ListWorkflowRunCommentsRow, error) {
+	rows, err := q.db.Query(ctx, listWorkflowRunComments, arg.WorkspaceID, arg.IssueIds, arg.RowLimit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListWorkflowRunCommentsRow{}
+	for rows.Next() {
+		var i ListWorkflowRunCommentsRow
+		if err := rows.Scan(&i.IssueID, &i.AuthorID, &i.CreatedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listWorkflowRunIssues = `-- name: ListWorkflowRunIssues :many
+SELECT i.id, i.number, i.title, i.status
+FROM issue i
+WHERE i.workspace_id = $1::uuid
+  AND EXISTS (SELECT 1 FROM issue_to_label wa JOIN issue_label wl ON wl.id = wa.label_id
+              WHERE wa.issue_id = i.id AND wl.workspace_id = i.workspace_id
+                AND wl.resource_type = 'issue' AND wl.name = $2::text)
+  AND EXISTS (SELECT 1 FROM workflow_stage_event e
+              WHERE e.issue_id = i.id AND e.kind = 'entered' AND e.occurred_at >= $3::timestamptz)
+ORDER BY i.created_at DESC, i.id DESC
+LIMIT $4::int
+`
+
+type ListWorkflowRunIssuesParams struct {
+	WorkspaceID pgtype.UUID        `json:"workspace_id"`
+	WfLabel     string             `json:"wf_label"`
+	Since       pgtype.Timestamptz `json:"since"`
+	RowLimit    int32              `json:"row_limit"`
+}
+
+type ListWorkflowRunIssuesRow struct {
+	ID     pgtype.UUID `json:"id"`
+	Number int32       `json:"number"`
+	Title  string      `json:"title"`
+	Status string      `json:"status"`
+}
+
+// The issues that follow a workflow and entered a stage since a given time, newest first.
+func (q *Queries) ListWorkflowRunIssues(ctx context.Context, arg ListWorkflowRunIssuesParams) ([]ListWorkflowRunIssuesRow, error) {
+	rows, err := q.db.Query(ctx, listWorkflowRunIssues,
+		arg.WorkspaceID,
+		arg.WfLabel,
+		arg.Since,
+		arg.RowLimit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListWorkflowRunIssuesRow{}
+	for rows.Next() {
+		var i ListWorkflowRunIssuesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Number,
+			&i.Title,
+			&i.Status,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listWorkflowRunTasks = `-- name: ListWorkflowRunTasks :many
+SELECT t.issue_id, a.name AS agent_name, t.started_at, t.completed_at
+FROM agent_task_queue t
+JOIN agent a ON a.id = t.agent_id
+WHERE t.issue_id = ANY($1::uuid[])
+  AND t.started_at IS NOT NULL
+  AND a.workspace_id = $2::uuid
+ORDER BY t.issue_id, t.started_at
+`
+
+type ListWorkflowRunTasksParams struct {
+	IssueIds    []pgtype.UUID `json:"issue_ids"`
+	WorkspaceID pgtype.UUID   `json:"workspace_id"`
+}
+
+type ListWorkflowRunTasksRow struct {
+	IssueID     pgtype.UUID        `json:"issue_id"`
+	AgentName   string             `json:"agent_name"`
+	StartedAt   pgtype.Timestamptz `json:"started_at"`
+	CompletedAt pgtype.Timestamptz `json:"completed_at"`
+}
+
+// The agent runs on the given issues (the issue itself and its sub-issues) that have started.
+func (q *Queries) ListWorkflowRunTasks(ctx context.Context, arg ListWorkflowRunTasksParams) ([]ListWorkflowRunTasksRow, error) {
+	rows, err := q.db.Query(ctx, listWorkflowRunTasks, arg.IssueIds, arg.WorkspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListWorkflowRunTasksRow{}
+	for rows.Next() {
+		var i ListWorkflowRunTasksRow
+		if err := rows.Scan(
+			&i.IssueID,
+			&i.AgentName,
+			&i.StartedAt,
+			&i.CompletedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listWorkflowStageEvents = `-- name: ListWorkflowStageEvents :many
+SELECT issue_id, stage_id, kind, occurred_at
+FROM workflow_stage_event
+WHERE workspace_id = $1::uuid
+  AND issue_id = ANY($2::uuid[])
+ORDER BY issue_id, occurred_at, id
+`
+
+type ListWorkflowStageEventsParams struct {
+	WorkspaceID pgtype.UUID   `json:"workspace_id"`
+	IssueIds    []pgtype.UUID `json:"issue_ids"`
+}
+
+type ListWorkflowStageEventsRow struct {
+	IssueID    pgtype.UUID        `json:"issue_id"`
+	StageID    string             `json:"stage_id"`
+	Kind       string             `json:"kind"`
+	OccurredAt pgtype.Timestamptz `json:"occurred_at"`
+}
+
+// When the given issues entered and left their stages, in order.
+func (q *Queries) ListWorkflowStageEvents(ctx context.Context, arg ListWorkflowStageEventsParams) ([]ListWorkflowStageEventsRow, error) {
+	rows, err := q.db.Query(ctx, listWorkflowStageEvents, arg.WorkspaceID, arg.IssueIds)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListWorkflowStageEventsRow{}
+	for rows.Next() {
+		var i ListWorkflowStageEventsRow
+		if err := rows.Scan(
+			&i.IssueID,
+			&i.StageID,
+			&i.Kind,
+			&i.OccurredAt,
 		); err != nil {
 			return nil, err
 		}
