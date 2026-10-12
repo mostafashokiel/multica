@@ -357,24 +357,26 @@ function TimingFooter({ issue, nowMs, waiting, typicalSeconds }: { issue: Workfl
   const slow = typicalSeconds !== undefined && typicalSeconds > 0 && inStage >= 120 && inStage > typicalSeconds * 3;
   const time = formatDuration(inStage);
   return (
-    <div className="flex items-center gap-2 border-t px-2.5 py-1.5 text-caption">
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t px-2.5 py-1.5 text-caption">
       {issue.stage_entered_at !== undefined ? (
-        <span className={cn("flex min-w-0 items-center gap-1 tabular-nums", slow ? "font-medium text-warning" : waiting ? "text-foreground" : "text-muted-foreground")}>
+        <span className={cn("flex items-center gap-1 tabular-nums", slow ? "font-medium text-warning" : waiting ? "text-foreground" : "text-muted-foreground")}>
           <Clock aria-hidden="true" className="size-3.5 shrink-0" />
-          <span className="truncate">{waiting ? t(($) => $.timing.waiting_for, { time }) : t(($) => $.timing.in_stage, { time })}</span>
+          <span>{waiting ? t(($) => $.timing.waiting_for, { time }) : t(($) => $.timing.in_stage, { time })}</span>
           {slow && typicalSeconds !== undefined ? (
             <span className="shrink-0 font-normal">· {t(($) => $.timing.times_usual, { factor: Math.round(inStage / typicalSeconds) })}</span>
           ) : null}
         </span>
       ) : null}
-      <span className="ml-auto shrink-0 tabular-nums text-muted-foreground">{t(($) => $.timing.total, { time: formatDuration(total) })}</span>
-      <button
-        type="button"
-        className="shrink-0 rounded-md px-1.5 py-0.5 text-caption text-muted-foreground underline-offset-2 hover:bg-accent hover:text-foreground hover:underline"
-        onClick={() => setOpen(true)}
-      >
-        {t(($) => $.timing.open_timeline)}
-      </button>
+      <span className="ml-auto flex items-center gap-2">
+        <span className="tabular-nums text-muted-foreground">{t(($) => $.timing.total, { time: formatDuration(total) })}</span>
+        <button
+          type="button"
+          className="rounded-md px-1.5 py-0.5 text-caption text-muted-foreground underline-offset-2 hover:bg-accent hover:text-foreground hover:underline"
+          onClick={() => setOpen(true)}
+        >
+          {t(($) => $.timing.open_timeline)}
+        </button>
+      </span>
       {open ? <RunTimelineDialog issueId={issue.id} title={`${issue.identifier} ${issue.title}`} open={open} onOpenChange={setOpen} /> : null}
     </div>
   );

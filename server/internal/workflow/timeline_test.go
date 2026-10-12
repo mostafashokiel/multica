@@ -390,3 +390,50 @@ func equalInts(a, b []int64) bool {
 	}
 	return true
 }
+
+const conditionYAML = `apiVersion: composer.noqodi/v1
+kind: Workflow
+metadata:
+  id: cond
+  version: 1
+approvers:
+  qa: ['user:owner-1']
+start: signoff
+stages:
+  - id: signoff
+    type: human_gate
+    approvers: qa
+    on_approve: risk
+    on_reject: build
+    max_rework: 2
+  - id: risk
+    type: condition
+    when: has_label("high-risk")
+    then: extra
+    else: release
+  - id: extra
+    type: agent
+    agent: a
+    next: release
+  - id: release
+    type: agent
+    agent: b
+    next: done
+  - id: build
+    type: agent
+    agent: c
+    next: signoff
+  - id: done
+    type: end
+`
+
+func TestAGateWhoseApprovePathRunsThroughAConditionIsStillApproved(t *testing.T) {
+	def := mustParse(t, []byte(conditionYAML))
+	for _, c := range []struct{ next, want string }{{"release", OutcomeApproved}, {"extra", OutcomeApproved}, {"build", OutcomeRejected}, {"done", ""}} {
+		in := RunInput{Def: def, IssueID: "1", Now: at("12:00:00"), Events: cat(move("", "signoff", "10:00:00"), move("signoff", c.next, "10:05:00"))}
+		tl := BuildTimeline(in)
+		if got := visitOf(t, tl, "signoff").Outcome; got != c.want {
+			t.Errorf("gate followed by %q: outcome %q, want %q", c.next, got, c.want)
+		}
+	}
+}

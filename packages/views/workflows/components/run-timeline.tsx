@@ -24,12 +24,26 @@ function percent(part: number, total: number): number {
   return total > 0 ? Math.round((part / total) * 100) : 0;
 }
 
-// The bars are placed on one shared time axis: from the run's start to its end (or to now while it runs).
-function axis(run: WorkflowRun, nowMs: number): { start: number; span: number } {
-  const start = Date.parse(run.timeline.started_at ?? "");
-  const end = run.timeline.ended_at !== undefined ? Date.parse(run.timeline.ended_at) : nowMs;
-  if (Number.isNaN(start) || Number.isNaN(end) || end <= start) return { start: 0, span: 1 };
-  return { start, span: end - start };
+/**
+ * The bars are placed on one shared time axis, from the run's start to its end. While a run is still going, the
+ * axis ends just after the last finished stage instead of at now: a stage that has been waiting for a day would
+ * otherwise squeeze every earlier bar to a hairline. The open stage's bar runs off the end of the track, which
+ * reads as "still going"; its duration is written beside it.
+ */
+export function axis(run: WorkflowRun): { start: number; span: number } {
+  const tl = run.timeline;
+  const start = Date.parse(tl.started_at ?? "");
+  if (Number.isNaN(start)) return { start: 0, span: 1 };
+  let end: number;
+  if (tl.ended_at !== undefined) {
+    end = Date.parse(tl.ended_at);
+  } else {
+    const reached = tl.visits.flatMap((v) => [v.open ? v.entered_at : v.left_at]).map((iso) => Date.parse(iso ?? "")).filter((ms) => !Number.isNaN(ms));
+    const last = reached.length > 0 ? Math.max(...reached) : start;
+    // A little room for the open stage's bar, in proportion to what has happened so far.
+    end = last + Math.max(last - start, 60_000) * 0.12;
+  }
+  return Number.isNaN(end) || end <= start ? { start: 0, span: 1 } : { start, span: end - start };
 }
 
 function place(startIso: string, seconds: number, ax: { start: number; span: number }): { left: string; width: string } {
@@ -105,15 +119,15 @@ function VisitRow({ visit, ax, nowMs }: { visit: WorkflowRunVisit; ax: { start: 
   void nowMs;
   return (
     <Fragment>
-      <li className="grid grid-cols-[minmax(0,11rem)_minmax(0,1fr)_4.5rem] items-center gap-3 py-1.5">
+      <li className="grid grid-cols-[minmax(0,12rem)_minmax(0,1fr)_4.5rem] items-center gap-3 py-1.5">
         <div className="flex min-w-0 flex-col">
-          <span className="flex items-center gap-1.5 text-body">
+          <span className="flex items-start gap-1.5 text-body">
             {isStageType(visit.type) ? <StageIcon type={visit.type} /> : null}
-            <span className="truncate">{visit.name}</span>
+            <span className="break-words leading-snug">{visit.name}</span>
             {visit.number > 1 ? <span className="shrink-0 rounded-full bg-muted px-1.5 text-micro text-muted-foreground">×{visit.number}</span> : null}
           </span>
           {gate ? (
-            <span className="truncate pl-5 text-micro text-muted-foreground">
+            <span className="break-words pl-5 text-micro text-muted-foreground">
               {[outcome, visit.decided_by?.name !== undefined ? t(($) => $.timing.answered_by, { name: visit.decided_by.name }) : null].filter(Boolean).join(" · ")}
             </span>
           ) : visit.type === "parallel" ? (
@@ -146,9 +160,9 @@ function BranchRow({ branch, stageName, slowest, ax }: { branch: WorkflowRunBran
   const seconds = branch.work_seconds > 0 ? branch.work_seconds : branch.elapsed_seconds;
   const label = branch.title.startsWith(`${stageName}: `) ? branch.title.slice(stageName.length + 2) : branch.title;
   return (
-    <li className="grid grid-cols-[minmax(0,11rem)_minmax(0,1fr)_4.5rem] items-center gap-3 py-0.5 text-caption">
+    <li className="grid grid-cols-[minmax(0,12rem)_minmax(0,1fr)_4.5rem] items-center gap-3 py-0.5 text-caption">
       <span className="flex min-w-0 flex-col pl-7">
-        <span className="truncate">{label}</span>
+        <span className="break-words leading-snug">{label}</span>
         {branch.agent ? <span className="truncate font-mono text-micro text-muted-foreground">{branch.agent}</span> : null}
       </span>
       <div aria-hidden="true" className="relative h-2.5 rounded-sm bg-muted/40">
@@ -170,7 +184,7 @@ function BranchRow({ branch, stageName, slowest, ax }: { branch: WorkflowRunBran
 export function RunTimeline({ run }: { run: WorkflowRun }) {
   const { t } = useT("workflows");
   const nowMs = useNow(run.timeline.open ? 1000 : null);
-  const ax = axis(run, nowMs);
+  const ax = axis(run);
   const tl = run.timeline;
   if (tl.visits.length === 0) {
     return <p className="text-body text-muted-foreground">{t(($) => $.timing.no_data)}</p>;

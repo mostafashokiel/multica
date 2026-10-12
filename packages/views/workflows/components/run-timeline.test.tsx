@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { api, ApiError } from "@multica/core/api";
 import { renderWithI18n } from "../../test/i18n";
 import { runFixture } from "./run-fixture";
-import { RunTimeline, RunTimelineDialog } from "./run-timeline";
+import { RunTimeline, RunTimelineDialog, axis } from "./run-timeline";
 
 vi.mock("@multica/core/api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@multica/core/api")>()),
@@ -82,6 +82,26 @@ describe("RunTimeline", () => {
     expect(screen.queryByText(/Sent back for rework/)).toBeNull();
     expect(screen.queryByText(/parallel branches would have taken/)).toBeNull();
     expect(screen.getByText(/Agent time is the work on the critical path/)).toBeInTheDocument();
+  });
+
+  it("does not let a long wait at the open gate squash the earlier stages", () => {
+    const run = runFixture();
+    // the last gate has been waiting for a day and a half
+    run.timeline.visits[run.timeline.visits.length - 1]!.wait_seconds = 130_600;
+    run.timeline.visits[run.timeline.visits.length - 1]!.elapsed_seconds = 130_600;
+    run.timeline.elapsed_seconds = 130_600 + 2000;
+
+    const ax = axis(run);
+    // The axis ends shortly after the last finished stage, a bit over an hour of the run, not at "now".
+    expect(ax.span).toBeLessThan(2 * 3600 * 1000);
+
+    const { container } = renderWithI18n(<RunTimeline run={run} />);
+    const first = container.querySelector("ol li [aria-hidden] span") as HTMLElement;
+    expect(parseFloat(first.style.width)).toBeGreaterThan(0.8);
+    // and the open stage's bar still reaches the end of the track
+    const bars = [...container.querySelectorAll("ol > li > [aria-hidden] > span")] as HTMLElement[];
+    const open = bars[bars.length - 1]!;
+    expect(parseFloat(open.style.left) + parseFloat(open.style.width)).toBeCloseTo(100, 0);
   });
 
   it("draws server text as text, never as markup", () => {

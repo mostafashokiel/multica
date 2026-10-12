@@ -227,7 +227,7 @@ func BuildTimeline(in RunInput) Timeline {
 				v.DecidedAt, v.DecidedBy = decided, by
 			}
 			v.WaitSeconds = seconds(waitEnd.Sub(v.EnteredAt))
-			v.Outcome = outcomeOf(visits, i, s)
+			v.Outcome = outcomeOf(visits, i, s, stages)
 		}
 	}
 
@@ -337,21 +337,41 @@ func firstDecision(in RunInput, gate Stage, from, to time.Time) (*time.Time, str
 	return nil, ""
 }
 
-// outcomeOf says how a gate ended, from where the issue went next.
-func outcomeOf(visits []Visit, i int, gate Stage) string {
+// outcomeOf says how a gate ended, from where the issue went next. A condition rests nowhere (it has no
+// label), so a path that runs through one counts as leading to whatever the condition leads to.
+func outcomeOf(visits []Visit, i int, gate Stage, stages map[string]Stage) string {
 	if visits[i].Open {
 		return OutcomeWaiting
 	}
 	if i+1 >= len(visits) {
 		return ""
 	}
-	switch visits[i+1].StageID {
-	case gate.OnApprove:
+	next := visits[i+1].StageID
+	switch {
+	case leadsTo(stages, gate.OnApprove, next):
 		return OutcomeApproved
-	case gate.OnReject:
+	case leadsTo(stages, gate.OnReject, next):
 		return OutcomeRejected
 	}
 	return ""
+}
+
+// leadsTo reports whether stage `from` is `target`, or is a condition (or a chain of them) that can lead to it.
+func leadsTo(stages map[string]Stage, from, target string) bool {
+	seen := map[string]bool{}
+	var walk func(id string) bool
+	walk = func(id string) bool {
+		if id == target {
+			return true
+		}
+		s, known := stages[id]
+		if !known || s.Type != StageCondition || seen[id] {
+			return false
+		}
+		seen[id] = true
+		return walk(s.Then) || walk(s.Else)
+	}
+	return walk(from)
 }
 
 // StageStay is one stay in a stage, before anything else is known about it.
