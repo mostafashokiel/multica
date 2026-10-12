@@ -132,6 +132,8 @@ import type {
   SaveWorkflowVersionRequest,
   UpdateWorkflowRequest,
   Workflow,
+  WorkflowRun,
+  WorkflowInsights,
   ValidateWorkflowResult,
   WorkflowApplyResult,
   WorkflowRender,
@@ -433,6 +435,8 @@ import {
   ListWorkflowsResponseSchema,
   WorkflowVersionSchema,
   WorkflowSchema,
+  WorkflowRunSchema,
+  WorkflowInsightsSchema,
   WorkflowWithVersionSchema,
   WorkflowRenderSchema,
   ValidateWorkflowResultSchema,
@@ -448,6 +452,8 @@ import {
   EMPTY_LIST_WORKFLOW_VERSIONS_RESPONSE,
   EMPTY_LIST_WORKFLOWS_RESPONSE,
   EMPTY_WORKFLOW,
+  EMPTY_WORKFLOW_RUN,
+  EMPTY_WORKFLOW_INSIGHTS,
   EMPTY_WORKFLOW_WITH_VERSION,
   QuickActionRenderSchema,
   EMPTY_QUICK_ACTION,
@@ -4300,6 +4306,21 @@ export class ApiClient {
   async updateWorkflow(id: string, data: UpdateWorkflowRequest): Promise<Workflow> {
     const raw = await this.fetch<unknown>(`/api/workflows/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(data) });
     return parseWithFallback(raw, WorkflowSchema, EMPTY_WORKFLOW, { endpoint: "PATCH /api/workflows/{id}" });
+  }
+
+  /**
+   * How long one run took: the issue's stages in order, the time in each, and where the time went. A 404
+   * with code `not_in_workflow` means the issue follows no workflow.
+   */
+  async getWorkflowRun(issueId: string): Promise<WorkflowRun> {
+    const raw = await this.fetch<unknown>(`/api/workflows/runs/${encodeURIComponent(issueId)}`);
+    return parseWithFallback(raw, WorkflowRunSchema, EMPTY_WORKFLOW_RUN, { endpoint: "GET /api/workflows/runs/{issue_id}" });
+  }
+
+  /** The runs of a workflow that began in the last `days` days, summarised. */
+  async getWorkflowInsights(id: string, days = 30): Promise<WorkflowInsights> {
+    const raw = await this.fetch<unknown>(`/api/workflows/${encodeURIComponent(id)}/insights?days=${String(days)}`);
+    return parseWithFallback(raw, WorkflowInsightsSchema, EMPTY_WORKFLOW_INSIGHTS, { endpoint: "GET /api/workflows/{id}/insights" });
   }
 
   async listWorkflowVersions(id: string): Promise<ListWorkflowVersionsResponse> {

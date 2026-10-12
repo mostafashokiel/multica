@@ -63,6 +63,8 @@ import type {
   WorkflowApplyResult,
   ListWorkflowSquadsResponse,
   WorkflowPipeline,
+  WorkflowRun,
+  WorkflowInsights,
   WorkflowRender,
   WorkflowWithVersion,
   IssuePropertiesResponse,
@@ -875,6 +877,8 @@ const WorkflowPipelineChildSchema = z.object({
   assignee_type: z.string().optional(),
   assignee_id: z.string().optional(),
   created_at: z.string().optional().default(""),
+  work_seconds: z.number().optional(),
+  closed_at: z.string().optional(),
   closed: z.boolean().optional().default(false),
   cancelled: z.boolean().optional().default(false),
 }).loose();
@@ -889,6 +893,8 @@ const WorkflowPipelineIssueSchema = z.object({
   updated_at: z.string().optional().default(""),
   phases: z.array(z.string()).optional(),
   children: z.array(WorkflowPipelineChildSchema).nullish().transform((v) => v ?? []),
+  stage_entered_at: z.string().optional(),
+  run_started_at: z.string().optional(),
 }).loose();
 
 const pipelineIssues = z.array(WorkflowPipelineIssueSchema).nullish().transform((v) => v ?? []);
@@ -906,6 +912,8 @@ export const WorkflowPipelineSchema = z.object({
       name: z.string().optional(),
     }).loose()).nullish().transform((v) => v ?? []),
     issues: pipelineIssues,
+    typical_seconds: z.number().optional(),
+    typical_samples: z.number().optional(),
   }).loose()).nullish().transform((v) => v ?? []),
   no_stage: pipelineIssues,
   conflicting: pipelineIssues,
@@ -3953,3 +3961,146 @@ export const RuntimeProfileSchema = z
     runtime_type: profile.runtime_type || profile.protocol_family,
   }));
 export const RuntimeProfileListSchema = z.array(RuntimeProfileSchema);
+
+// ---- workflow timing ---------------------------------------------------------------------------
+
+const seconds = z.number().optional().default(0);
+
+const WorkflowRunBranchSchema = z.object({
+  id: z.string().optional().default(""),
+  identifier: z.string().optional().default(""),
+  title: z.string().optional().default(""),
+  agent: z.string().optional(),
+  status: z.string().optional().default(""),
+  started_at: z.string().optional().default(""),
+  ended_at: z.string().optional(),
+  work_seconds: seconds,
+  elapsed_seconds: seconds,
+  closed: z.boolean().optional().default(false),
+  cancelled: z.boolean().optional().default(false),
+}).loose();
+
+const WorkflowRunVisitSchema = z.object({
+  stage_id: z.string().optional().default(""),
+  name: z.string().optional().default(""),
+  type: z.string().optional().default(""),
+  number: z.number().optional().default(1),
+  entered_at: z.string().optional().default(""),
+  left_at: z.string().optional(),
+  open: z.boolean().optional().default(false),
+  elapsed_seconds: seconds,
+  agent: z.string().optional(),
+  agent_seconds: seconds,
+  branches: z.array(WorkflowRunBranchSchema).nullish().transform((v) => v ?? []),
+  wait_seconds: seconds,
+  decided_at: z.string().optional(),
+  decided_by: z.object({
+    ref: z.string().optional().default(""),
+    id: z.string().optional(),
+    name: z.string().optional(),
+  }).loose().optional(),
+  outcome: z.string().optional(),
+}).loose();
+
+export const WorkflowRunSchema = z.object({
+  workflow: z.object({
+    id: z.string().optional().default(""),
+    key: z.string().optional().default(""),
+    name: z.string().optional().default(""),
+  }).loose(),
+  issue: z.object({
+    id: z.string().optional().default(""),
+    identifier: z.string().optional().default(""),
+    title: z.string().optional().default(""),
+    status: z.string().optional().default(""),
+  }).loose(),
+  timeline: z.object({
+    started_at: z.string().optional(),
+    ended_at: z.string().optional(),
+    open: z.boolean().optional().default(false),
+    elapsed_seconds: seconds,
+    agent_seconds: seconds,
+    people_seconds: seconds,
+    handoff_seconds: seconds,
+    reworks: z.number().optional().default(0),
+    parallel_saved_seconds: seconds,
+    visits: z.array(WorkflowRunVisitSchema).nullish().transform((v) => v ?? []),
+  }).loose(),
+}).loose();
+
+export const EMPTY_WORKFLOW_RUN: WorkflowRun = {
+  workflow: { id: "", key: "", name: "" },
+  issue: { id: "", identifier: "", title: "", status: "" },
+  timeline: {
+    open: false,
+    elapsed_seconds: 0,
+    agent_seconds: 0,
+    people_seconds: 0,
+    handoff_seconds: 0,
+    reworks: 0,
+    parallel_saved_seconds: 0,
+    visits: [],
+  },
+};
+
+export const WorkflowInsightsSchema = z.object({
+  workflow_key: z.string().optional().default(""),
+  days: z.number().optional().default(30),
+  runs: z.number().optional().default(0),
+  finished: z.number().optional().default(0),
+  open: z.number().optional().default(0),
+  truncated: z.boolean().optional().default(false),
+  median_elapsed_seconds: seconds,
+  p90_elapsed_seconds: seconds,
+  median_agent_seconds: seconds,
+  median_people_seconds: seconds,
+  median_handoff_seconds: seconds,
+  reworks: z.number().optional().default(0),
+  bottleneck_stage_id: z.string().optional().default(""),
+  stages: z.array(z.object({
+    stage_id: z.string().optional().default(""),
+    name: z.string().optional().default(""),
+    type: z.string().optional().default(""),
+    visits: z.number().optional().default(0),
+    open_visits: z.number().optional().default(0),
+    median_seconds: seconds,
+    p90_seconds: seconds,
+    total_seconds: seconds,
+    rejected: z.number().optional().default(0),
+  }).loose()).nullish().transform((v) => v ?? []),
+  agents: z.array(z.object({
+    agent: z.string().optional().default(""),
+    runs: z.number().optional().default(0),
+    median_seconds: seconds,
+    p90_seconds: seconds,
+    total_seconds: seconds,
+  }).loose()).nullish().transform((v) => v ?? []),
+  approvers: z.array(z.object({
+    ref: z.string().optional().default(""),
+    id: z.string().optional(),
+    name: z.string().optional(),
+    decisions: z.number().optional().default(0),
+    median_seconds: seconds,
+    p90_seconds: seconds,
+    slowest_seconds: seconds,
+  }).loose()).nullish().transform((v) => v ?? []),
+}).loose();
+
+export const EMPTY_WORKFLOW_INSIGHTS: WorkflowInsights = {
+  workflow_key: "",
+  days: 30,
+  runs: 0,
+  finished: 0,
+  open: 0,
+  truncated: false,
+  median_elapsed_seconds: 0,
+  p90_elapsed_seconds: 0,
+  median_agent_seconds: 0,
+  median_people_seconds: 0,
+  median_handoff_seconds: 0,
+  reworks: 0,
+  bottleneck_stage_id: "",
+  stages: [],
+  agents: [],
+  approvers: [],
+};

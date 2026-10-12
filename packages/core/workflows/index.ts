@@ -8,10 +8,13 @@ export {
   workflowAuditOptions,
   workflowSquadsOptions,
   workflowPipelineOptions,
+  workflowRunOptions,
+  workflowInsightsOptions,
   workflowRenderOptions,
   workflowValidationOptions,
 } from "./queries";
 export { usePipelineViewStore } from "./pipeline-view-store";
+export { formatDuration, secondsBetween } from "./duration";
 export { BRANCH_BATCH_WINDOW_MS, branchLabel, branchProgress, currentBranches, type BranchProgress } from "./pipeline-progress";
 export {
   useApplyWorkflow,

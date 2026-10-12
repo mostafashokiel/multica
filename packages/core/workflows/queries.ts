@@ -18,6 +18,8 @@ export const workflowKeys = {
   audit: (wsId: string, id: string) => [...workflowKeys.all(wsId), "audit", id] as const,
   pipeline: (wsId: string, id: string, squad = "") => [...workflowKeys.all(wsId), "pipeline", id, squad] as const,
   squads: (wsId: string, id: string) => [...workflowKeys.all(wsId), "squads", id] as const,
+  run: (wsId: string, issueId: string) => [...workflowKeys.all(wsId), "run", issueId] as const,
+  insights: (wsId: string, id: string, days: number) => [...workflowKeys.all(wsId), "insights", id, days] as const,
 };
 
 /** The pipeline's squad filter that keeps only the issues assigned to no squad. */
@@ -144,5 +146,33 @@ export function workflowValidationOptions(wsId: string, definition: string, enab
     gcTime: 60_000,
     retry: false,
     placeholderData: keepPreviousData,
+  });
+}
+
+/**
+ * One run's timing. A run that is not finished counts up to now, so it is read again while the page is open
+ * and every time it is looked at (the time since the last read is the staleness that matters, not realtime events).
+ */
+export function workflowRunOptions(wsId: string, issueId: string, enabled = true) {
+  return queryOptions({
+    queryKey: workflowKeys.run(wsId, issueId),
+    queryFn: () => api.getWorkflowRun(issueId),
+    enabled: enabled && issueId !== "",
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    // Waiting is the point of the clock; a run that follows no workflow answers 404 once and stays quiet.
+    refetchInterval: (query) => (query.state.data?.timeline.open === true ? 15_000 : false),
+    retry: false,
+  });
+}
+
+/** The runs of a workflow in a window, summarised. */
+export function workflowInsightsOptions(wsId: string, id: string, days: number) {
+  return queryOptions({
+    queryKey: workflowKeys.insights(wsId, id, days),
+    queryFn: () => api.getWorkflowInsights(id, days),
+    enabled: id !== "",
+    staleTime: 0,
+    retry: false,
   });
 }

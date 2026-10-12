@@ -45,6 +45,16 @@ Un workflow est du texte brut. Sur la page d'un workflow, **Télécharger** ou *
 
 Sur la page d'un workflow, les propriétaires et administrateurs trouvent **Archiver et supprimer**. **Archiver** masque le workflow de la liste (**Afficher les archivés** le ramène) et empêche de le modifier ou de l'appliquer ; les squads qui le suivent déjà gardent leur consigne, et les tâches gardent leurs étiquettes. **Restaurer** annule l'archivage. Seul un workflow archivé peut être **supprimé définitivement**, en saisissant sa clé : toutes ses versions et son historique sont supprimés, sans retour possible. Un workflow qu'un squad suit encore ne peut pas être supprimé : appliquez d'abord un autre workflow à ce squad, ou retirez ce bloc de ses instructions.
 
+## Combien de temps dure une exécution
+
+Multica enregistre quand chaque tâche entre dans une étape et en sort, et le combine avec ce qu'il conserve déjà sur les exécutions des agents et les commentaires.
+
+- **Pipeline :** chaque carte indique depuis combien de temps la tâche est dans son étape (**En attente** à une validation humaine), le total à ce jour, et signale un séjour de plus de trois fois l'habitude de l'étape. Une colonne affiche son temps habituel dès qu'au moins deux séjours sont terminés. Dans une étape parallèle, chaque branche affiche son propre temps. **Chronologie** sur une carte ouvre l'exécution complète.
+- **Chronologie de l'exécution :** aussi dans la barre latérale d'une tâche qui suit un workflow, sous **Chronologie de l'exécution**. Elle répartit le total entre **agents au travail**, **attente de personnes** et **relais**, puis montre chaque étape en barre sur un même axe de temps, avec les branches parallèles détaillées et le temps qu'elles ont fait gagner.
+- **Analyses :** un onglet de la page du workflow. Pour les exécutions commencées ces 7, 30 ou 90 derniers jours, il montre le temps habituel et celui des 10 % les plus lentes par étape, le nombre de renvois par les validations, l'étape qui prend le plus de temps, l'exécution habituelle de chaque agent et l'attente habituelle de chaque approbateur.
+
+Comment les chiffres sont calculés : le temps des agents est le travail sur le chemin critique, donc, dans une étape parallèle, la branche la plus lente. L'attente d'une personne à une validation s'arrête à son premier commentaire (elle doit figurer dans le groupe d'approbateurs avec son vrai `user:<id>`), pas quand le chef réagit. Les relais sont le reste : le travail du chef et les écarts entre les étapes. Le temps court jour et nuit, donc une validation laissée tout un week-end affiche tout le week-end. Les exécutions antérieures à cet enregistrement sont reconstituées à partir des commentaires « Moved from … to … » du chef.
+
 ## Appliquer un workflow à un squad
 
 Choisissez **Appliquer à un squad** sur la page d'un workflow. La boîte de dialogue montre la consigne exacte que le chef recevra et les étiquettes utilisées. L'application :

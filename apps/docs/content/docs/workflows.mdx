@@ -45,6 +45,16 @@ A workflow is plain text. On a workflow's page, **Download** or **Copy** gives y
 
 On a workflow's page, owners and admins find **Archive and delete**. **Archive** hides the workflow from the list (**Show archived** brings it back) and stops edits and applies; squads that already follow it keep their briefing, and issues keep their labels. **Restore** undoes it. Only an archived workflow can be **deleted permanently**, after typing its key: all its versions and its history are removed and this cannot be undone. A workflow that a squad still follows cannot be deleted: apply another workflow to that squad, or take the block out of its instructions, first.
 
+## How long a run takes
+
+Multica records when each issue enters and leaves a stage, and combines that with what it already keeps about agent runs and comments.
+
+- **Pipeline:** each card shows how long the issue has been in its stage (**Waiting** at a human gate), the total so far, and flags a stay more than three times the stage's usual. A lane shows its usual time once at least two stays are over. In a parallel stage each branch shows its own time. **Timeline** on a card opens the full run.
+- **Run timeline:** also on an issue that follows a workflow, in the sidebar under **Run timeline**. It shows the total split into **agents working**, **waiting on people** and **handoffs**, then every stage as a bar on one time axis, with the parallel branches broken out and how much time they saved.
+- **Insights:** a tab on the workflow page. For the runs that began in the last 7, 30 or 90 days it shows the typical and slowest 10% time per stage, how often a gate sent work back, the stage that takes most of the time, each agent's typical run and each approver's typical wait.
+
+How the figures are made: agent time is the work on the critical path, so in a parallel stage it is the slowest branch. A person's wait at a gate ends at their first comment there (they must be listed in the gate's approver group by their real `user:<id>`), not when the leader reacts. Handoffs are the rest: the leader's own work and the gaps between steps. Time runs around the clock, so a gate left over a weekend shows the whole weekend. Runs from before this was recorded are filled in from the leader's "Moved from … to …" comments.
+
 ## Applying a workflow to a squad
 
 Choose **Apply to squad** on a workflow page. The dialog shows the exact briefing the leader will get and the labels it uses. Applying:

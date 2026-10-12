@@ -334,6 +334,89 @@ describe("ApiClient workflows (render and apply)", () => {
     expect(init.method).toBe("DELETE");
   });
 
+  it("reads a run's timeline, with safe defaults for whatever the server left out", async () => {
+    const fetchMock = stubFetch(
+      json({
+        workflow: { id: "wf-1", key: "sdlc", name: "SDLC" },
+        issue: { id: "i-1", identifier: "ACM-1", title: "T", status: "in_progress" },
+        timeline: {
+          started_at: "2026-10-10T20:55:01Z",
+          open: true,
+          elapsed_seconds: 100,
+          visits: [
+            { stage_id: "design", name: "Design", type: "parallel", entered_at: "2026-10-10T20:55:01Z", branches: [{ id: "c", title: "Design: A", agent: "qa" }] },
+            { stage_id: "gate", name: "Gate", type: "human_gate", entered_at: "t", decided_by: { ref: "user:u", name: "Ann" }, outcome: "approved", branches: null },
+          ],
+        },
+      }),
+    );
+    const client = new ApiClient("https://api.example.test");
+
+    const run = await client.getWorkflowRun("i-1");
+
+    expect(String(fetchMock.mock.calls[0]?.[0])).toBe("https://api.example.test/api/workflows/runs/i-1");
+    expect(run.timeline.open).toBe(true);
+    expect(run.timeline.agent_seconds).toBe(0);
+    expect(run.timeline.visits[0]).toMatchObject({ number: 1, open: false, wait_seconds: 0, branches: [{ id: "c", work_seconds: 0, closed: false, cancelled: false }] });
+    expect(run.timeline.visits[1]?.branches).toEqual([]);
+    expect(run.timeline.visits[1]?.decided_by).toMatchObject({ name: "Ann" });
+  });
+
+  it("falls back to an empty run when the answer cannot be read", async () => {
+    stubFetch(json({ timeline: "nope" }));
+    const client = new ApiClient("https://api.example.test");
+    expect((await client.getWorkflowRun("i-1")).timeline.visits).toEqual([]);
+  });
+
+  it("asks for the insights of a window and reads the summary", async () => {
+    const fetchMock = stubFetch(
+      json({
+        workflow_key: "sdlc",
+        days: 7,
+        runs: 3,
+        median_elapsed_seconds: 600,
+        bottleneck_stage_id: "build",
+        stages: [{ stage_id: "build", name: "Build", type: "agent", visits: 3 }],
+        agents: null,
+        approvers: [{ ref: "user:u", name: "Ann", decisions: 2, median_seconds: 30 }],
+      }),
+    );
+    const client = new ApiClient("https://api.example.test");
+
+    const insights = await client.getWorkflowInsights("wf-1", 7);
+
+    expect(String(fetchMock.mock.calls[0]?.[0])).toBe("https://api.example.test/api/workflows/wf-1/insights?days=7");
+    expect(insights).toMatchObject({ days: 7, runs: 3, finished: 0, bottleneck_stage_id: "build" });
+    expect(insights.stages[0]).toMatchObject({ stage_id: "build", median_seconds: 0, rejected: 0 });
+    expect(insights.agents).toEqual([]);
+    expect(insights.approvers[0]).toMatchObject({ name: "Ann", decisions: 2, slowest_seconds: 0 });
+  });
+
+  it("reads the timing fields of the pipeline: when an issue entered its stage, the typical time of a stage, a branch's work", async () => {
+    stubFetch(
+      json({
+        workflow_key: "x",
+        stages: [
+          {
+            id: "build",
+            name: "Build",
+            type: "agent",
+            typical_seconds: 600,
+            typical_samples: 3,
+            issues: [{ id: "i-1", identifier: "A-1", title: "T", status: "todo", updated_at: "t", stage_entered_at: "2026-10-10T20:00:00Z", run_started_at: "2026-10-10T19:00:00Z", children: [{ id: "c", work_seconds: 48, closed_at: "2026-10-10T20:01:00Z" }] }],
+          },
+        ],
+      }),
+    );
+    const client = new ApiClient("https://api.example.test");
+
+    const [stage] = (await client.getWorkflowPipeline("wf-1")).stages;
+
+    expect(stage).toMatchObject({ typical_seconds: 600, typical_samples: 3 });
+    expect(stage?.issues[0]).toMatchObject({ stage_entered_at: "2026-10-10T20:00:00Z", run_started_at: "2026-10-10T19:00:00Z" });
+    expect(stage?.issues[0]?.children?.[0]).toMatchObject({ work_seconds: 48, closed_at: "2026-10-10T20:01:00Z" });
+  });
+
   it("asks for one squad's issues when given a squad", async () => {
     // A fresh Response per call: a body can be read once.
     const fetchMock = vi.fn().mockImplementation(async () => json({ workflow_key: "x", stages: [], total: 0 }));

@@ -1,15 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { api, ApiError } from "@multica/core/api";
 import type { WorkflowPipeline, WorkflowPipelineChild, WorkflowPipelineIssue } from "@multica/core/types";
 import { NavigationProvider } from "../../navigation";
 import { renderWithI18n } from "../../test/i18n";
 import { WorkflowPipelinePane } from "./workflow-pipeline-pane";
+import { runFixture } from "./run-fixture";
 
 vi.mock("@multica/core/api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@multica/core/api")>()),
-  api: { getWorkflowPipeline: vi.fn() },
+  api: { getWorkflowPipeline: vi.fn(), getWorkflowRun: vi.fn() },
 }));
 vi.mock("@multica/core/hooks", () => ({ useWorkspaceId: () => "ws" }));
 vi.mock("@multica/core/paths", () => ({
@@ -171,7 +173,7 @@ describe("WorkflowPipelinePane", () => {
     expect(within(lane).getByText("1 cancelled")).toBeInTheDocument();
     const rows = within(within(lane).getByRole("list", { name: "Branches" })).getAllByRole("link");
     // Named without the stage's prefix, each a link to its own sub-issue.
-    expect(rows.map((r) => r.textContent)).toEqual(["Threat modelagent a1", "Test strategy", "Architecture"]);
+    expect(rows.map((r) => r.querySelector(".truncate")?.textContent)).toEqual(["Threat model", "Test strategy", "Architecture"]);
     expect(rows.map((r) => r.getAttribute("href"))).toEqual(["/acme/issues/10", "/acme/issues/11", "/acme/issues/12"]);
     // A link is never inside another link.
     expect(lane.querySelectorAll("a a")).toHaveLength(0);
@@ -209,6 +211,105 @@ describe("WorkflowPipelinePane", () => {
     expect(within(design).getAllByRole("link").map((l) => l.getAttribute("href"))).toEqual(["/acme/issues/1", "/acme/issues/12", "/acme/issues/13"]);
     const build = screen.getByRole("region", { name: "Build" });
     expect(within(build).queryByRole("list", { name: "Branches" })).toBeNull();
+  });
+
+  describe("clocks", () => {
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(new Date("2026-10-10T22:00:00Z"));
+    });
+    afterEach(() => vi.useRealTimers());
+    const ago = (seconds: number) => new Date(Date.parse("2026-10-10T22:00:00Z") - seconds * 1000).toISOString();
+
+    it("shows how long an issue has been in its stage and in the run, flags a stay far past the usual, and says what is usual", async () => {
+      vi.mocked(api.getWorkflowPipeline).mockResolvedValue({
+        ...empty,
+        total: 2,
+        stages: [
+          { id: "build", name: "Build", type: "agent", approvers: [], typical_seconds: 600, typical_samples: 4, issues: [issue("1", "Slow one", { stage_entered_at: ago(2400), run_started_at: ago(3600) })] },
+          { id: "review", name: "Review", type: "human_gate", approvers: [], issues: [issue("2", "Fresh one", { stage_entered_at: ago(90), run_started_at: ago(600) })] },
+        ],
+      });
+      renderPane();
+
+      const build = await screen.findByRole("region", { name: "Build" });
+      expect(within(build).getByText("usually 10m 0s")).toBeInTheDocument();
+      expect(within(build).getByText("In stage 40m 0s")).toBeInTheDocument();
+      expect(within(build).getByText("· 4x the usual")).toBeInTheDocument();
+      expect(within(build).getByText("Total 1h 0m")).toBeInTheDocument();
+      // A person's wait reads as waiting, and with no typical time nothing is flagged.
+      const review = screen.getByRole("region", { name: "Review" });
+      expect(within(review).getByText("Waiting 1m 30s")).toBeInTheDocument();
+      expect(within(review).queryByText(/the usual/)).toBeNull();
+      expect(within(review).queryByText(/usually/)).toBeNull();
+    });
+
+    it("does not flag a stay that is only a little slow, and shows no clock where nothing was recorded", async () => {
+      vi.mocked(api.getWorkflowPipeline).mockResolvedValue({
+        ...empty,
+        total: 2,
+        stages: [
+          { id: "build", name: "Build", type: "agent", approvers: [], typical_seconds: 600, issues: [issue("1", "Fine", { stage_entered_at: ago(1500), run_started_at: ago(1500) }), issue("2", "Old record")] },
+        ],
+      });
+      renderPane();
+
+      const build = await screen.findByRole("region", { name: "Build" });
+      expect(within(build).getByText("In stage 25m 0s")).toBeInTheDocument();
+      expect(within(build).queryByText(/the usual/)).toBeNull();
+      // The issue with no recorded entry has no clock and no timeline button of its own.
+      expect(within(build).getAllByText("Timeline")).toHaveLength(1);
+    });
+
+    it("opens the issue's timeline from its card", async () => {
+      vi.mocked(api.getWorkflowRun).mockResolvedValue(runFixture());
+      vi.mocked(api.getWorkflowPipeline).mockResolvedValue({
+        ...empty,
+        total: 1,
+        stages: [{ id: "build", name: "Build", type: "agent", approvers: [], issues: [issue("1", "Slow one", { stage_entered_at: ago(60), run_started_at: ago(120) })] }],
+      });
+      renderPane();
+      const user = userEvent.setup();
+
+      await user.click(await screen.findByRole("button", { name: "Timeline" }));
+
+      const dialog = await screen.findByRole("dialog");
+      expect(within(dialog).getByText("ACM-1 Slow one")).toBeInTheDocument();
+      expect(await within(dialog).findByText(/Total so far/)).toBeInTheDocument();
+      expect(api.getWorkflowRun).toHaveBeenCalledWith("1");
+    });
+
+    it("gives each branch of a parallel stage its time: the finished ones fixed, the running one counting", async () => {
+      vi.mocked(api.getWorkflowPipeline).mockResolvedValue({
+        ...empty,
+        total: 1,
+        stages: [
+          {
+            id: "verify",
+            name: "Verification",
+            type: "parallel",
+            approvers: [],
+            issues: [
+              issue("1", "User management", {
+                stage_entered_at: ago(400),
+                run_started_at: ago(900),
+                children: [
+                  { id: "c1", identifier: "ACM-10", title: "Verification: Docs", status: "done", created_at: ago(400), closed_at: ago(352), closed: true, cancelled: false },
+                  { id: "c2", identifier: "ACM-11", title: "Verification: QA", status: "in_progress", created_at: ago(362), closed: false, cancelled: false },
+                ],
+              }),
+            ],
+          },
+        ],
+      });
+      renderPane();
+
+      const lane = await screen.findByRole("region", { name: "Verification" });
+      const rows = within(within(lane).getByRole("list", { name: "Branches" })).getAllByRole("link");
+      expect(rows[0]).toHaveTextContent("48s");
+      expect(rows[0]).not.toHaveTextContent("…");
+      expect(rows[1]).toHaveTextContent("6m 2s…");
+    });
   });
 
   it("keeps an issue card visibly apart from its lane: the lane has a header, the card is a bordered, raised link", async () => {

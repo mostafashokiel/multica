@@ -34,6 +34,7 @@ import { LazyWorkflowDiagram } from "../designer/lazy-workflow-diagram";
 import { ApplyWorkflowDialog } from "./apply-workflow-dialog";
 import { RenameWorkflowDialog } from "./rename-workflow-dialog";
 import { WorkflowLifecycle } from "./workflow-lifecycle";
+import { WorkflowInsightsPane } from "./workflow-insights-pane";
 import { BreadcrumbHeader } from "../../layout/breadcrumb-header";
 import { CollectionPageState } from "../../layout/collection-page";
 import { PAGE_GUTTER, PAGE_RAIL } from "../../layout/page-header";
@@ -47,7 +48,7 @@ import {
 } from "./workflow-state";
 import { WorkflowStatusBadge } from "./workflow-status-badge";
 
-type DetailTab = "diagram" | "definition" | "history" | "activity";
+type DetailTab = "diagram" | "definition" | "insights" | "history" | "activity";
 
 export function WorkflowDetailPage() {
   const { t } = useT("workflows");
@@ -184,6 +185,7 @@ export function WorkflowDetailPage() {
             <TabsList>
               <TabsTrigger value="diagram">{t(($) => $.detail.tabs.diagram)}</TabsTrigger>
               <TabsTrigger value="definition">{t(($) => $.detail.tabs.definition)}</TabsTrigger>
+              <TabsTrigger value="insights">{t(($) => $.detail.tabs.insights)}</TabsTrigger>
               <TabsTrigger value="history">{t(($) => $.detail.tabs.history)}</TabsTrigger>
               <TabsTrigger value="activity">{t(($) => $.detail.tabs.activity)}</TabsTrigger>
             </TabsList>
@@ -203,6 +205,9 @@ export function WorkflowDetailPage() {
                 loading={pinnedOlder && pinnedVersion.isLoading}
                 failed={pinnedOlder && pinnedVersion.isError}
               />
+            </TabsContent>
+            <TabsContent value="insights">
+              <WorkflowInsightsPane workflowId={workflow.id} />
             </TabsContent>
             <TabsContent value="history">
               <VersionList

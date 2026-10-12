@@ -3,17 +3,21 @@
 import { useQuery } from "@tanstack/react-query";
 import { useWorkspaceId } from "@multica/core/hooks";
 import { useWorkspacePaths } from "@multica/core/paths";
-import { STAGE_TYPES, branchLabel, branchProgress, currentBranches, workflowPipelineOptions, type StageType } from "@multica/core/workflows";
+import { STAGE_TYPES, branchLabel, branchProgress, currentBranches, formatDuration, secondsBetween, workflowPipelineOptions, type StageType } from "@multica/core/workflows";
 import { useActorName } from "@multica/core/workspace/hooks";
 import type { WorkflowPipelineApprover, WorkflowPipelineChild, WorkflowPipelineIssue, WorkflowPipelineStage } from "@multica/core/types";
 import { Skeleton } from "@multica/ui/components/ui/skeleton";
 import { cn } from "@multica/ui/lib/utils";
+import { Clock } from "lucide-react";
+import { useState } from "react";
 import { ActorAvatar } from "../../common/actor-avatar";
 import { StatusIcon } from "../../issues/components/status-icon";
 import { useStatusLabel } from "../../issues/utils/status-label";
 import { AppLink } from "../../navigation";
 import { StageIcon } from "../designer/stage-icon";
 import { useT } from "../../i18n";
+import { RunTimelineDialog } from "./run-timeline";
+import { useNow } from "./use-now";
 import { useTimeAgo } from "../../i18n/use-time-ago";
 
 /** Where the issues that follow a workflow stand: one column per stage, read from the leader's labels. */
@@ -30,6 +34,8 @@ export function WorkflowPipelinePane({
   const { t } = useT("workflows");
   const wsId = useWorkspaceId();
   const pipeline = useQuery(workflowPipelineOptions(wsId, workflowId, { squad }));
+  // One clock for every counter on the page, so the numbers move together.
+  const nowMs = useNow(1000);
 
   if (pipeline.isError) {
     return (
@@ -64,7 +70,7 @@ export function WorkflowPipelinePane({
 
       <div className="-mx-1 flex items-stretch gap-3 overflow-x-auto px-1 pb-2">
         {data.stages.map((stage, index) => (
-          <StageColumn key={stage.id} stage={stage} step={index + 1} />
+          <StageColumn key={stage.id} stage={stage} step={index + 1} nowMs={nowMs} />
         ))}
       </div>
 
@@ -102,7 +108,7 @@ const LANE_BAR: Record<StageType, string> = {
  * who a gate waits for) over a tinted floor; the issues are white cards that stand on that floor, so a card is
  * never mistaken for a lane. A lane with nothing in it shrinks, so the lanes that hold work stand out.
  */
-function StageColumn({ stage, step }: { stage: WorkflowPipelineStage; step: number }) {
+function StageColumn({ stage, step, nowMs }: { stage: WorkflowPipelineStage; step: number; nowMs: number }) {
   const { t } = useT("workflows");
   const known = isStageType(stage.type);
   const type = known ? t(($) => $.designer.type[stage.type as StageType]) : stage.type;
@@ -135,6 +141,9 @@ function StageColumn({ stage, step }: { stage: WorkflowPipelineStage; step: numb
           </span>
         </div>
         <h3 className="break-words text-body font-medium leading-snug">{stage.name}</h3>
+        {stage.typical_seconds !== undefined ? (
+          <p className="text-micro text-muted-foreground">{t(($) => $.timing.typical, { time: formatDuration(stage.typical_seconds) })}</p>
+        ) : null}
         {stage.type === "human_gate" ? (
           <p
             className={cn(
@@ -155,7 +164,13 @@ function StageColumn({ stage, step }: { stage: WorkflowPipelineStage; step: numb
         <ul className="flex flex-1 flex-col gap-2 p-2">
           {stage.issues.map((issue) => (
             <li key={issue.id}>
-              <IssueCard issue={issue} {...(stage.type === "parallel" ? { branchesOf: stage.name } : {})} />
+              <IssueCard
+                issue={issue}
+                nowMs={nowMs}
+                waiting={stage.type === "human_gate"}
+                {...(stage.typical_seconds !== undefined ? { typicalSeconds: stage.typical_seconds } : {})}
+                {...(stage.type === "parallel" ? { branchesOf: stage.name } : {})}
+              />
             </li>
           ))}
         </ul>
@@ -213,7 +228,23 @@ function Outside({
  * branches are below. The branch rows are links of their own, so they sit beside the issue's link rather than
  * inside it.
  */
-function IssueCard({ issue, showPhases = false, branchesOf }: { issue: WorkflowPipelineIssue; showPhases?: boolean; branchesOf?: string }) {
+function IssueCard({
+  issue,
+  showPhases = false,
+  branchesOf,
+  nowMs = Date.now(),
+  waiting = false,
+  typicalSeconds,
+}: {
+  issue: WorkflowPipelineIssue;
+  showPhases?: boolean;
+  branchesOf?: string;
+  nowMs?: number;
+  /** The issue is waiting for a person (a human gate), which reads differently from an agent working. */
+  waiting?: boolean;
+  /** How long issues usually stay in this stage; slower than 3 times that is flagged. */
+  typicalSeconds?: number;
+}) {
   const { t } = useT("workflows");
   const wsId = useWorkspaceId();
   const p = useWorkspacePaths();
@@ -246,13 +277,16 @@ function IssueCard({ issue, showPhases = false, branchesOf }: { issue: WorkflowP
           </span>
         </span>
       </AppLink>
-      {branches.length > 0 && branchesOf !== undefined ? <BranchProgress branches={branches} stageName={branchesOf} /> : null}
+      {issue.run_started_at !== undefined ? (
+        <TimingFooter issue={issue} nowMs={nowMs} waiting={waiting} {...(typicalSeconds !== undefined ? { typicalSeconds } : {})} />
+      ) : null}
+      {branches.length > 0 && branchesOf !== undefined ? <BranchProgress branches={branches} stageName={branchesOf} nowMs={nowMs} /> : null}
     </div>
   );
 }
 
 /** How far the branches of a parallel stage are: a segment each, a count, and one row per branch. */
-function BranchProgress({ branches, stageName }: { branches: WorkflowPipelineChild[]; stageName: string }) {
+function BranchProgress({ branches, stageName, nowMs }: { branches: WorkflowPipelineChild[]; stageName: string; nowMs: number }) {
   const { t } = useT("workflows");
   const wsId = useWorkspaceId();
   const p = useWorkspacePaths();
@@ -288,12 +322,60 @@ function BranchProgress({ branches, stageName }: { branches: WorkflowPipelineChi
               >
                 <StatusIcon status={b.status} className="size-3.5 shrink-0" />
                 <span className="min-w-0 flex-1 truncate">{branchLabel(b, stageName)}</span>
-                {who ? <span className="max-w-[40%] shrink-0 truncate font-mono text-micro text-muted-foreground">{who}</span> : null}
+                {who ? <span className="max-w-[35%] shrink-0 truncate font-mono text-micro text-muted-foreground">{who}</span> : null}
+                <span className={cn("w-14 shrink-0 text-right tabular-nums", b.closed ? "text-muted-foreground" : "text-foreground")}>
+                  {formatDuration(branchSeconds(b, nowMs))}
+                  {b.closed ? "" : "…"}
+                </span>
               </AppLink>
             </li>
           );
         })}
       </ul>
+    </div>
+  );
+}
+
+/** How long a branch took: from its creation to its closing, or to now while it is still going. */
+function branchSeconds(b: WorkflowPipelineChild, nowMs: number): number {
+  if (b.closed) {
+    const closed = b.closed_at !== undefined ? Date.parse(b.closed_at) : Number.NaN;
+    return secondsBetween(b.created_at, Number.isNaN(closed) ? nowMs : closed);
+  }
+  return secondsBetween(b.created_at, nowMs);
+}
+
+/**
+ * The clocks on a card: how long the issue has been in this stage (waiting, for a person), how long the run has
+ * taken, and a way into the full timeline. A stay far slower than the stage's usual one is flagged.
+ */
+function TimingFooter({ issue, nowMs, waiting, typicalSeconds }: { issue: WorkflowPipelineIssue; nowMs: number; waiting: boolean; typicalSeconds?: number }) {
+  const { t } = useT("workflows");
+  const [open, setOpen] = useState(false);
+  const inStage = secondsBetween(issue.stage_entered_at, nowMs);
+  const total = secondsBetween(issue.run_started_at, nowMs);
+  const slow = typicalSeconds !== undefined && typicalSeconds > 0 && inStage >= 120 && inStage > typicalSeconds * 3;
+  const time = formatDuration(inStage);
+  return (
+    <div className="flex items-center gap-2 border-t px-2.5 py-1.5 text-caption">
+      {issue.stage_entered_at !== undefined ? (
+        <span className={cn("flex min-w-0 items-center gap-1 tabular-nums", slow ? "font-medium text-warning" : waiting ? "text-foreground" : "text-muted-foreground")}>
+          <Clock aria-hidden="true" className="size-3.5 shrink-0" />
+          <span className="truncate">{waiting ? t(($) => $.timing.waiting_for, { time }) : t(($) => $.timing.in_stage, { time })}</span>
+          {slow && typicalSeconds !== undefined ? (
+            <span className="shrink-0 font-normal">· {t(($) => $.timing.times_usual, { factor: Math.round(inStage / typicalSeconds) })}</span>
+          ) : null}
+        </span>
+      ) : null}
+      <span className="ml-auto shrink-0 tabular-nums text-muted-foreground">{t(($) => $.timing.total, { time: formatDuration(total) })}</span>
+      <button
+        type="button"
+        className="shrink-0 rounded-md px-1.5 py-0.5 text-caption text-muted-foreground underline-offset-2 hover:bg-accent hover:text-foreground hover:underline"
+        onClick={() => setOpen(true)}
+      >
+        {t(($) => $.timing.open_timeline)}
+      </button>
+      {open ? <RunTimelineDialog issueId={issue.id} title={`${issue.identifier} ${issue.title}`} open={open} onOpenChange={setOpen} /> : null}
     </div>
   );
 }
