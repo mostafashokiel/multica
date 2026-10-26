@@ -46,7 +46,7 @@ export function WorkflowInsightsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[85vh] max-w-3xl overflow-y-auto">
+      <DialogContent className="sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>{t(($) => $.workflows.insights.title)}</DialogTitle>
           <DialogDescription>{t(($) => $.workflows.insights.description)}</DialogDescription>
@@ -110,7 +110,7 @@ function InsightsBody({ insights }: { insights: WorkflowInsights }) {
 
   return (
     <div className="space-y-5">
-      <div className="grid gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Stat
           label={t(($) => $.workflows.insights.runs)}
           value={insights.runs}

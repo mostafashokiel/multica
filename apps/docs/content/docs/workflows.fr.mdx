@@ -78,6 +78,14 @@ Si le responsable précédent est un agent dont l’exécution est encore en cou
 
 Le passage de relais et ses consignes restent dans l’historique de la tâche. Le menu du workflow sur le tableau du projet permet d’afficher le parcours complet.
 
+## Voir le temps que prend le travail
+
+Ouvrez une tâche qui suit un workflow, cliquez sur le nom du workflow dans le panneau latéral, puis sur **Durées**. La chronologie répartit le temps écoulé entre **agents au travail**, **attente de personnes** et **passages de relais et file d’attente**, et liste chaque passage par une étape. Une tâche renvoyée affiche un second passage par l’étape où elle est revenue.
+
+Le temps d’agent est le temps passé par les agents sur la tâche pendant une étape. Celui d’une personne est l’attente jusqu’à son premier commentaire, ou jusqu’à ce que la tâche avance si personne n’a commenté. Tout le reste, comme la file d’attente, le temps bloqué et les étapes sans responsable, compte comme passages de relais et file d’attente. Rien n’est stocké à part : les chiffres viennent des changements d’état, des exécutions et des commentaires de la tâche, et existent donc aussi pour les tâches passées.
+
+Pour voir où passe le temps sur de nombreuses tâches, ouvrez le workflow dans **Paramètres → Workflows** et choisissez **Analyses**. Pour les tâches créées au cours des 7, 30 ou 90 derniers jours, vous voyez combien sont terminées, le total typique, la fréquence des renvois, l’étape qui prend la plus grande part du temps, et le temps pris par chaque agent et chaque personne. Les valeurs typiques sont des médianes ; **10 % les plus lents** montre la queue lente.
+
 ## Ajuster un workflow
 
 Plusieurs projets peuvent partager un workflow. Les modifications enregistrées dans **Paramètres → Workflows** s’appliquent à tous les projets qui l’utilisent. Pour changer le parcours d’un seul projet, dupliquez le workflow et choisissez la copie dans ce projet.

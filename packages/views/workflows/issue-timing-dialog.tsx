@@ -51,7 +51,7 @@ export function IssueTimingDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{t(($) => $.workflows.timing.title)}</DialogTitle>
           {identifier && <DialogDescription>{identifier}</DialogDescription>}
@@ -106,7 +106,7 @@ function TimelineBody({ timeline }: { timeline: WorkflowTimeline }) {
             <div key={p.key} className={p.bar} style={{ width: `${(p.seconds / total) * 100}%` }} />
           ))}
         </div>
-        <dl className="mt-2 grid grid-cols-3 gap-2 text-caption">
+        <dl className="mt-2 grid gap-1.5 text-caption sm:grid-cols-3 sm:gap-2">
           {parts.map((p) => (
             <div key={p.key} className="flex items-center gap-1.5">
               <span aria-hidden className={cn("size-2 shrink-0 rounded-full", p.bar)} />
@@ -156,8 +156,8 @@ function VisitRow({ visit, timeline }: { visit: WorkflowVisit; timeline: Workflo
   const kind = kindKey ? t(($) => $.workflows.timing.kind[kindKey]) : "";
 
   return (
-    <li className="grid grid-cols-[minmax(0,12rem)_minmax(0,1fr)_4.5rem] items-center gap-3 px-3 py-2">
-      <div className="min-w-0">
+    <li className="grid grid-cols-[minmax(0,1fr)_4.5rem] items-center gap-x-3 gap-y-1.5 px-3 py-2 sm:grid-cols-[minmax(0,12rem)_minmax(0,1fr)_4.5rem]">
+      <div className="order-1 min-w-0">
         <div className="flex items-center gap-1.5">
           <StatusIcon
             status={visit.status_key}
@@ -173,11 +173,11 @@ function VisitRow({ visit, timeline }: { visit: WorkflowVisit; timeline: Workflo
             </span>
           )}
         </div>
-        <p className="truncate text-caption text-muted-foreground">
+        <p className="line-clamp-2 text-caption text-muted-foreground">
           {[kind, ...who, outcome].filter(Boolean).join(" · ")}
         </p>
       </div>
-      <div className="relative h-2.5 rounded-full bg-muted" aria-hidden>
+      <div className="relative order-3 col-span-2 h-2.5 rounded-full bg-muted sm:order-2 sm:col-span-1" aria-hidden>
         <div
           className={cn("absolute inset-y-0 overflow-hidden rounded-full bg-muted-foreground/40", visit.open && "opacity-70")}
           style={{ left: `${left}%`, width: `${width}%` }}
@@ -185,7 +185,7 @@ function VisitRow({ visit, timeline }: { visit: WorkflowVisit; timeline: Workflo
           <div className={cn("h-full", bar)} style={{ width: `${colouredPercent}%` }} />
         </div>
       </div>
-      <span className={cn("text-right text-caption tabular-nums", visit.open && "text-warning")}>
+      <span className={cn("order-2 text-right text-caption tabular-nums sm:order-3", visit.open && "text-warning")}>
         {format(visit.elapsed_seconds)}
         {visit.open ? "…" : ""}
       </span>
