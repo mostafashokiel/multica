@@ -12,9 +12,9 @@ import (
 
 // Timing of project workflows (MUL-7420).
 
-// timingWorkflow is a workflow whose steps an agent builds, an agent reviews and a member signs off,
+// issueTimingWorkflow is a workflow whose steps an agent builds, an agent reviews and a member signs off,
 // used by a fresh project. It returns the workflow, the project and the agent.
-func timingWorkflow(t *testing.T) (workflow IssueWorkflowResponse, projectID, agentID string) {
+func issueTimingWorkflow(t *testing.T) (workflow IssueWorkflowResponse, projectID, agentID string) {
 	t.Helper()
 	runtimeID := dbfx.Runtime(t, "timing-runtime-"+workflowTestSuffix())
 	agentID = dbfx.Agent(t, "timing-agent-"+workflowTestSuffix(), runtimeID)
@@ -29,10 +29,10 @@ func timingWorkflow(t *testing.T) (workflow IssueWorkflowResponse, projectID, ag
 	return workflow, projectID, agentID
 }
 
-// timedIssue inserts an issue that moved todo -> in_progress -> in_review -> done, with one agent run
+// issueTimedIssue inserts an issue that moved todo -> in_progress -> in_review -> done, with one agent run
 // while it was built and one comment from the member who signed it off. build is how long the agent
 // took, review how long the sign-off waited for the comment.
-func timedIssue(t *testing.T, projectID, agentID string, created time.Time, build, review time.Duration) string {
+func issueTimedIssue(t *testing.T, projectID, agentID string, created time.Time, build, review time.Duration) string {
 	t.Helper()
 	issueID := dbfx.Issue(t, "Timed "+workflowTestSuffix(), testutil.Cols{
 		"project_id": projectID, "status": "done", "created_at": created,
@@ -63,15 +63,15 @@ func timedIssue(t *testing.T, projectID, agentID string, created time.Time, buil
 	return issueID
 }
 
-// pinTimingClock fixes the clock the timing endpoints use.
-func pinTimingClock(t *testing.T, now time.Time) {
+// pinIssueTimingClock fixes the clock the timing endpoints use.
+func pinIssueTimingClock(t *testing.T, now time.Time) {
 	t.Helper()
 	previous := timingNow
 	timingNow = func() time.Time { return now }
 	t.Cleanup(func() { timingNow = previous })
 }
 
-func getTimeline(t *testing.T, issueID string) IssueWorkflowTimelineResponse {
+func getIssueWorkflowTimeline(t *testing.T, issueID string) IssueWorkflowTimelineResponse {
 	t.Helper()
 	req := withURLParam(newRequest("GET", "/api/issues/"+issueID+"/workflow-timeline", nil), "id", issueID)
 	var out IssueWorkflowTimelineResponse
@@ -79,7 +79,7 @@ func getTimeline(t *testing.T, issueID string) IssueWorkflowTimelineResponse {
 	return out
 }
 
-func getInsights(t *testing.T, workflowID, query string) *testutil.Response {
+func getIssueWorkflowInsights(t *testing.T, workflowID, query string) *testutil.Response {
 	t.Helper()
 	req := withURLParam(newRequest("GET", "/api/issue-workflows/"+workflowID+"/insights?workspace_id="+testWorkspaceID+query, nil), "id", workflowID)
 	return testutil.Call(t, testHandler.GetIssueWorkflowInsights, req)
@@ -87,12 +87,12 @@ func getInsights(t *testing.T, workflowID, query string) *testutil.Response {
 
 func TestIssueWorkflowTimeline(t *testing.T) {
 	now := time.Date(2026, 10, 20, 12, 0, 0, 0, time.UTC)
-	pinTimingClock(t, now)
-	_, projectID, agentID := timingWorkflow(t)
+	pinIssueTimingClock(t, now)
+	_, projectID, agentID := issueTimingWorkflow(t)
 	created := now.Add(-2 * time.Hour)
-	issueID := timedIssue(t, projectID, agentID, created, 28*time.Minute, 30*time.Minute)
+	issueID := issueTimedIssue(t, projectID, agentID, created, 28*time.Minute, 30*time.Minute)
 
-	tl := getTimeline(t, issueID)
+	tl := getIssueWorkflowTimeline(t, issueID)
 	if tl.Open || tl.EndedAt == nil {
 		t.Fatalf("an issue that reached done is finished: %+v", tl)
 	}
@@ -125,7 +125,7 @@ func TestIssueWorkflowTimeline(t *testing.T) {
 func TestIssueWorkflowTimelineWithoutAProjectIsEmpty(t *testing.T) {
 	issueID := dbfx.Issue(t, "No project "+workflowTestSuffix())
 	t.Cleanup(func() { testPool.Exec(context.Background(), `DELETE FROM issue WHERE id = $1`, issueID) })
-	tl := getTimeline(t, issueID)
+	tl := getIssueWorkflowTimeline(t, issueID)
 	if len(tl.Visits) != 0 || tl.StartedAt != nil {
 		t.Fatalf("an issue outside any project has no run: %+v", tl)
 	}
@@ -133,17 +133,17 @@ func TestIssueWorkflowTimelineWithoutAProjectIsEmpty(t *testing.T) {
 
 func TestIssueWorkflowInsights(t *testing.T) {
 	now := time.Date(2026, 10, 20, 12, 0, 0, 0, time.UTC)
-	pinTimingClock(t, now)
-	wf, projectID, agentID := timingWorkflow(t)
-	timedIssue(t, projectID, agentID, now.Add(-5*time.Hour), 20*time.Minute, 10*time.Minute)
-	timedIssue(t, projectID, agentID, now.Add(-3*time.Hour), 40*time.Minute, 50*time.Minute)
+	pinIssueTimingClock(t, now)
+	wf, projectID, agentID := issueTimingWorkflow(t)
+	issueTimedIssue(t, projectID, agentID, now.Add(-5*time.Hour), 20*time.Minute, 10*time.Minute)
+	issueTimedIssue(t, projectID, agentID, now.Add(-3*time.Hour), 40*time.Minute, 50*time.Minute)
 	// Outside the window, and in another project: neither counts.
-	timedIssue(t, projectID, agentID, now.AddDate(0, 0, -45), time.Minute, time.Minute)
+	issueTimedIssue(t, projectID, agentID, now.AddDate(0, 0, -45), time.Minute, time.Minute)
 	otherProject := createWorkflowTestProject(t, "Other timing project "+workflowTestSuffix())
-	timedIssue(t, otherProject, agentID, now.Add(-4*time.Hour), time.Minute, time.Minute)
+	issueTimedIssue(t, otherProject, agentID, now.Add(-4*time.Hour), time.Minute, time.Minute)
 
 	var in IssueWorkflowInsightsResponse
-	getInsights(t, wf.ID, "&days=30").Want(http.StatusOK).JSON(&in)
+	getIssueWorkflowInsights(t, wf.ID, "&days=30").Want(http.StatusOK).JSON(&in)
 	if in.Days != 30 || in.Runs != 2 || in.Finished != 2 || in.Open != 0 || in.Truncated {
 		t.Fatalf("insights = %+v", in)
 	}
@@ -165,20 +165,20 @@ func TestIssueWorkflowInsights(t *testing.T) {
 	}
 
 	// The wider window takes the old issue in.
-	getInsights(t, wf.ID, "&days=90").Want(http.StatusOK).JSON(&in)
+	getIssueWorkflowInsights(t, wf.ID, "&days=90").Want(http.StatusOK).JSON(&in)
 	if in.Runs != 3 {
 		t.Errorf("90 days: runs = %d, want 3", in.Runs)
 	}
 }
 
 func TestIssueWorkflowInsightsRejectsBadInput(t *testing.T) {
-	wf, _, _ := timingWorkflow(t)
-	getInsights(t, wf.ID, "&days=5").Want(http.StatusBadRequest)
-	getInsights(t, "00000000-0000-0000-0000-000000000001", "").Want(http.StatusNotFound)
-	getInsights(t, "not-a-uuid", "").Want(http.StatusBadRequest)
+	wf, _, _ := issueTimingWorkflow(t)
+	getIssueWorkflowInsights(t, wf.ID, "&days=5").Want(http.StatusBadRequest)
+	getIssueWorkflowInsights(t, "00000000-0000-0000-0000-000000000001", "").Want(http.StatusNotFound)
+	getIssueWorkflowInsights(t, "not-a-uuid", "").Want(http.StatusBadRequest)
 
 	var in IssueWorkflowInsightsResponse
-	getInsights(t, wf.ID, "").Want(http.StatusOK).JSON(&in)
+	getIssueWorkflowInsights(t, wf.ID, "").Want(http.StatusOK).JSON(&in)
 	if in.Days != 30 || in.Runs != 0 || in.Steps == nil || in.Agents == nil || in.People == nil {
 		t.Errorf("an empty workflow answers with empty lists, not null: %+v", in)
 	}
