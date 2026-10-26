@@ -1,0 +1,16 @@
+apiVersion: composer.noqodi/v1
+kind: Workflow
+metadata:
+  id: fixture
+  version: 1
+approvers: {}
+start: checks
+stages:
+  - id: checks
+    type: parallel
+    branches:
+      - agent: first
+      - agent: second
+    next: done
+  - id: done
+    type: end

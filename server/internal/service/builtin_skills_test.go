@@ -356,6 +356,7 @@ func TestPlatformSkillDescriptionNamesEveryDomain(t *testing.T) {
 		"references/mentions.md":     "mention",
 		"references/agents.md":       "agent",
 		"references/squads.md":       "squad",
+		"references/workflows.md":    "workflow",
 		"references/autopilots.md":   "autopilot",
 		"references/projects.md":     "project",
 		"references/runtimes.md":     "runtime",
@@ -428,6 +429,7 @@ func TestPlatformSkillCoversPlatformContracts(t *testing.T) {
 				"references/mentions.md",
 				"references/agents.md",
 				"references/squads.md",
+				"references/workflows.md",
 				"references/autopilots.md",
 				"references/projects.md",
 				"references/runtimes.md",
@@ -452,6 +454,7 @@ func TestPlatformSkillCoversPlatformContracts(t *testing.T) {
 				// The singular forms this replaced.
 				"open the ONE reference",
 				"there is never a reason to read all eight",
+				"reading all eight because you are not sure",
 			},
 		},
 		{
@@ -624,6 +627,29 @@ func TestPlatformSkillCoversPlatformContracts(t *testing.T) {
 				// the brief's "two bounded reads, never one bulk pull".
 				"multica issue comment list <issue-id> --output json",
 				"--recent 10",
+			},
+		},
+		{
+			file: "references/workflows.md",
+			want: []string{
+				"does not move issues by itself",
+				"Workflows are not enabled",
+				// The block markers are the contract between apply and a
+				// person reading a squad's instructions.
+				"workflow-managed:begin workflow=<key> version=<n> sha256=<hash>",
+				"squad_has_workflow",
+				"managed_block_invalid",
+				"multica workflow render <workflow> --squad <squad>",
+				// Applying rewrites who approves what, so an agent must be
+				// told it cannot and what to do instead.
+				"Only a **human** workspace owner or admin can apply",
+				"`apply` does not create labels",
+				"Only a listed approver's comment decides a gate",
+			},
+			notWant: []string{
+				// An agent must not be taught to write the definition.
+				"workflow save",
+				"workflow create",
 			},
 		},
 		{

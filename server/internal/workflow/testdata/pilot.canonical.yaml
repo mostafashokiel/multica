@@ -1,0 +1,58 @@
+apiVersion: composer.noqodi/v1
+kind: Workflow
+metadata:
+  id: sdlc-pilot
+  version: 1
+  owner: eng-director
+  description: Phase 1 pilot
+target:
+  squad:
+    name: Delivery - Pilot
+    leader: sdlc-orchestrator
+approvers:
+  product: ['user:<multica-user-id>']
+  po: ['user:<multica-user-id>']
+  architects: ['user:<multica-user-id>']
+start: br-review
+stages:
+  - id: br-review
+    type: agent
+    name: BR review
+    agent: br-review-agent
+    skills: [br-checklist]
+    next: br-approval
+  - id: br-approval
+    type: human_gate
+    name: BR approval
+    approvers: product
+    on_approve: stories
+    on_reject: br-review
+    max_rework: 3
+    escalate_after_hours: 24
+  - id: stories
+    type: agent
+    agent: story-writer-agent
+    next: po-approval
+  - id: po-approval
+    type: human_gate
+    approvers: po
+    on_approve: architecture
+    on_reject: stories
+    max_rework: 3
+  - id: architecture
+    type: agent
+    agent: architect-agent
+    next: pci-check
+  - id: pci-check
+    type: condition
+    when: has_label("pci-scope")
+    then: arch-approval
+    else: arch-approval
+  - id: arch-approval
+    type: human_gate
+    approvers: architects
+    on_approve: done
+    on_reject: architecture
+    max_rework: 3
+  - id: done
+    type: end

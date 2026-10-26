@@ -1,0 +1,78 @@
+---
+title: Workflows
+description: Définissez les étapes qu'une tâche traverse, y compris les validations humaines, et confiez-les à un chef de squad pour qu'il les suive.
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+
+Un workflow est une liste nommée et versionnée d'étapes que le travail traverse : un agent réalise une étape, une personne valide, une condition choisit une branche et une étape de fin conclut. Il décrit le processus une seule fois, au même endroit, et permet au chef d'un [squad](/squads) de mener les tâches jusqu'au bout.
+
+<Callout type="info">
+Les workflows sont derrière le drapeau de fonctionnalité `workflows_v1`, désactivé par défaut. Sur un déploiement auto-hébergé, activez-le avec `FF_WORKFLOWS_V1=true`. Tant qu'il est désactivé, ni les pages Workflows ni l'API n'apparaissent.
+</Callout>
+
+Un workflow ne s'exécute pas tout seul et Multica n'a pas de moteur dédié. **Appliquer** un workflow écrit une consigne dans les instructions du chef du squad, et le chef la suit. Les pages montrent ce que le chef a enregistré ; elles ne l'imposent pas.
+
+## Étapes
+
+| Étape | Rôle |
+|---|---|
+| **Agent** | Un agent fait le travail. Le chef le lui confie par mention `@` et attend sa réponse. |
+| **Parallèle** | De deux à huit agents travaillent en même temps. Le chef crée un sous-ticket par branche, assigné à son agent, et fait avancer la tâche quand tous les sous-tickets sont Done. |
+| **Validation humaine** | Une ou plusieurs personnes décident. Le workflow nomme un groupe d'approbateurs, une limite de reprises facultative et un délai facultatif après lequel le chef relance. |
+| **Condition** | Choisit l'étape suivante d'après les étiquettes de la tâche, par exemple `has_label("pci-scope")`. |
+| **Fin** | Termine le workflow. |
+
+Une validation a deux sorties : approuver et rejeter. Un rejet renvoie à une étape antérieure, jusqu'à la limite de reprises.
+
+## Concevoir un workflow
+
+Ouvrez **Workflows** dans la barre latérale. Les propriétaires et les administrateurs peuvent créer et modifier ; les autres peuvent seulement lire.
+
+- Faites glisser les types d'étape de la palette vers le canevas, reliez-les en faisant glisser d'une poignée à l'autre, et modifiez l'étape sélectionnée dans le panneau latéral. Les agents et les personnes se choisissent dans votre espace de travail.
+- Pendant la modification, le serveur vérifie le workflow et liste tous les problèmes ; une version avec des problèmes peut être enregistrée mais pas appliquée.
+- Chaque enregistrement crée une nouvelle version immuable. Un enregistrement fait à partir d'une version périmée est refusé comme un conflit au lieu d'écraser le travail d'un autre. Les anciennes versions peuvent être restaurées comme nouvelles versions.
+- Le nom d'un workflow (affiché dans les listes et sur sa page) se change avec **Renommer** sur la page du workflow ; il ne fait pas partie de la définition, donc renommer ne crée pas de version et la clé ne change jamais.
+
+## Déplacer un workflow vers un autre espace de travail ou environnement
+
+Un workflow est du texte brut. Sur la page d'un workflow, **Télécharger** ou **Copier** donne son YAML. Dans l'espace de travail cible, choisissez **Importer un YAML** sur la page des workflows (ou ouvrez l'onglet **YAML** d'un workflow), collez le texte ou chargez le fichier, puis choisissez **Placer sur le canevas**. Le serveur lit le texte et affiche les problèmes avec leur ligne ; le résultat est une modification annulable, et rien n'est enregistré avant que vous enregistriez.
+
+- Pour importer un nouveau workflow, la clé du texte devient sa clé. Pour ajouter une version à un workflow existant, le texte doit porter la clé de ce workflow.
+- Les agents et les personnes sont nommés dans le texte et cherchés dans l'espace de travail où vous l'appliquez. Les noms d'agents doivent correspondre exactement, et les approbateurs s'écrivent `user:<id>`, ce qui diffère d'un espace à l'autre : remplacez-les avant d'appliquer.
+
+## Archiver et supprimer un workflow
+
+Sur la page d'un workflow, les propriétaires et administrateurs trouvent **Archiver et supprimer**. **Archiver** masque le workflow de la liste (**Afficher les archivés** le ramène) et empêche de le modifier ou de l'appliquer ; les squads qui le suivent déjà gardent leur consigne, et les tâches gardent leurs étiquettes. **Restaurer** annule l'archivage. Seul un workflow archivé peut être **supprimé définitivement**, en saisissant sa clé : toutes ses versions et son historique sont supprimés, sans retour possible. Un workflow qu'un squad suit encore ne peut pas être supprimé : appliquez d'abord un autre workflow à ce squad, ou retirez ce bloc de ses instructions.
+
+## Combien de temps dure une exécution
+
+Multica enregistre quand chaque tâche entre dans une étape et en sort, et le combine avec ce qu'il conserve déjà sur les exécutions des agents et les commentaires.
+
+- **Pipeline :** chaque carte indique depuis combien de temps la tâche est dans son étape (**En attente** à une validation humaine), le total à ce jour, et signale un séjour de plus de trois fois l'habitude de l'étape. Une colonne affiche son temps habituel dès qu'au moins deux séjours sont terminés. Dans une étape parallèle, chaque branche affiche son propre temps. **Chronologie** sur une carte ouvre l'exécution complète.
+- **Chronologie de l'exécution :** aussi dans la barre latérale d'une tâche qui suit un workflow, sous **Chronologie de l'exécution**. Elle répartit le total entre **agents au travail**, **attente de personnes** et **relais**, puis montre chaque étape en barre sur un même axe de temps, avec les branches parallèles détaillées et le temps qu'elles ont fait gagner.
+- **Analyses :** un onglet de la page du workflow. Pour les exécutions commencées ces 7, 30 ou 90 derniers jours, il montre le temps habituel et celui des 10 % les plus lentes par étape, le nombre de renvois par les validations, l'étape qui prend le plus de temps, l'exécution habituelle de chaque agent et l'attente habituelle de chaque approbateur.
+
+Comment les chiffres sont calculés : le temps des agents est le travail sur le chemin critique, donc, dans une étape parallèle, la branche la plus lente. L'attente d'une personne à une validation s'arrête à son premier commentaire (elle doit figurer dans le groupe d'approbateurs avec son vrai `user:<id>`), pas quand le chef réagit. Les relais sont le reste : le travail du chef et les écarts entre les étapes. Le temps court jour et nuit, donc une validation laissée tout un week-end affiche tout le week-end. Les exécutions antérieures à cet enregistrement sont reconstituées à partir des commentaires « Moved from … to … » du chef.
+
+## Appliquer un workflow à un squad
+
+Choisissez **Appliquer à un squad** sur la page d'un workflow. La boîte de dialogue montre la consigne exacte que le chef recevra et les étiquettes utilisées. L'application :
+
+- écrit la consigne entre deux lignes de repère dans les instructions du squad et laisse le reste du texte intact ; appliquer à nouveau la même version ne change rien ;
+- ajoute aux membres du squad les agents que nomment les étapes et les personnes des groupes d'approbateurs, et signale ceux qu'elle n'a pas trouvés ;
+- avertit lorsqu'un approbateur ne peut pas réveiller le chef ou atteindre un agent, parce que cet agent est privé à quelqu'un d'autre. Multica vérifie l'accès au nom de la personne dont le commentaire a lancé la chaîne : chaque agent du workflow doit donc pouvoir être exécuté par chaque approbateur. Voir [Agents](/agents).
+
+L'application ne crée pas d'étiquettes, et vous n'avez pas à le faire : toute tâche assignée au squad suit le workflow, et le chef pose lui-même `wf:<key>` et chaque étiquette `phase:<stage>`, en créant celles que l'espace de travail n'a pas encore. La boîte de dialogue les liste pour que vous sachiez à quoi vous attendre.
+
+## Faire passer une tâche dans un workflow
+
+Donnez à la tâche l'étiquette `wf:<key>` et assignez-la à un squad qui suit le workflow. Le chef positionne l'étiquette `phase:` de la tâche sur l'étape courante, délègue les étapes d'agent par mention `@` et fait avancer la tâche lorsque l'agent répond. La tâche reste assignée au squad tout du long.
+
+À une validation humaine, le chef mentionne les approbateurs et attend. Un approbateur décide en répondant sur la tâche avec ses propres mots, sans étiquette ni mention du squad. Le chef n'agit que sur le commentaire d'un approbateur listé : une approbation claire fait avancer la tâche, un refus clair la renvoie avec le motif, et tout le reste donne lieu à une seule question de précision.
+
+À une étape parallèle, le chef crée un sous-ticket par branche et l'assigne à l'agent de cette branche : tous démarrent ensemble. Chaque agent doit terminer son sous-ticket en **Done** : Multica ne réveille le chef que lorsqu'un sous-ticket est Done ou Cancelled, et un agent qui s'arrête à In Review le laisse attendre indéfiniment. La consigne l'écrit dans chaque sous-ticket. Quand le dernier est Done, le chef lit les résultats et fait avancer la tâche. Un sous-ticket annulé, ou un agent qui ne peut pas faire son travail, arrête l'étape jusqu'à ce qu'une personne décide.
+
+## Pipeline
+
+**Pipeline** dans la barre latérale montre les tâches d'un workflow par étape, avec une colonne par étape. Filtrez par squad, ou par tâches non assignées à un squad. Les validations humaines indiquent qui elles attendent. Les tâches sans étiquette de phase, avec plusieurs, ou avec une étiquette qui ne correspond à aucune étape sont listées à part pour être corrigées facilement. Dans une étape parallèle, la carte d'une tâche indique aussi combien de ses branches sont terminées, avec une ligne par branche qui ouvre son sous-ticket.

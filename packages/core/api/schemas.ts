@@ -64,6 +64,18 @@ import type {
   ListPropertiesResponse,
   QuickAction,
   ListQuickActionsResponse,
+  ListWorkflowAuditResponse,
+  ListWorkflowVersionsResponse,
+  ListWorkflowsResponse,
+  Workflow,
+  ValidateWorkflowResult,
+  WorkflowApplyResult,
+  ListWorkflowSquadsResponse,
+  WorkflowPipeline,
+  WorkflowRun,
+  WorkflowInsights,
+  WorkflowRender,
+  WorkflowWithVersion,
   IssuePropertiesResponse,
   IssueTableGroupDescriptor,
   IssueTableFacetsResponse,
@@ -934,6 +946,245 @@ export const ListQuickActionsResponseSchema = z.object({
 export const EMPTY_LIST_QUICK_ACTIONS_RESPONSE: ListQuickActionsResponse = {
   quick_actions: [],
 };
+
+// Workflows (flag `workflows_v1`). Status and the audit action/actor strings
+// stay z.string(): they are server-driven, and a newer server adding a value
+// must degrade to the UI's default branch, not blank the page.
+export const WorkflowSchema = z.object({
+  id: z.string(),
+  key: z.string().optional().default(""),
+  name: z.string().optional().default(""),
+  description: z.string().optional().default(""),
+  status: z.string().optional().default("active"),
+  latest_version: z.number().optional().default(0),
+  revision: z.number().optional().default(0),
+  created_by_type: z.string().optional().default(""),
+  created_by_id: z.string().optional().default(""),
+  created_at: z.string().optional().default(""),
+  updated_at: z.string().optional().default(""),
+}).loose();
+
+export const EMPTY_WORKFLOW: Workflow = {
+  id: "",
+  key: "",
+  name: "",
+  description: "",
+  status: "active",
+  latest_version: 0,
+  revision: 0,
+  created_by_type: "",
+  created_by_id: "",
+  created_at: "",
+  updated_at: "",
+};
+
+const WorkflowIssueSchema = z.object({
+  code: z.string().optional(),
+  message: z.string().optional().default(""),
+  stage_id: z.string().optional(),
+  field: z.string().optional(),
+  path: z.string().optional(),
+  line: z.number().optional(),
+}).loose();
+
+export const WorkflowVersionSchema = z.object({
+  id: z.string(),
+  workflow_id: z.string().optional().default(""),
+  version: z.number(),
+  content_hash: z.string().optional().default(""),
+  note: z.string().optional().default(""),
+  created_by_type: z.string().optional().default(""),
+  created_by_id: z.string().optional().default(""),
+  created_at: z.string().optional().default(""),
+  definition: z.string().optional(),
+  layout: z.unknown().optional(),
+  issues: z.array(WorkflowIssueSchema).optional(),
+}).loose();
+
+export const WorkflowWithVersionSchema = z.object({
+  workflow: WorkflowSchema,
+  version: WorkflowVersionSchema.nullable().optional().default(null),
+}).loose();
+
+export const EMPTY_WORKFLOW_WITH_VERSION: WorkflowWithVersion = {
+  workflow: EMPTY_WORKFLOW,
+  version: null,
+};
+
+export const ListWorkflowsResponseSchema = z.object({
+  workflows: z.array(WorkflowSchema).default([]),
+}).loose();
+
+export const EMPTY_LIST_WORKFLOWS_RESPONSE: ListWorkflowsResponse = {
+  workflows: [],
+};
+
+export const ListWorkflowVersionsResponseSchema = z.object({
+  versions: z.array(WorkflowVersionSchema).default([]),
+}).loose();
+
+export const EMPTY_LIST_WORKFLOW_VERSIONS_RESPONSE: ListWorkflowVersionsResponse = {
+  versions: [],
+};
+
+export const ListWorkflowAuditResponseSchema = z.object({
+  audit: z.array(z.object({
+    action: z.string().optional().default(""),
+    version: z.number().optional(),
+    actor_type: z.string().optional().default(""),
+    actor_id: z.string().optional().default(""),
+    detail: z.unknown().optional(),
+    created_at: z.string().optional().default(""),
+  }).loose()).default([]),
+}).loose();
+
+export const EMPTY_LIST_WORKFLOW_AUDIT_RESPONSE: ListWorkflowAuditResponse = {
+  audit: [],
+};
+
+export const WorkflowMemberSchema = z.object({
+  kind: z.enum(["agent", "person"]).catch("agent"),
+  ref: z.string().optional().default(""),
+  id: z.string().optional(),
+  name: z.string().optional(),
+  // An unknown status is read as "unresolved": the safe claim, nothing was added.
+  status: z.enum(["add", "added", "present", "unresolved"]).catch("unresolved"),
+  can_wake_leader: z.boolean().optional(),
+  cannot_run_agents: z.array(z.string()).optional(),
+}).loose();
+
+export const WorkflowRenderSchema = z.object({
+  workflow_key: z.string().optional().default(""),
+  version: z.number().optional().default(0),
+  content_hash: z.string().optional().default(""),
+  squad_name: z.string().optional().default(""),
+  instructions: z.string().optional().default(""),
+  labels: z.array(z.string()).optional().default([]),
+  members: z.array(WorkflowMemberSchema).nullish().transform((v) => v ?? []),
+}).loose();
+
+export const EMPTY_WORKFLOW_RENDER: WorkflowRender = {
+  workflow_key: "",
+  version: 0,
+  content_hash: "",
+  squad_name: "",
+  instructions: "",
+  labels: [],
+  members: [],
+};
+
+export const WorkflowApplyResultSchema = z.object({
+  applied: z.boolean().optional().default(true),
+  squad_id: z.string().optional().default(""),
+  workflow_key: z.string().optional().default(""),
+  version: z.number().optional().default(0),
+  content_hash: z.string().optional().default(""),
+  replaced_workflow: z.string().optional(),
+  labels: z.array(z.string()).optional().default([]),
+  members: z.array(WorkflowMemberSchema).nullish().transform((v) => v ?? []),
+}).loose();
+
+// A 2xx apply that cannot be read still changed (or confirmed) the squad, so
+// the fallback claims "applied" rather than hiding the success; the caller
+// refetches the squad either way.
+export const EMPTY_WORKFLOW_APPLY_RESULT: WorkflowApplyResult = {
+  applied: true,
+  squad_id: "",
+  workflow_key: "",
+  version: 0,
+  content_hash: "",
+  labels: [],
+  members: [],
+};
+
+export const ListWorkflowSquadsResponseSchema = z.object({
+  squads: z.array(z.object({
+    squad_id: z.string().optional().default(""),
+    name: z.string().optional().default(""),
+    version: z.number().optional().default(0),
+    content_hash: z.string().optional().default(""),
+    up_to_date: z.boolean().optional().default(false),
+  }).loose()).default([]),
+}).loose();
+
+export const EMPTY_LIST_WORKFLOW_SQUADS_RESPONSE: ListWorkflowSquadsResponse = {
+  squads: [],
+};
+
+const WorkflowPipelineChildSchema = z.object({
+  id: z.string().optional().default(""),
+  identifier: z.string().optional().default(""),
+  title: z.string().optional().default(""),
+  status: z.string().optional().default(""),
+  assignee_type: z.string().optional(),
+  assignee_id: z.string().optional(),
+  created_at: z.string().optional().default(""),
+  work_seconds: z.number().optional(),
+  closed_at: z.string().optional(),
+  closed: z.boolean().optional().default(false),
+  cancelled: z.boolean().optional().default(false),
+}).loose();
+
+const WorkflowPipelineIssueSchema = z.object({
+  id: z.string().optional().default(""),
+  identifier: z.string().optional().default(""),
+  title: z.string().optional().default(""),
+  status: z.string().optional().default(""),
+  assignee_type: z.string().optional(),
+  assignee_id: z.string().optional(),
+  updated_at: z.string().optional().default(""),
+  phases: z.array(z.string()).optional(),
+  children: z.array(WorkflowPipelineChildSchema).nullish().transform((v) => v ?? []),
+  stage_entered_at: z.string().optional(),
+  run_started_at: z.string().optional(),
+}).loose();
+
+const pipelineIssues = z.array(WorkflowPipelineIssueSchema).nullish().transform((v) => v ?? []);
+
+export const WorkflowPipelineSchema = z.object({
+  workflow_key: z.string().optional().default(""),
+  version: z.number().optional().default(0),
+  stages: z.array(z.object({
+    id: z.string().optional().default(""),
+    name: z.string().optional().default(""),
+    type: z.string().optional().default(""),
+    approvers: z.array(z.object({
+      ref: z.string().optional().default(""),
+      id: z.string().optional(),
+      name: z.string().optional(),
+    }).loose()).nullish().transform((v) => v ?? []),
+    issues: pipelineIssues,
+    typical_seconds: z.number().optional(),
+    typical_samples: z.number().optional(),
+  }).loose()).nullish().transform((v) => v ?? []),
+  no_stage: pipelineIssues,
+  conflicting: pipelineIssues,
+  unknown_stage: pipelineIssues,
+  total: z.number().optional().default(0),
+  truncated: z.boolean().optional().default(false),
+}).loose();
+
+export const EMPTY_WORKFLOW_PIPELINE: WorkflowPipeline = {
+  workflow_key: "",
+  version: 0,
+  stages: [],
+  no_stage: [],
+  conflicting: [],
+  unknown_stage: [],
+  total: 0,
+  truncated: false,
+};
+
+export const ValidateWorkflowResultSchema = z.object({
+  parsed: z.boolean().optional().default(false),
+  valid: z.boolean().optional().default(false),
+  // Older servers wrote an empty list as null.
+  issues: z.array(WorkflowIssueSchema).nullish().transform((v) => v ?? []),
+  canonical: z.string().optional(),
+}).loose();
+
+// An unreadable answer must not look like "valid": the fallback says nothing parsed.
+export const EMPTY_VALIDATE_WORKFLOW_RESULT: ValidateWorkflowResult = { parsed: false, valid: false, issues: [] };
 
 export const QuickActionRenderSchema = z.object({
   content: z.string().default(""),
@@ -3943,3 +4194,146 @@ export const RuntimeProfileSchema = z
     runtime_type: profile.runtime_type || profile.protocol_family,
   }));
 export const RuntimeProfileListSchema = z.array(RuntimeProfileSchema);
+
+// ---- workflow timing ---------------------------------------------------------------------------
+
+const seconds = z.number().optional().default(0);
+
+const WorkflowRunBranchSchema = z.object({
+  id: z.string().optional().default(""),
+  identifier: z.string().optional().default(""),
+  title: z.string().optional().default(""),
+  agent: z.string().optional(),
+  status: z.string().optional().default(""),
+  started_at: z.string().optional().default(""),
+  ended_at: z.string().optional(),
+  work_seconds: seconds,
+  elapsed_seconds: seconds,
+  closed: z.boolean().optional().default(false),
+  cancelled: z.boolean().optional().default(false),
+}).loose();
+
+const WorkflowRunVisitSchema = z.object({
+  stage_id: z.string().optional().default(""),
+  name: z.string().optional().default(""),
+  type: z.string().optional().default(""),
+  number: z.number().optional().default(1),
+  entered_at: z.string().optional().default(""),
+  left_at: z.string().optional(),
+  open: z.boolean().optional().default(false),
+  elapsed_seconds: seconds,
+  agent: z.string().optional(),
+  agent_seconds: seconds,
+  branches: z.array(WorkflowRunBranchSchema).nullish().transform((v) => v ?? []),
+  wait_seconds: seconds,
+  decided_at: z.string().optional(),
+  decided_by: z.object({
+    ref: z.string().optional().default(""),
+    id: z.string().optional(),
+    name: z.string().optional(),
+  }).loose().optional(),
+  outcome: z.string().optional(),
+}).loose();
+
+export const WorkflowRunSchema = z.object({
+  workflow: z.object({
+    id: z.string().optional().default(""),
+    key: z.string().optional().default(""),
+    name: z.string().optional().default(""),
+  }).loose(),
+  issue: z.object({
+    id: z.string().optional().default(""),
+    identifier: z.string().optional().default(""),
+    title: z.string().optional().default(""),
+    status: z.string().optional().default(""),
+  }).loose(),
+  timeline: z.object({
+    started_at: z.string().optional(),
+    ended_at: z.string().optional(),
+    open: z.boolean().optional().default(false),
+    elapsed_seconds: seconds,
+    agent_seconds: seconds,
+    people_seconds: seconds,
+    handoff_seconds: seconds,
+    reworks: z.number().optional().default(0),
+    parallel_saved_seconds: seconds,
+    visits: z.array(WorkflowRunVisitSchema).nullish().transform((v) => v ?? []),
+  }).loose(),
+}).loose();
+
+export const EMPTY_WORKFLOW_RUN: WorkflowRun = {
+  workflow: { id: "", key: "", name: "" },
+  issue: { id: "", identifier: "", title: "", status: "" },
+  timeline: {
+    open: false,
+    elapsed_seconds: 0,
+    agent_seconds: 0,
+    people_seconds: 0,
+    handoff_seconds: 0,
+    reworks: 0,
+    parallel_saved_seconds: 0,
+    visits: [],
+  },
+};
+
+export const WorkflowInsightsSchema = z.object({
+  workflow_key: z.string().optional().default(""),
+  days: z.number().optional().default(30),
+  runs: z.number().optional().default(0),
+  finished: z.number().optional().default(0),
+  open: z.number().optional().default(0),
+  truncated: z.boolean().optional().default(false),
+  median_elapsed_seconds: seconds,
+  p90_elapsed_seconds: seconds,
+  median_agent_seconds: seconds,
+  median_people_seconds: seconds,
+  median_handoff_seconds: seconds,
+  reworks: z.number().optional().default(0),
+  bottleneck_stage_id: z.string().optional().default(""),
+  stages: z.array(z.object({
+    stage_id: z.string().optional().default(""),
+    name: z.string().optional().default(""),
+    type: z.string().optional().default(""),
+    visits: z.number().optional().default(0),
+    open_visits: z.number().optional().default(0),
+    median_seconds: seconds,
+    p90_seconds: seconds,
+    total_seconds: seconds,
+    rejected: z.number().optional().default(0),
+  }).loose()).nullish().transform((v) => v ?? []),
+  agents: z.array(z.object({
+    agent: z.string().optional().default(""),
+    runs: z.number().optional().default(0),
+    median_seconds: seconds,
+    p90_seconds: seconds,
+    total_seconds: seconds,
+  }).loose()).nullish().transform((v) => v ?? []),
+  approvers: z.array(z.object({
+    ref: z.string().optional().default(""),
+    id: z.string().optional(),
+    name: z.string().optional(),
+    decisions: z.number().optional().default(0),
+    median_seconds: seconds,
+    p90_seconds: seconds,
+    slowest_seconds: seconds,
+  }).loose()).nullish().transform((v) => v ?? []),
+}).loose();
+
+export const EMPTY_WORKFLOW_INSIGHTS: WorkflowInsights = {
+  workflow_key: "",
+  days: 30,
+  runs: 0,
+  finished: 0,
+  open: 0,
+  truncated: false,
+  median_elapsed_seconds: 0,
+  p90_elapsed_seconds: 0,
+  median_agent_seconds: 0,
+  median_people_seconds: 0,
+  median_handoff_seconds: 0,
+  reworks: 0,
+  bottleneck_stage_id: "",
+  stages: [],
+  agents: [],
+  approvers: [],
+};

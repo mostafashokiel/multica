@@ -1,0 +1,1 @@
+DROP INDEX CONCURRENTLY IF EXISTS idx_workflow_audit_workflow_created;

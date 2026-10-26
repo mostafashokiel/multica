@@ -6,6 +6,8 @@ vi.mock("@multica/core/issue-statuses/hooks", () => ({
 }));
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "@multica/core/api";
+import { configStore } from "@multica/core/config";
+import { WORKFLOWS_V1_FLAG } from "@multica/core/feature-flags";
 import { renderWithI18n } from "../test/i18n";
 import { AppSidebar } from "./app-sidebar";
 
@@ -144,6 +146,8 @@ vi.mock("@multica/core/paths", async (importOriginal) => ({
     autopilots: () => "/acme/autopilots",
     agents: () => "/acme/agents",
     squads: () => "/acme/squads",
+    workflows: () => "/acme/workflows",
+    pipeline: () => "/acme/pipeline",
     usage: () => "/acme/usage",
     runtimes: () => "/acme/runtimes",
     skills: () => "/acme/skills",
@@ -404,6 +408,42 @@ describe("navigation item presentation", () => {
         referenceClassName,
       );
     }
+  });
+});
+
+describe("workflows nav item", () => {
+  beforeEach(() => {
+    configStore.getState().setFeatureFlags({});
+  });
+
+  it("is absent while workflows_v1 is off", () => {
+    const { container } = render(<AppSidebar />);
+
+    expect(container.querySelector('button[data-href="/acme/workflows"]')).toBeNull();
+    expect(container.querySelector('button[data-href="/acme/pipeline"]')).toBeNull();
+    expect(container.querySelector('button[data-href="/acme/autopilots"]')).not.toBeNull();
+  });
+
+  it("appears in the work group, styled like its neighbours, once workflows_v1 is on", () => {
+    configStore.getState().setFeatureFlags({ [WORKFLOWS_V1_FLAG]: true });
+    const { container } = render(<AppSidebar />);
+
+    const item = container.querySelector('button[data-href="/acme/workflows"]');
+    expect(item).not.toBeNull();
+    expect(item?.className).toBe(
+      container.querySelector('button[data-href="/acme/autopilots"]')?.className,
+    );
+    expect(item?.textContent).toBe("Workflows");
+
+    // The pipeline sits right before it, in the same group.
+    const pipeline = container.querySelector('button[data-href="/acme/pipeline"]');
+    expect(pipeline).not.toBeNull();
+    expect(pipeline?.className).toBe(item?.className);
+    expect(pipeline?.textContent).toBe("Pipeline");
+    expect(pipeline!.compareDocumentPosition(item!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // ...and nothing sits between them.
+    const nav = Array.from(container.querySelectorAll("button[data-href]"));
+    expect(nav.indexOf(item as Element) - nav.indexOf(pipeline as Element)).toBe(1);
   });
 });
 

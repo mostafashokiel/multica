@@ -28,6 +28,7 @@ import {
 import { DesktopChooseRuntimePage } from "./components/desktop-choose-runtime-page";
 import { AgentCreatedPage } from "./pages/agent-created-page";
 import { SquadsPage, SquadDetailPage as SquadDetailPageView } from "@multica/views/squads/components";
+import { WorkflowsPage, WorkflowDetailPage, WorkflowDesignerPage, PipelinePage } from "@multica/views/workflows/components";
 import { InboxPage } from "@multica/views/inbox";
 import { ChatPage } from "@multica/views/chat";
 import { SettingsPage } from "@multica/views/settings";
@@ -225,6 +226,19 @@ export const appRoutes: RouteObject[] = [
             path: "squads/:id",
             element: <SquadDetailPageView />,
             handle: { title: "Squad" },
+          },
+          { path: "workflows", element: <WorkflowsPage />, handle: { title: "Workflows" } },
+          { path: "pipeline", element: <PipelinePage />, handle: { title: "Pipeline" } },
+          { path: "workflows/new", element: <WorkflowDesignerPage />, handle: { title: "New workflow" } },
+          {
+            path: "workflows/:id/edit",
+            element: <WorkflowDesignerPage />,
+            handle: { title: "Edit workflow" },
+          },
+          {
+            path: "workflows/:id",
+            element: <WorkflowDetailPage />,
+            handle: { title: "Workflow" },
           },
           { path: "inbox", element: <InboxPage />, handle: { title: "Inbox" } },
           { path: "chat", element: <ChatPage />, handle: { title: "Chat" } },

@@ -118,6 +118,7 @@ import { WakeupsSection } from "./wakeups-section";
 import { QuickActionsSection } from "./quick-actions-section";
 import { PluginPanelSection } from "../../plugins";
 import { PullRequestsSection } from "./pull-requests-section";
+import { WorkflowRunSection } from "../../workflows/components/workflow-run-section";
 import { useGitHubSettings } from "@multica/core/github";
 import { DeliverablesSection } from "./deliverables/deliverables-section";
 import { DeliverablesOverview } from "./deliverables/deliverables-overview";
@@ -3013,6 +3014,11 @@ export function IssueDetail({ issueId, onDelete, onDone, defaultSidebarOpen = tr
           Self-contained; owns its own collapse state and WS subscriptions.
           Hides itself when there are no runs to show. */}
       <ExecutionLogSection issueId={id} identifier={issue.identifier} issueTitle={issue.title} />
+
+      {/* Workflow timing — how long the run of an issue that follows a workflow
+          has taken, split into agents, people and handoffs. Self-contained, and
+          absent for any other issue and while the workflows flag is off. */}
+      <WorkflowRunSection issueId={id} title={`${issue.identifier} ${issue.title}`} />
 
       {/* Details — creator and timestamps. Sits below the execution log
           because it is the least-read block in the sidebar: the values

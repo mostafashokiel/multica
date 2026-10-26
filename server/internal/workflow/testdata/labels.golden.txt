@@ -1,0 +1,8 @@
+wf:sdlc-pilot
+phase:br-review
+phase:br-approval
+phase:stories
+phase:po-approval
+phase:architecture
+phase:arch-approval
+phase:done

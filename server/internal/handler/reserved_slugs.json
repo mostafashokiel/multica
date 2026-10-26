@@ -74,6 +74,8 @@
         "autopilots",
         "agents",
         "squads",
+        "workflows",
+    "pipeline",
         "inbox",
         "my-issues",
         "usage",

@@ -1,0 +1,78 @@
+---
+title: Workflows
+description: Define the stages an issue moves through, including human approvals, and hand them to a squad leader to follow.
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+
+A workflow is a named, versioned list of stages that work moves through: an agent does a step, a person approves, a condition picks a branch, and an end stage finishes. It describes the process once, in one place, and lets a [squad](/squads) leader carry issues through it.
+
+<Callout type="info">
+Workflows are behind the `workflows_v1` feature flag, off by default. On a self-hosted deployment, turn it on with `FF_WORKFLOWS_V1=true`. With the flag off, nothing about the Workflows pages or API shows up.
+</Callout>
+
+A workflow does not run by itself and Multica has no separate engine for it. **Applying** a workflow writes a briefing into the squad leader's instructions, and the leader follows it. The pages show what the leader has recorded; they do not enforce it.
+
+## Stages
+
+| Stage | What it does |
+|---|---|
+| **Agent** | An agent does the work. The leader delegates to it by `@`-mention and waits for its reply. |
+| **Parallel** | Two to eight agents work at the same time. The leader creates one sub-issue per branch, each assigned to its agent, and moves the issue on when every sub-issue is Done. |
+| **Human gate** | One or more people decide. The workflow names an approver group, an optional rework limit, and an optional time after which the leader asks again. |
+| **Condition** | Picks the next stage from the issue's labels, for example `has_label("pci-scope")`. |
+| **End** | Finishes the workflow. |
+
+A gate has two exits: approve and reject. A reject loops back to an earlier stage, up to its rework limit.
+
+## Designing a workflow
+
+Open **Workflows** in the sidebar. Owners and admins can create and edit; everyone else can read.
+
+- Drag stage types from the palette onto the canvas, connect them by dragging between handles, and edit the selected stage in the side panel. Agents and people are picked from your workspace.
+- The server checks the workflow as you edit and lists every problem; a version with problems can be saved but not applied.
+- A workflow's name (shown in lists and on its page) is changed with **Rename** on the workflow page; it is not part of the definition, so renaming makes no new version, and the key never changes.
+- Each save is a new immutable version. A save made from an out-of-date version is refused as a conflict instead of overwriting someone else's work. Old versions can be restored as new ones.
+
+## Moving a workflow to another workspace or environment
+
+A workflow is plain text. On a workflow's page, **Download** or **Copy** gives you its YAML. In the target workspace, choose **Import YAML** on the Workflows page (or open the **YAML** tab of any workflow), paste the text or load the file, and choose **Put on canvas**. The server reads the text and shows any problems with their line; the result is one change you can undo, and nothing is stored until you save.
+
+- To import as a new workflow, the key in the text becomes the key. To add a version to an existing workflow, the text must carry that workflow's key.
+- Agents and people are named in the text and are looked up in the workspace you apply it in. Agent names must match exactly, and approvers are written `user:<id>`, which differs between workspaces: replace them before you apply.
+
+## Archiving and deleting a workflow
+
+On a workflow's page, owners and admins find **Archive and delete**. **Archive** hides the workflow from the list (**Show archived** brings it back) and stops edits and applies; squads that already follow it keep their briefing, and issues keep their labels. **Restore** undoes it. Only an archived workflow can be **deleted permanently**, after typing its key: all its versions and its history are removed and this cannot be undone. A workflow that a squad still follows cannot be deleted: apply another workflow to that squad, or take the block out of its instructions, first.
+
+## How long a run takes
+
+Multica records when each issue enters and leaves a stage, and combines that with what it already keeps about agent runs and comments.
+
+- **Pipeline:** each card shows how long the issue has been in its stage (**Waiting** at a human gate), the total so far, and flags a stay more than three times the stage's usual. A lane shows its usual time once at least two stays are over. In a parallel stage each branch shows its own time. **Timeline** on a card opens the full run.
+- **Run timeline:** also on an issue that follows a workflow, in the sidebar under **Run timeline**. It shows the total split into **agents working**, **waiting on people** and **handoffs**, then every stage as a bar on one time axis, with the parallel branches broken out and how much time they saved.
+- **Insights:** a tab on the workflow page. For the runs that began in the last 7, 30 or 90 days it shows the typical and slowest 10% time per stage, how often a gate sent work back, the stage that takes most of the time, each agent's typical run and each approver's typical wait.
+
+How the figures are made: agent time is the work on the critical path, so in a parallel stage it is the slowest branch. A person's wait at a gate ends at their first comment there (they must be listed in the gate's approver group by their real `user:<id>`), not when the leader reacts. Handoffs are the rest: the leader's own work and the gaps between steps. Time runs around the clock, so a gate left over a weekend shows the whole weekend. Runs from before this was recorded are filled in from the leader's "Moved from … to …" comments.
+
+## Applying a workflow to a squad
+
+Choose **Apply to squad** on a workflow page. The dialog shows the exact briefing the leader will get and the labels it uses. Applying:
+
+- writes the briefing between two marker lines in the squad's instructions and leaves the rest of the text alone; applying the same version again changes nothing;
+- adds the agents the stages name, and the people in the approver groups, to the squad's members, and tells you about any it could not find;
+- warns you when an approver cannot wake the leader or reach an agent, because that agent is private to someone else. Multica checks access as the person whose comment started the chain, so every agent in the workflow must be runnable by every approver. See [Agents](/agents).
+
+Applying does not create labels, and you do not have to: every issue assigned to the squad follows the workflow, and the leader adds the `wf:<key>` label and each `phase:<stage>` label itself, creating any the workspace does not have yet. The dialog lists them so you know what to expect.
+
+## Running an issue through a workflow
+
+Give the issue the `wf:<key>` label and assign it to a squad that follows the workflow. The leader sets the issue's `phase:` label to the current stage, delegates agent stages by `@`-mention, and moves the issue on when the agent replies. The issue stays assigned to the squad throughout.
+
+At a human gate the leader mentions the approvers and waits. An approver decides by replying on the issue in their own words, with no label and no mention of the squad. The leader acts only on a comment from a listed approver: a clear approval moves the issue on, a clear refusal sends it back with the reason, and anything else gets one clarifying question.
+
+At a parallel stage the leader creates one sub-issue for each branch and assigns it to the branch's agent, so they all start together. Each agent must finish its sub-issue as **Done**: Multica wakes the leader again only when a sub-issue is Done or Cancelled, so an agent that stops at In Review leaves the leader waiting. The briefing says so in every sub-issue. When the last one is Done, the leader reads the results and moves the issue on. A cancelled sub-issue or an agent that cannot do its work stops the stage until a person decides.
+
+## Pipeline
+
+**Pipeline** in the sidebar shows one workflow's issues by stage, with a column per stage. Filter by squad, or by issues assigned to no squad. Human gates say who they are waiting for. In a parallel stage, an issue's card also shows how many of its branches are done, with a row for each that opens its sub-issue. Issues with no phase label, several, or one that matches no stage are listed separately so they are easy to fix.
