@@ -1753,6 +1753,39 @@
       "empty": "此时间范围内没有创建此工作流的任务。",
       "truncated": "显示最新的 {{count}} 个任务。",
       "error": "无法读取洞察数据。"
+    },
+    "yaml": {
+      "import_menu": "从 YAML 导入…",
+      "import_title": "从 YAML 导入工作流",
+      "import_description": "粘贴或加载工作流文件。此时不会保存任何内容：它会在编辑器中打开，供你先检查。",
+      "import_label": "工作流 YAML",
+      "load_file": "加载文件…",
+      "problems_title": "文件中的问题",
+      "line": "第 {{line}} 行",
+      "ready_other": "就绪：{{count}} 个步骤",
+      "open_in_editor": "在编辑器中打开",
+      "file_read_failed": "无法读取该文件。",
+      "copy": "复制为 YAML",
+      "download": "下载 YAML",
+      "copied": "已复制 YAML",
+      "copy_failed": "无法复制到剪贴板。",
+      "downloaded": "已下载 YAML",
+      "export_warnings_other": "因对应的智能体、小队或成员已不存在，{{count}} 个负责人被省略。",
+      "notes": {
+        "title": "导入时的更改",
+        "status_matched_by_name": "“{{step}}”已匹配现有状态“{{detail}}”。",
+        "status_will_be_created": "“{{step}}”在此不存在，保存时会创建。",
+        "category_adjusted": "“{{step}}”被标为 {{detail}}；新列只能用于开始工作，因此会创建为进行中。",
+        "handler_not_found": {
+          "agent": "此处没有智能体“{{detail}}”，因此“{{step}}”导入时不带交接。",
+          "squad": "此处没有小队“{{detail}}”，因此“{{step}}”导入时不带交接。",
+          "member": "此处没有邮箱为 {{detail}} 的成员，因此“{{step}}”导入时不带交接。"
+        },
+        "link_dropped": "“{{step}}”指向此工作流中没有的“{{detail}}”，该链接已移除。",
+        "step_duplicate": "“{{step}}”与前面的步骤是同一列，已跳过。",
+        "link_to_new_status": "“{{step}}”指向保存时才会创建的“{{detail}}”，请在保存后再设置该链接。",
+        "fields_ignored": "“{{step}}”带有说明或下一步/退回链接，但只有智能体步骤会用到，因此未导入。"
+      }
     }
   },
   "hover_card": {

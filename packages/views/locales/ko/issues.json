@@ -1753,6 +1753,39 @@
       "empty": "이 기간에 생성된 이 워크플로의 태스크가 없습니다.",
       "truncated": "최신 태스크 {{count}}건을 표시합니다.",
       "error": "인사이트를 불러올 수 없습니다."
+    },
+    "yaml": {
+      "import_menu": "YAML에서 가져오기…",
+      "import_title": "YAML에서 워크플로 가져오기",
+      "import_description": "워크플로 파일을 붙여넣거나 불러오세요. 아직 아무것도 저장되지 않으며, 검토할 수 있도록 편집기에서 열립니다.",
+      "import_label": "워크플로 YAML",
+      "load_file": "파일 불러오기…",
+      "problems_title": "파일의 문제",
+      "line": "{{line}}번째 줄",
+      "ready_other": "준비됨: {{count}}개 단계",
+      "open_in_editor": "편집기에서 열기",
+      "file_read_failed": "해당 파일을 읽을 수 없습니다.",
+      "copy": "YAML로 복사",
+      "download": "YAML 다운로드",
+      "copied": "YAML을 복사했습니다",
+      "copy_failed": "클립보드에 복사할 수 없습니다.",
+      "downloaded": "YAML을 다운로드했습니다",
+      "export_warnings_other": "에이전트, 스쿼드 또는 멤버가 더 이상 없어 담당 {{count}}개를 제외했습니다.",
+      "notes": {
+        "title": "가져오면서 변경된 항목",
+        "status_matched_by_name": "“{{step}}”을(를) 기존 상태 “{{detail}}”와(과) 연결했습니다.",
+        "status_will_be_created": "“{{step}}”은(는) 여기에 없으며 저장할 때 생성됩니다.",
+        "category_adjusted": "“{{step}}”은(는) {{detail}}(으)로 지정되어 있었지만 새 열은 작업 시작만 가능하므로 시작 상태로 생성됩니다.",
+        "handler_not_found": {
+          "agent": "여기에는 에이전트 “{{detail}}”이(가) 없어 “{{step}}”은(는) 인계 없이 가져왔습니다.",
+          "squad": "여기에는 스쿼드 “{{detail}}”이(가) 없어 “{{step}}”은(는) 인계 없이 가져왔습니다.",
+          "member": "여기에는 이메일이 {{detail}}인 멤버가 없어 “{{step}}”은(는) 인계 없이 가져왔습니다."
+        },
+        "link_dropped": "“{{step}}”이(가) 이 워크플로에 없는 “{{detail}}”을(를) 가리켜 링크를 제거했습니다.",
+        "step_duplicate": "“{{step}}”은(는) 앞선 단계와 같은 열이라 건너뛰었습니다.",
+        "link_to_new_status": "“{{step}}”이(가) 저장할 때 생성될 “{{detail}}”을(를) 가리킵니다. 이 링크는 저장 후에 설정하세요.",
+        "fields_ignored": "“{{step}}”에 지침이나 다음/반려 링크가 있지만 에이전트 단계에서만 사용되므로 가져오지 않았습니다."
+      }
     }
   },
   "hover_card": {

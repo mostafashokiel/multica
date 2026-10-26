@@ -86,6 +86,12 @@ Le temps d’agent est le temps passé par les agents sur la tâche pendant une 
 
 Pour voir où passe le temps sur de nombreuses tâches, ouvrez le workflow dans **Paramètres → Workflows** et choisissez **Analyses**. Pour les tâches créées au cours des 7, 30 ou 90 derniers jours, vous voyez combien sont terminées, le total typique, la fréquence des renvois, l’étape qui prend la plus grande part du temps, et le temps pris par chaque agent et chaque personne. Les valeurs typiques sont des médianes ; **10 % les plus lents** montre la queue lente.
 
+## Déplacer un workflow entre espaces de travail
+
+Pour déplacer un workflow vers un autre espace de travail ou environnement, ouvrez-le dans **Paramètres → Workflows**, ouvrez le menu **⋯**, puis choisissez **Copier en YAML** ou **Télécharger le YAML**. Dans l’autre espace, choisissez **Nouveau workflow → Importer depuis YAML…**, puis collez le texte ou chargez le fichier.
+
+Le fichier désigne les éléments par leur nom plutôt que par un identifiant : agents et équipes par nom, membres par e-mail, statuts par clé, avec un nom et un type pour les statuts personnalisés afin que l’autre espace puisse les créer. L’import n’enregistre rien. Il ouvre le workflow dans l’éditeur comme brouillon et indique ce qui a changé : un statut qui sera créé, un agent, une équipe ou un membre absent là-bas (l’étape est importée sans passage de relais), et un lien vers un statut qui n’existe pas encore (à définir après l’enregistrement). Les consignes et les statuts suivant et retour ne concernent que les étapes d’agent ; les autres étapes ne les reprennent pas. Relisez le brouillon, puis choisissez **Créer**.
+
 ## Ajuster un workflow
 
 Plusieurs projets peuvent partager un workflow. Les modifications enregistrées dans **Paramètres → Workflows** s’appliquent à tous les projets qui l’utilisent. Pour changer le parcours d’un seul projet, dupliquez le workflow et choisissez la copie dans ce projet.

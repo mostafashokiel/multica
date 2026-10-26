@@ -1820,6 +1820,41 @@
       "empty": "Aucune tâche de ce workflow n'a été créée sur cette période.",
       "truncated": "Affichage des {{count}} tâches les plus récentes.",
       "error": "Impossible de lire les analyses."
+    },
+    "yaml": {
+      "import_menu": "Importer depuis YAML…",
+      "import_title": "Importer un workflow depuis YAML",
+      "import_description": "Collez un fichier de workflow ou chargez-en un. Rien n’est enregistré : il s’ouvre dans l’éditeur pour relecture.",
+      "import_label": "YAML du workflow",
+      "load_file": "Charger un fichier…",
+      "problems_title": "Problèmes dans le fichier",
+      "line": "Ligne {{line}}",
+      "ready_one": "Prêt : {{count}} étape",
+      "ready_other": "Prêt : {{count}} étapes",
+      "open_in_editor": "Ouvrir dans l’éditeur",
+      "file_read_failed": "Impossible de lire ce fichier.",
+      "copy": "Copier en YAML",
+      "download": "Télécharger le YAML",
+      "copied": "YAML copié",
+      "copy_failed": "Impossible de copier dans le presse-papiers.",
+      "downloaded": "YAML téléchargé",
+      "export_warnings_one": "Un responsable a été omis car son agent, son équipe ou son membre n’existe plus.",
+      "export_warnings_other": "{{count}} responsables ont été omis car leur agent, équipe ou membre n’existe plus.",
+      "notes": {
+        "title": "Modifié à l’import",
+        "status_matched_by_name": "« {{step}} » correspond au statut existant « {{detail}} ».",
+        "status_will_be_created": "« {{step}} » n’existe pas ici et sera créé à l’enregistrement.",
+        "category_adjusted": "« {{step}} » était de type {{detail}} ; les nouvelles colonnes ne peuvent que démarrer le travail, il sera donc créé comme démarré.",
+        "handler_not_found": {
+          "agent": "Aucun agent « {{detail}} » ici : « {{step}} » a été importé sans passage de relais.",
+          "squad": "Aucune équipe « {{detail}} » ici : « {{step}} » a été importé sans passage de relais.",
+          "member": "Aucun membre avec l’e-mail {{detail}} ici : « {{step}} » a été importé sans passage de relais."
+        },
+        "link_dropped": "« {{step}} » renvoyait vers « {{detail}} », absent de ce workflow ; le lien a été supprimé.",
+        "step_duplicate": "« {{step}} » est la même colonne qu’une étape précédente et a été ignoré.",
+        "link_to_new_status": "« {{step}} » renvoie vers « {{detail}} », qui sera créé à l’enregistrement. Définissez ce lien après l’enregistrement.",
+        "fields_ignored": "« {{step}} » contient des consignes ou des liens suivant/retour, mais seules les étapes d’agent les utilisent ; ils n’ont pas été importés."
+      }
     }
   },
   "hover_card": {

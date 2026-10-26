@@ -1820,6 +1820,41 @@
       "empty": "No issue of this workflow was created in this period.",
       "truncated": "Showing the newest {{count}} issues.",
       "error": "Could not read the insights."
+    },
+    "yaml": {
+      "import_menu": "Import from YAML…",
+      "import_title": "Import a workflow from YAML",
+      "import_description": "Paste a workflow file or load one. Nothing is saved yet: it opens in the editor for you to review first.",
+      "import_label": "Workflow YAML",
+      "load_file": "Load file…",
+      "problems_title": "Problems in the file",
+      "line": "Line {{line}}",
+      "ready_one": "Ready: {{count}} step",
+      "ready_other": "Ready: {{count}} steps",
+      "open_in_editor": "Open in editor",
+      "file_read_failed": "Could not read that file.",
+      "copy": "Copy as YAML",
+      "download": "Download YAML",
+      "copied": "YAML copied",
+      "copy_failed": "Could not copy to the clipboard.",
+      "downloaded": "YAML downloaded",
+      "export_warnings_one": "One handler was left out because its agent, squad or member no longer exists.",
+      "export_warnings_other": "{{count}} handlers were left out because their agent, squad or member no longer exists.",
+      "notes": {
+        "title": "Changed while importing",
+        "status_matched_by_name": "“{{step}}” matched the existing status “{{detail}}”.",
+        "status_will_be_created": "“{{step}}” does not exist here and will be created when you save.",
+        "category_adjusted": "“{{step}}” was marked {{detail}}; new columns can only start work, so it will be created as started.",
+        "handler_not_found": {
+          "agent": "There is no agent “{{detail}}” here, so “{{step}}” was imported without a handoff.",
+          "squad": "There is no squad “{{detail}}” here, so “{{step}}” was imported without a handoff.",
+          "member": "There is no member with the email {{detail}} here, so “{{step}}” was imported without a handoff."
+        },
+        "link_dropped": "“{{step}}” pointed to “{{detail}}”, which is not in this workflow; the link was dropped.",
+        "step_duplicate": "“{{step}}” is the same column as an earlier step and was skipped.",
+        "link_to_new_status": "“{{step}}” points to “{{detail}}”, which will be created when you save. Set that link after saving.",
+        "fields_ignored": "“{{step}}” has instructions or next/back links, but only agent steps use them, so they were not imported."
+      }
     }
   },
   "hover_card": {

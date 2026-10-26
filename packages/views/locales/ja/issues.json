@@ -1753,6 +1753,39 @@
       "empty": "この期間に作成されたこのワークフローのタスクはありません。",
       "truncated": "最新の {{count}} 件を表示しています。",
       "error": "インサイトを読み込めませんでした。"
+    },
+    "yaml": {
+      "import_menu": "YAML からインポート…",
+      "import_title": "YAML からワークフローをインポート",
+      "import_description": "ワークフローのファイルを貼り付けるか読み込みます。まだ何も保存されません。確認のためエディタで開きます。",
+      "import_label": "ワークフローの YAML",
+      "load_file": "ファイルを読み込む…",
+      "problems_title": "ファイルの問題",
+      "line": "{{line}} 行目",
+      "ready_other": "準備完了: {{count}} ステップ",
+      "open_in_editor": "エディタで開く",
+      "file_read_failed": "そのファイルを読み込めませんでした。",
+      "copy": "YAML としてコピー",
+      "download": "YAML をダウンロード",
+      "copied": "YAML をコピーしました",
+      "copy_failed": "クリップボードにコピーできませんでした。",
+      "downloaded": "YAML をダウンロードしました",
+      "export_warnings_other": "エージェント、スクワッド、またはメンバーが存在しないため、{{count}} 件の担当を除外しました。",
+      "notes": {
+        "title": "インポート時の変更",
+        "status_matched_by_name": "「{{step}}」を既存のステータス「{{detail}}」に対応付けました。",
+        "status_will_be_created": "「{{step}}」はここに存在しないため、保存時に作成されます。",
+        "category_adjusted": "「{{step}}」は {{detail}} とされていましたが、新しい列は作業開始のみのため、開始として作成されます。",
+        "handler_not_found": {
+          "agent": "ここにはエージェント「{{detail}}」がないため、「{{step}}」は引き継ぎなしでインポートされました。",
+          "squad": "ここにはスクワッド「{{detail}}」がないため、「{{step}}」は引き継ぎなしでインポートされました。",
+          "member": "ここにはメールアドレス {{detail}} のメンバーがいないため、「{{step}}」は引き継ぎなしでインポートされました。"
+        },
+        "link_dropped": "「{{step}}」は、このワークフローにない「{{detail}}」を指していたため、リンクを削除しました。",
+        "step_duplicate": "「{{step}}」は前のステップと同じ列のため、スキップしました。",
+        "link_to_new_status": "「{{step}}」は、保存時に作成される「{{detail}}」を指しています。このリンクは保存後に設定してください。",
+        "fields_ignored": "「{{step}}」には指示または次へ/戻しのリンクがありますが、使われるのはエージェントのステップのみのため、インポートしませんでした。"
+      }
     }
   },
   "hover_card": {

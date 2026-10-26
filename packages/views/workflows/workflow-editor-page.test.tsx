@@ -2,6 +2,7 @@
 
 import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import type { ComponentProps } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { buildIssueStatusCatalog } from "@multica/core/issue-statuses";
 import { agentListOptions, memberListOptions } from "@multica/core/workspace/queries";
@@ -27,7 +28,7 @@ vi.mock("../common/actor-avatar", () => ({
   ActorAvatar: ({ actorId }: { actorId: string }) => <span data-testid={`avatar-${actorId}`} />,
 }));
 
-function renderEditor(props: { template?: "content"; canCreateStatus?: boolean } = {}) {
+function renderEditor(props: Partial<ComponentProps<typeof WorkflowEditorPage>> = {}) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   qc.setQueryData(projectListOptions("ws-1").queryKey, [] as never);
   qc.setQueryData(agentListOptions("ws-1").queryKey, [{ id: "agent-1", name: "Builder", archived_at: null }] as never);
@@ -92,6 +93,54 @@ describe("WorkflowEditorPage", () => {
     // The explicit choices still list only statuses that exist before the save.
     fireEvent.click(screen.getByRole("combobox", { name: "When done, move to" }));
     expect(screen.queryByRole("option", { name: "Deploy" })).toBeNull();
+  });
+});
+
+describe("WorkflowEditorPage import from YAML", () => {
+  const imported = {
+    draft: {
+      name: "Imported flow",
+      description: "From another workspace",
+      backlog: false,
+      blocked: false,
+      middle: [
+        { id: "in_progress", status_key: "in_progress" },
+        { id: "new:QA", new_name: "QA", category: "started" as const },
+      ],
+      handoffs: {
+        in_progress: { handler: { type: "agent" as const, id: "agent-1" }, instructions: "Build it." },
+        "new:QA": { handler: { type: "member" as const, id: "user-1" }, instructions: "" },
+      },
+    },
+    notes: [{ code: "status_will_be_created" as const, step: "qa" }],
+  };
+
+  it("opens as an unsaved draft with what the import changed, and saves it as written", async () => {
+    createWorkflow.mockResolvedValue({ id: "wf-1" });
+    renderEditor({ imported, canCreateStatus: true });
+
+    expect((screen.getByRole("textbox", { name: "Name" }) as HTMLInputElement).value).toBe("Imported flow");
+    expect(screen.getByText(/“qa” does not exist here and will be created when you save/)).toBeTruthy();
+    expect(stepCard("QA")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Create" }));
+    await waitFor(() => expect(createWorkflow).toHaveBeenCalled());
+    const body = createWorkflow.mock.calls[0]![0] as { name: string; description: string; steps: unknown[] };
+    expect(body).toMatchObject({ name: "Imported flow", description: "From another workspace" });
+    expect(body.steps).toContainEqual({
+      status_key: "in_progress",
+      handler: { type: "agent", id: "agent-1" },
+      instructions: "Build it.",
+    });
+    expect(body.steps).toContainEqual({ new_status: { name: "QA", category: "started" }, handler: { type: "member", id: "user-1" }, instructions: "" });
+    // Backlog and blocked were not in the file, so they are not listed.
+    expect(body.steps).not.toContainEqual({ status_key: "backlog" });
+  });
+
+  it("does not offer to create a status a member cannot create", () => {
+    renderEditor({ imported, canCreateStatus: false });
+    expect(screen.getByRole("alert").textContent).toMatch(/Only workspace admins can add statuses/);
+    expect(screen.getByRole("button", { name: "Create" }).hasAttribute("disabled")).toBe(true);
   });
 });
 

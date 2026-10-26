@@ -1,13 +1,13 @@
 "use client";
 
-import { Fragment, useMemo } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronDown, ChevronRight, LayoutTemplate, Plus } from "lucide-react";
+import { ChevronDown, ChevronRight, FileUp, LayoutTemplate, Plus } from "lucide-react";
 import { useAuthStore } from "@multica/core/auth";
 import { useWorkspaceId } from "@multica/core/hooks";
 import { useIssueStatuses } from "@multica/core/issue-statuses/hooks";
 import { statusColumnKeys } from "@multica/core/issues";
-import { useIssueWorkflows } from "@multica/core/issue-workflows";
+import { useIssueWorkflows, type ResolvedWorkflowImport } from "@multica/core/issue-workflows";
 import { projectListOptions } from "@multica/core/projects/queries";
 import { memberListOptions } from "@multica/core/workspace/queries";
 import type { IssueWorkflow, IssueWorkflowStep, Project } from "@multica/core/types";
@@ -30,10 +30,12 @@ import { SettingsTab } from "../settings/components/settings-layout";
 import { useT } from "../i18n";
 import { WORKFLOW_TEMPLATES, type WorkflowTemplateId } from "./templates";
 import { WorkflowEditorPage } from "./workflow-editor-page";
+import { WorkflowImportDialog } from "./workflow-yaml";
 
 const WORKFLOW_PARAM = "workflow";
 const DUPLICATE_PARAM = "from";
 const TEMPLATE_PARAM = "template";
+const IMPORT_PARAM = "import";
 const NEW_WORKFLOW = "new";
 
 /**
@@ -62,6 +64,10 @@ export function WorkflowsTab() {
   const open = navigation.searchParams.get(WORKFLOW_PARAM);
   const duplicateOf = navigation.searchParams.get(DUPLICATE_PARAM);
   const templateParam = navigation.searchParams.get(TEMPLATE_PARAM);
+  // A workflow read from a YAML file is held here, not in the URL: it opens in the editor as an unsaved draft.
+  const [imported, setImported] = useState<ResolvedWorkflowImport | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
+  const importing = navigation.searchParams.get(IMPORT_PARAM) === "1" ? imported : null;
   const template = WORKFLOW_TEMPLATES.find((tpl) => tpl.id === templateParam)?.id ?? null;
   const hrefWith = (params: Record<string, string | null>) => {
     const next = new URLSearchParams(navigation.searchParams);
@@ -72,9 +78,17 @@ export function WorkflowsTab() {
     return `${navigation.pathname}?${next.toString()}`;
   };
   const openEditor = (id: string, from: WorkflowTemplateId | null = null) =>
-    navigation.push(hrefWith({ [WORKFLOW_PARAM]: id, [DUPLICATE_PARAM]: null, [TEMPLATE_PARAM]: from }));
-  const backToList = () =>
-    navigation.push(hrefWith({ [WORKFLOW_PARAM]: null, [DUPLICATE_PARAM]: null, [TEMPLATE_PARAM]: null }));
+    navigation.push(hrefWith({ [WORKFLOW_PARAM]: id, [DUPLICATE_PARAM]: null, [TEMPLATE_PARAM]: from, [IMPORT_PARAM]: null }));
+  const backToList = () => {
+    setImported(null);
+    navigation.push(hrefWith({ [WORKFLOW_PARAM]: null, [DUPLICATE_PARAM]: null, [TEMPLATE_PARAM]: null, [IMPORT_PARAM]: null }));
+  };
+  const openImported = (resolved: ResolvedWorkflowImport) => {
+    setImported(resolved);
+    navigation.push(
+      hrefWith({ [WORKFLOW_PARAM]: NEW_WORKFLOW, [DUPLICATE_PARAM]: null, [TEMPLATE_PARAM]: null, [IMPORT_PARAM]: "1" }),
+    );
+  };
 
   const usage = useMemo(() => {
     const counts = new Map<string, number>();
@@ -89,19 +103,20 @@ export function WorkflowsTab() {
     const seed = open === NEW_WORKFLOW && duplicateOf ? workflows.find((w) => w.id === duplicateOf) ?? null : null;
     return (
       <WorkflowEditorPage
-        key={`${open}:${duplicateOf ?? ""}:${template ?? ""}`}
+        key={`${open}:${duplicateOf ?? ""}:${template ?? ""}:${importing ? "import" : ""}`}
         workflowId={open === NEW_WORKFLOW ? null : open}
         seed={seed}
-        template={open === NEW_WORKFLOW && !duplicateOf ? template : null}
+        imported={open === NEW_WORKFLOW && !duplicateOf ? importing : null}
+        template={open === NEW_WORKFLOW && !duplicateOf && !importing ? template : null}
         canEdit={open === NEW_WORKFLOW ? canCreate : canEditWorkflow(open)}
         canDuplicate={canCreate}
         canCreateStatus={isAdmin}
         onBack={backToList}
         onOpen={(target) =>
           "id" in target
-            ? navigation.replace(hrefWith({ [WORKFLOW_PARAM]: target.id, [DUPLICATE_PARAM]: null, [TEMPLATE_PARAM]: null }))
+            ? navigation.replace(hrefWith({ [WORKFLOW_PARAM]: target.id, [DUPLICATE_PARAM]: null, [TEMPLATE_PARAM]: null, [IMPORT_PARAM]: null }))
             : navigation.push(
-                hrefWith({ [WORKFLOW_PARAM]: NEW_WORKFLOW, [DUPLICATE_PARAM]: target.duplicateOf, [TEMPLATE_PARAM]: null }),
+                hrefWith({ [WORKFLOW_PARAM]: NEW_WORKFLOW, [DUPLICATE_PARAM]: target.duplicateOf, [TEMPLATE_PARAM]: null, [IMPORT_PARAM]: null }),
               )
         }
       />
@@ -130,6 +145,10 @@ export function WorkflowsTab() {
               <DropdownMenuItem onClick={() => openEditor(NEW_WORKFLOW)}>
                 <Plus className="size-3.5" />
                 {t(($) => $.workflows.settings.new_blank)}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setImportOpen(true)}>
+                <FileUp className="size-3.5" />
+                {t(($) => $.workflows.yaml.import_menu)}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuGroup>
@@ -172,6 +191,7 @@ export function WorkflowsTab() {
         embedded={{ title: t(($) => $.workflows.settings.statuses_title) }}
         workflowUsage={usage}
       />
+      <WorkflowImportDialog open={importOpen} onOpenChange={setImportOpen} onImport={openImported} />
     </SettingsTab>
   );
 }

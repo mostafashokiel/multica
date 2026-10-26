@@ -86,6 +86,12 @@ Agent time is the time agents spent running on the issue during a step. A person
 
 To see where time goes across many issues, open the workflow in **Settings → Workflows** and choose **Insights**. For issues created in the last 7, 30, or 90 days, it shows how many finished, the typical total, how often a step sent work back, the step that takes the largest share of the time, and how long each agent and person takes. Typical values are medians; **Slowest 10%** shows the slow tail.
 
+## Move a workflow between workspaces
+
+To move a workflow to another workspace or environment, open it in **Settings → Workflows**, open the **⋯** menu, and choose **Copy as YAML** or **Download YAML**. In the other workspace, choose **New workflow → Import from YAML…**, then paste the text or load the file.
+
+The file names things instead of using ids: agents and squads by name, members by email, and statuses by key, with a name and category for custom statuses so the other workspace can create them. Importing saves nothing. It opens the workflow in the editor as an unsaved draft and lists what changed: a status that will be created, an agent, squad, or member that does not exist there (that step is imported without a handoff), and a link to a status that does not exist yet (set it after saving). Instructions and the next and back statuses only apply to agent steps, so other steps do not carry them. Review the draft, then choose **Create**.
+
 ## Adjust a workflow
 
 A workflow can be shared by several projects. Changes saved in **Settings → Workflows** apply to every project using it. To give one project a different process, duplicate the workflow and select the copy in that project.

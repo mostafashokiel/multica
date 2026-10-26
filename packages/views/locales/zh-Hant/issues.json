@@ -1752,6 +1752,39 @@
       "empty": "此時間範圍內沒有建立此工作流的任務。",
       "truncated": "顯示最新的 {{count}} 個任務。",
       "error": "無法讀取洞察資料。"
+    },
+    "yaml": {
+      "import_menu": "從 YAML 匯入…",
+      "import_title": "從 YAML 匯入工作流",
+      "import_description": "貼上或載入工作流檔案。此時不會儲存任何內容：它會在編輯器中開啟，供你先檢查。",
+      "import_label": "工作流 YAML",
+      "load_file": "載入檔案…",
+      "problems_title": "檔案中的問題",
+      "line": "第 {{line}} 行",
+      "ready_other": "就緒：{{count}} 個步驟",
+      "open_in_editor": "在編輯器中開啟",
+      "file_read_failed": "無法讀取該檔案。",
+      "copy": "複製為 YAML",
+      "download": "下載 YAML",
+      "copied": "已複製 YAML",
+      "copy_failed": "無法複製到剪貼簿。",
+      "downloaded": "已下載 YAML",
+      "export_warnings_other": "因對應的智慧體、小隊或成員已不存在，{{count}} 個負責人被省略。",
+      "notes": {
+        "title": "匯入時的變更",
+        "status_matched_by_name": "「{{step}}」已對應到現有狀態「{{detail}}」。",
+        "status_will_be_created": "「{{step}}」在此不存在，儲存時會建立。",
+        "category_adjusted": "「{{step}}」被標為 {{detail}}；新欄只能用於開始工作，因此會建立為進行中。",
+        "handler_not_found": {
+          "agent": "此處沒有智慧體「{{detail}}」，因此「{{step}}」匯入時不帶交接。",
+          "squad": "此處沒有小隊「{{detail}}」，因此「{{step}}」匯入時不帶交接。",
+          "member": "此處沒有電子郵件為 {{detail}} 的成員，因此「{{step}}」匯入時不帶交接。"
+        },
+        "link_dropped": "「{{step}}」指向此工作流中沒有的「{{detail}}」，該連結已移除。",
+        "step_duplicate": "「{{step}}」與前面的步驟是同一欄，已略過。",
+        "link_to_new_status": "「{{step}}」指向儲存時才會建立的「{{detail}}」，請在儲存後再設定該連結。",
+        "fields_ignored": "「{{step}}」帶有說明或下一步/退回連結，但只有智慧體步驟會用到，因此未匯入。"
+      }
     }
   },
   "hover_card": {

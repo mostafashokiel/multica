@@ -23,8 +23,10 @@ import {
   ChevronDown,
   ChartColumn,
   ChevronRight,
+  ClipboardCopy,
   Copy,
   CornerDownRight,
+  Download,
   FolderKanban,
   GripVertical,
   MoreHorizontal,
@@ -47,6 +49,10 @@ import {
   useUpdateIssueWorkflow,
   workflowMiddleKeys,
   workflowNextStatus,
+  type ResolvedWorkflowImport,
+  type WorkflowDraftColumn,
+  type WorkflowDraftHandoff,
+  type WorkflowDraftSeed,
 } from "@multica/core/issue-workflows";
 import { useActorName } from "@multica/core/workspace/hooks";
 import { projectListOptions } from "@multica/core/projects/queries";
@@ -78,6 +84,7 @@ import { BriefPreviewDialog, HandoffFields, savedHandoff } from "./handoff-form"
 import { stepHandlerActor, useStepHandlerLabel } from "./step-handler";
 import { WORKFLOW_TEMPLATES, type WorkflowTemplateId } from "./templates";
 import { WorkflowInsightsDialog } from "./workflow-insights-dialog";
+import { ImportNotes, useWorkflowYamlExport } from "./workflow-yaml";
 import { WorkflowMappingDialog } from "./workflow-mapping-dialog";
 
 /**
@@ -91,21 +98,15 @@ const INLINE_FIELD =
 const NEW_WORKFLOW_MIDDLE = ["in_progress", "in_review"];
 
 /** A middle column of the draft: a library status, or one to create on save. */
-type DraftColumn = { id: string; status_key: string } | { id: string; new_name: string; category?: "unstarted" | "started" };
+type DraftColumn = WorkflowDraftColumn;
 
 /** What entering a column does, keyed in the draft by column id. */
-type Handoff = Pick<IssueWorkflowStep, "handler" | "instructions" | "next_status_key" | "back_status_key">;
+type Handoff = WorkflowDraftHandoff;
 
 const NO_HANDOFF: Handoff = { handler: { type: "none" }, instructions: "" };
 
-interface Draft {
-  name: string;
-  description: string;
-  backlog: boolean;
-  blocked: boolean;
-  middle: DraftColumn[];
-  handoffs: Record<string, Handoff>;
-}
+/** The workflow as the editor holds it before a save; an import produces the same shape. */
+type Draft = WorkflowDraftSeed;
 
 /**
  * The key a column goes by in the editor: its status, or — for a status the
@@ -171,6 +172,7 @@ function mappingPlanFrom(err: unknown): IssueWorkflowMappingPlan | null {
 export function WorkflowEditorPage({
   workflowId,
   seed,
+  imported,
   template,
   canEdit,
   canDuplicate = canEdit,
@@ -180,6 +182,8 @@ export function WorkflowEditorPage({
 }: {
   workflowId: string | null;
   seed: IssueWorkflow | null;
+  /** A workflow read from a YAML file: opens as an unsaved draft, with what the import changed. */
+  imported?: ResolvedWorkflowImport | null;
   /** Pre-fills a new workflow from a template. */
   template?: WorkflowTemplateId | null;
   canEdit: boolean;
@@ -208,6 +212,7 @@ export function WorkflowEditorPage({
   const isDefault = !!saved?.is_default;
   const baseline = useMemo<Draft>(() => {
     if (saved) return draftFrom(saved);
+    if (imported) return imported.draft;
     if (seed) return { ...draftFrom(seed), name: t(($) => $.workflows.editor.copy_name, { name: seed.name }) };
     const tpl = template ? WORKFLOW_TEMPLATES.find((x) => x.id === template) : undefined;
     if (tpl) {
@@ -239,13 +244,14 @@ export function WorkflowEditorPage({
     };
     // Re-seed only when the target changes or the saved row is refreshed.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [saved?.updated_at, workflowId, seed?.id, template, catalog.activeStatuses.length]);
+  }, [saved?.updated_at, workflowId, seed?.id, imported, template, catalog.activeStatuses.length]);
 
   const [draft, setDraft] = useState<Draft>(baseline);
   const [mappingPlan, setMappingPlan] = useState<IssueWorkflowMappingPlan | null>(null);
   const [newName, setNewName] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [insightsOpen, setInsightsOpen] = useState(false);
+  const yamlExport = useWorkflowYamlExport(saved);
   const [previewOpen, setPreviewOpen] = useState(false);
   useEffect(() => setDraft(baseline), [baseline]);
 
@@ -478,7 +484,7 @@ export function WorkflowEditorPage({
                   {workflowId ? t(($) => $.workflows.editor.save) : t(($) => $.workflows.editor.create)}
                 </Button>
               )}
-              {canEdit && workflowId && !isDefault && (
+              {workflowId && (
                 <DropdownMenu>
                   <DropdownMenuTrigger
                     render={
@@ -488,18 +494,31 @@ export function WorkflowEditorPage({
                     }
                   />
                   <DropdownMenuContent align="end" className="w-56">
-                    <DropdownMenuItem
-                      variant="destructive"
-                      disabled={usedBy.length > 0 || deleteWorkflow.isPending}
-                      onClick={() => void remove()}
-                    >
-                      <Trash2 className="size-3.5" />
-                      {t(($) => $.workflows.settings.delete)}
+                    <DropdownMenuItem onClick={() => void yamlExport.copy()}>
+                      <ClipboardCopy className="size-3.5" />
+                      {t(($) => $.workflows.yaml.copy)}
                     </DropdownMenuItem>
-                    {usedBy.length > 0 && (
-                      <p className="px-2 pb-1.5 text-caption text-muted-foreground">
-                        {t(($) => $.workflows.settings.delete_in_use)}
-                      </p>
+                    <DropdownMenuItem onClick={() => void yamlExport.download()}>
+                      <Download className="size-3.5" />
+                      {t(($) => $.workflows.yaml.download)}
+                    </DropdownMenuItem>
+                    {canEdit && !isDefault && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          variant="destructive"
+                          disabled={usedBy.length > 0 || deleteWorkflow.isPending}
+                          onClick={() => void remove()}
+                        >
+                          <Trash2 className="size-3.5" />
+                          {t(($) => $.workflows.settings.delete)}
+                        </DropdownMenuItem>
+                        {usedBy.length > 0 && (
+                          <p className="px-2 pb-1.5 text-caption text-muted-foreground">
+                            {t(($) => $.workflows.settings.delete_in_use)}
+                          </p>
+                        )}
+                      </>
                     )}
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -508,6 +527,8 @@ export function WorkflowEditorPage({
           )}
         </div>
       </div>
+
+      {!workflowId && imported && <ImportNotes notes={imported.notes} />}
 
       <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
         <div className="min-w-0">
