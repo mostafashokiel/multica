@@ -84,6 +84,7 @@ import { BriefPreviewDialog, HandoffFields, savedHandoff } from "./handoff-form"
 import { stepHandlerActor, useStepHandlerLabel } from "./step-handler";
 import { WORKFLOW_TEMPLATES, type WorkflowTemplateId } from "./templates";
 import { WorkflowInsightsDialog } from "./workflow-insights-dialog";
+import { WorkflowDiagram, type DiagramNode } from "./workflow-diagram";
 import { ImportNotes, useWorkflowYamlExport } from "./workflow-yaml";
 import { WorkflowMappingDialog } from "./workflow-mapping-dialog";
 
@@ -202,6 +203,7 @@ export function WorkflowEditorPage({
   const wsId = useWorkspaceId();
   const catalog = useIssueStatuses(wsId);
   const labelOf = useStatusLabel(wsId);
+  const handlerLabelOf = useStepHandlerLabel(null);
   const { workflows, isLoaded } = useIssueWorkflows(wsId);
   const { data: projects = [] } = useQuery(projectListOptions(wsId));
   const createWorkflow = useCreateIssueWorkflow();
@@ -251,6 +253,7 @@ export function WorkflowEditorPage({
   const [newName, setNewName] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [insightsOpen, setInsightsOpen] = useState(false);
+  const [view, setView] = useState<"list" | "diagram">("list");
   const yamlExport = useWorkflowYamlExport(saved);
   const [previewOpen, setPreviewOpen] = useState(false);
   useEffect(() => setDraft(baseline), [baseline]);
@@ -385,6 +388,33 @@ export function WorkflowEditorPage({
   const current = listed.find((c) => c.id === selectedId) ?? listed[1]!;
   const nextOf = (column: DraftColumn, h: Handoff | undefined) =>
     h?.next_status_key ?? workflowNextStatus(draftFlow, columnKey(column));
+  // The diagram draws what an agent does after each step; people move their steps by hand, so those have no arrows.
+  const diagramNodes: DiagramNode[] = listed
+    .filter((c) => !isOff(c))
+    .map((column) => {
+      const h = draft.handoffs[column.id];
+      const key = columnKey(column);
+      const isAgent = h?.handler.type === "agent";
+      return {
+        id: column.id,
+        label: "status_key" in column ? labelOf(column.status_key) : column.new_name,
+        who: handlerLabelOf(h ? { status_key: key, ...h } : undefined) || undefined,
+        icon:
+          "status_key" in column ? (
+            <StatusIcon
+              status={column.status_key}
+              category={catalog.categoryOf(column.status_key)}
+              color={catalog.colorOf(column.status_key)}
+              icon={catalog.iconOf(column.status_key)}
+              className="h-3.5 w-3.5"
+            />
+          ) : (
+            <Plus aria-hidden className="size-3.5 text-muted-foreground" />
+          ),
+        next: isAgent ? nextOf(column, h) : undefined,
+        back: isAgent ? h?.back_status_key : undefined,
+      };
+    });
   const card = (column: DraftColumn) => {
     const key = "status_key" in column ? column.status_key : null;
     const optional = key === "backlog" || key === "blocked";
@@ -532,16 +562,33 @@ export function WorkflowEditorPage({
 
       <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
         <div className="min-w-0">
-          <ol className="space-y-2">
-            {card(listed[0]!)}
-            {card(listed[1]!)}
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-              <SortableContext items={ids} strategy={verticalListSortingStrategy}>
-                {draft.middle.map(card)}
-              </SortableContext>
-            </DndContext>
-            {listed.slice(-3).map(card)}
-          </ol>
+          <div role="group" aria-label={t(($) => $.workflows.diagram.view_label)} className="mb-2 flex gap-1">
+            {(["list", "diagram"] as const).map((v) => (
+              <Button
+                key={v}
+                size="sm"
+                variant={view === v ? "secondary" : "ghost"}
+                aria-pressed={view === v}
+                onClick={() => setView(v)}
+              >
+                {t(($) => $.workflows.diagram[v])}
+              </Button>
+            ))}
+          </div>
+          {view === "diagram" ? (
+            <WorkflowDiagram nodes={diagramNodes} selectedId={current.id} onSelect={setSelected} />
+          ) : (
+            <ol className="space-y-2">
+              {card(listed[0]!)}
+              {card(listed[1]!)}
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+                <SortableContext items={ids} strategy={verticalListSortingStrategy}>
+                  {draft.middle.map(card)}
+                </SortableContext>
+              </DndContext>
+              {listed.slice(-3).map(card)}
+            </ol>
+          )}
           {canEdit && (
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <DropdownMenu>

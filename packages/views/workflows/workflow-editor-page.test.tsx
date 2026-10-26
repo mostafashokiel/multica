@@ -137,6 +137,21 @@ describe("WorkflowEditorPage import from YAML", () => {
     expect(body.steps).not.toContainEqual({ status_key: "backlog" });
   });
 
+  it("shows the draft as a diagram and selects a step from it", () => {
+    renderEditor({ imported, canCreateStatus: true });
+    expect(screen.queryByRole("group", { name: "Workflow diagram" })).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Diagram" }));
+    const diagram = screen.getByRole("group", { name: "Workflow diagram" });
+    // Backlog and blocked are off, so they are not drawn.
+    expect(diagram.querySelectorAll("button")).toHaveLength(5);
+    fireEvent.click(screen.getByRole("button", { name: /^QA/ }));
+    expect(screen.getByRole("heading", { name: "QA" })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "List" }));
+    expect(screen.queryByRole("group", { name: "Workflow diagram" })).toBeNull();
+  });
+
   it("does not offer to create a status a member cannot create", () => {
     renderEditor({ imported, canCreateStatus: false });
     expect(screen.getByRole("alert").textContent).toMatch(/Only workspace admins can add statuses/);

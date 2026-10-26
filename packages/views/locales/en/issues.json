@@ -1855,6 +1855,15 @@
         "link_to_new_status": "“{{step}}” points to “{{detail}}”, which will be created when you save. Set that link after saving.",
         "fields_ignored": "“{{step}}” has instructions or next/back links, but only agent steps use them, so they were not imported."
       }
+    },
+    "diagram": {
+      "view_label": "View",
+      "list": "List",
+      "diagram": "Diagram",
+      "aria": "Workflow diagram",
+      "next": "Moves on to",
+      "back": "Sent back to",
+      "hint": "Select a step to edit it. Arrows show where an agent moves the issue next and where it sends it back; steps handled by people move on by hand."
     }
   },
   "hover_card": {

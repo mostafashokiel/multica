@@ -1855,6 +1855,15 @@
         "link_to_new_status": "« {{step}} » renvoie vers « {{detail}} », qui sera créé à l’enregistrement. Définissez ce lien après l’enregistrement.",
         "fields_ignored": "« {{step}} » contient des consignes ou des liens suivant/retour, mais seules les étapes d’agent les utilisent ; ils n’ont pas été importés."
       }
+    },
+    "diagram": {
+      "view_label": "Affichage",
+      "list": "Liste",
+      "diagram": "Schéma",
+      "aria": "Schéma du workflow",
+      "next": "Passe à",
+      "back": "Renvoyé à",
+      "hint": "Sélectionnez une étape pour la modifier. Les flèches montrent où un agent fait avancer la tâche et où il la renvoie ; les étapes confiées à des personnes avancent à la main."
     }
   },
   "hover_card": {
