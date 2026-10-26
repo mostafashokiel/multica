@@ -147,3 +147,93 @@ export interface SetWorkflowHandoffRequest {
   next_status_key?: string;
   back_status_key?: string;
 }
+
+/** What a visit to a workflow step was waiting on: who is expected to move the issue on. */
+export type WorkflowVisitKind = "agent" | "person" | "other" | "parked" | "end";
+export type WorkflowVisitOutcome = "passed" | "sent_back" | "blocked" | "waiting" | "";
+
+/** One stay of an issue in one status of its project's workflow. */
+export interface WorkflowVisit {
+  status_key: string;
+  kind: WorkflowVisitKind;
+  handler: string;
+  /** 1 for the first visit to this status, 2 after a rework. */
+  number: number;
+  entered_at: string;
+  left_at: string | null;
+  open: boolean;
+  elapsed_seconds: number;
+  agent_seconds: number;
+  agent_ids: string[];
+  /** Person steps: until their first comment, or until the issue left. */
+  wait_seconds: number;
+  answered_at: string | null;
+  answered_by: string;
+  outcome: WorkflowVisitOutcome;
+}
+
+/**
+ * How long one issue spent in each step of its project's workflow (MUL-7420),
+ * measured from its status changes, agent runs and member comments.
+ */
+export interface WorkflowTimeline {
+  started_at: string | null;
+  ended_at: string | null;
+  /** Not finished: the totals count up to now. */
+  open: boolean;
+  elapsed_seconds: number;
+  agent_seconds: number;
+  people_seconds: number;
+  other_seconds: number;
+  reworks: number;
+  visits: WorkflowVisit[];
+}
+
+export interface WorkflowStepInsight {
+  status_key: string;
+  kind: WorkflowVisitKind;
+  visits: number;
+  open_visits: number;
+  median_seconds: number;
+  p90_seconds: number;
+  total_seconds: number;
+  sent_back: number;
+}
+
+export interface WorkflowAgentInsight {
+  agent_id: string;
+  visits: number;
+  median_seconds: number;
+  p90_seconds: number;
+  total_seconds: number;
+}
+
+export interface WorkflowPersonInsight {
+  user_id: string;
+  answers: number;
+  median_seconds: number;
+  p90_seconds: number;
+  slowest_seconds: number;
+}
+
+/** How the issues of one workflow moved through it over the last `days`. */
+export interface WorkflowInsights {
+  days: number;
+  runs: number;
+  finished: number;
+  open: number;
+  /** More issues matched than one request reads. */
+  truncated: boolean;
+  median_elapsed_seconds: number;
+  p90_elapsed_seconds: number;
+  median_agent_seconds: number;
+  median_people_seconds: number;
+  median_other_seconds: number;
+  sent_back: number;
+  bottleneck_status_key: string;
+  steps: WorkflowStepInsight[];
+  agents: WorkflowAgentInsight[];
+  people: WorkflowPersonInsight[];
+}
+
+export type WorkflowInsightsDays = 7 | 30 | 90;

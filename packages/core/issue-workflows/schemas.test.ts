@@ -9,6 +9,10 @@ import {
   ListIssueWorkflowsResponseSchema,
   WorkflowHandoffPreviewSchema,
   EMPTY_WORKFLOW_HANDOFF_PREVIEW,
+  WorkflowTimelineSchema,
+  EMPTY_WORKFLOW_TIMELINE,
+  WorkflowInsightsSchema,
+  EMPTY_WORKFLOW_INSIGHTS,
 } from "../api/schemas";
 
 const baseWorkflow = {
@@ -108,5 +112,64 @@ describe("workflow schemas (MUL-7420)", () => {
       { endpoint: "GET /api/issues/{id}/workflow-handoff" },
     );
     expect(parsed).toEqual(EMPTY_WORKFLOW_HANDOFF_PREVIEW);
+  });
+
+  describe("timing", () => {
+    const visit = {
+      status_key: "in_review",
+      kind: "person",
+      handler: "member",
+      number: 1,
+      entered_at: "2026-10-20T10:00:00Z",
+      left_at: null,
+      open: true,
+      elapsed_seconds: 120,
+      agent_seconds: 0,
+      agent_ids: [],
+      wait_seconds: 120,
+      answered_at: null,
+      answered_by: "",
+      outcome: "waiting",
+    };
+
+    it("parses a timeline", () => {
+      const raw = { ...EMPTY_WORKFLOW_TIMELINE, started_at: "2026-10-20T09:00:00Z", open: true, elapsed_seconds: 3600, visits: [visit] };
+      const parsed = parseWithFallback(raw, WorkflowTimelineSchema, EMPTY_WORKFLOW_TIMELINE, { endpoint: "test" });
+      expect(parsed.elapsed_seconds).toBe(3600);
+      expect(parsed.visits[0]).toMatchObject({ status_key: "in_review", kind: "person", outcome: "waiting", wait_seconds: 120 });
+    });
+
+    it("reads an unknown visit kind or outcome as a neutral value, and a missing number as zero", () => {
+      const raw = { visits: [{ ...visit, kind: "robot", outcome: "teleported", elapsed_seconds: "soon" }] };
+      const parsed = parseWithFallback(raw, WorkflowTimelineSchema, EMPTY_WORKFLOW_TIMELINE, { endpoint: "test" });
+      expect(parsed.visits[0]).toMatchObject({ kind: "other", outcome: "", elapsed_seconds: 0 });
+      expect(parsed.elapsed_seconds).toBe(0);
+    });
+
+    it("falls back to an empty timeline on a malformed response", () => {
+      const parsed = parseWithFallback("nope", WorkflowTimelineSchema, EMPTY_WORKFLOW_TIMELINE, { endpoint: "test" });
+      expect(parsed).toEqual(EMPTY_WORKFLOW_TIMELINE);
+    });
+
+    it("parses insights and tolerates lists a server leaves out", () => {
+      const raw = {
+        days: 30,
+        runs: 2,
+        finished: 2,
+        median_elapsed_seconds: 600,
+        bottleneck_status_key: "in_review",
+        steps: [{ status_key: "in_review", kind: "person", visits: 2, median_seconds: 300 }],
+      };
+      const parsed = parseWithFallback(raw, WorkflowInsightsSchema, EMPTY_WORKFLOW_INSIGHTS, { endpoint: "test" });
+      expect(parsed.steps[0]).toMatchObject({ status_key: "in_review", visits: 2, median_seconds: 300, p90_seconds: 0 });
+      expect(parsed.agents).toEqual([]);
+      expect(parsed.people).toEqual([]);
+      expect(parsed.truncated).toBe(false);
+    });
+
+    it("falls back to empty insights on a malformed response", () => {
+      const parsed = parseWithFallback(null, WorkflowInsightsSchema, EMPTY_WORKFLOW_INSIGHTS, { endpoint: "test" });
+      expect(parsed).toEqual(EMPTY_WORKFLOW_INSIGHTS);
+    });
   });
 });

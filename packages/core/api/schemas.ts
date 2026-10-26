@@ -2,6 +2,10 @@ import { z } from "zod";
 import { normalizeIssueStatusCategory } from "../issues/config/status";
 import type {
   WorkflowHandoffPreview,
+  WorkflowInsights,
+  WorkflowTimeline,
+  WorkflowVisitKind,
+  WorkflowVisitOutcome,
   IssueWorkflow,
   IssueWorkflowDryRunResponse,
   IssueWorkflowHandlerType,
@@ -662,6 +666,116 @@ export const EMPTY_WORKFLOW_HANDOFF_PREVIEW: WorkflowHandoffPreview = {
   previous_assignee_id: null,
   previous_runs: [],
   brief: "",
+};
+
+// Workflow timing (MUL-7420). Numbers a server leaves out read as zero and an
+// unknown kind or outcome as "other"/"", so a newer server never breaks the
+// page: it only shows less.
+const VISIT_KINDS = new Set<string>(["agent", "person", "other", "parked", "end"]);
+const VISIT_OUTCOMES = new Set<string>(["passed", "sent_back", "blocked", "waiting"]);
+const seconds = z.number().nonnegative().catch(0).default(0);
+const count = z.number().int().nonnegative().catch(0).default(0);
+
+const visitKind = z.string().default("other").transform((v): WorkflowVisitKind =>
+  VISIT_KINDS.has(v) ? (v as WorkflowVisitKind) : "other",
+);
+
+export const WorkflowTimelineSchema = z.object({
+  started_at: z.string().nullable().default(null),
+  ended_at: z.string().nullable().default(null),
+  open: z.boolean().default(false),
+  elapsed_seconds: seconds,
+  agent_seconds: seconds,
+  people_seconds: seconds,
+  other_seconds: seconds,
+  reworks: count,
+  visits: z.array(z.object({
+    status_key: z.string(),
+    kind: visitKind,
+    handler: z.string().default(""),
+    number: z.number().int().positive().catch(1).default(1),
+    entered_at: z.string(),
+    left_at: z.string().nullable().default(null),
+    open: z.boolean().default(false),
+    elapsed_seconds: seconds,
+    agent_seconds: seconds,
+    agent_ids: z.array(z.string()).default([]),
+    wait_seconds: seconds,
+    answered_at: z.string().nullable().default(null),
+    answered_by: z.string().default(""),
+    outcome: z.string().default("").transform((v): WorkflowVisitOutcome =>
+      VISIT_OUTCOMES.has(v) ? (v as WorkflowVisitOutcome) : "",
+    ),
+  }).loose()).default([]),
+}).loose();
+
+export const EMPTY_WORKFLOW_TIMELINE: WorkflowTimeline = {
+  started_at: null,
+  ended_at: null,
+  open: false,
+  elapsed_seconds: 0,
+  agent_seconds: 0,
+  people_seconds: 0,
+  other_seconds: 0,
+  reworks: 0,
+  visits: [],
+};
+
+export const WorkflowInsightsSchema = z.object({
+  days: z.number().int().catch(30).default(30),
+  runs: count,
+  finished: count,
+  open: count,
+  truncated: z.boolean().default(false),
+  median_elapsed_seconds: seconds,
+  p90_elapsed_seconds: seconds,
+  median_agent_seconds: seconds,
+  median_people_seconds: seconds,
+  median_other_seconds: seconds,
+  sent_back: count,
+  bottleneck_status_key: z.string().default(""),
+  steps: z.array(z.object({
+    status_key: z.string(),
+    kind: visitKind,
+    visits: count,
+    open_visits: count,
+    median_seconds: seconds,
+    p90_seconds: seconds,
+    total_seconds: seconds,
+    sent_back: count,
+  }).loose()).default([]),
+  agents: z.array(z.object({
+    agent_id: z.string(),
+    visits: count,
+    median_seconds: seconds,
+    p90_seconds: seconds,
+    total_seconds: seconds,
+  }).loose()).default([]),
+  people: z.array(z.object({
+    user_id: z.string(),
+    answers: count,
+    median_seconds: seconds,
+    p90_seconds: seconds,
+    slowest_seconds: seconds,
+  }).loose()).default([]),
+}).loose();
+
+export const EMPTY_WORKFLOW_INSIGHTS: WorkflowInsights = {
+  days: 30,
+  runs: 0,
+  finished: 0,
+  open: 0,
+  truncated: false,
+  median_elapsed_seconds: 0,
+  p90_elapsed_seconds: 0,
+  median_agent_seconds: 0,
+  median_people_seconds: 0,
+  median_other_seconds: 0,
+  sent_back: 0,
+  bottleneck_status_key: "",
+  steps: [],
+  agents: [],
+  people: [],
 };
 
 export const ResourceLabelsResponseSchema = z.object({

@@ -1,6 +1,6 @@
 import { queryOptions } from "@tanstack/react-query";
 import { api } from "../api";
-import type { IssueWorkflow, IssueWorkflowStep, Project } from "../types";
+import type { IssueWorkflow, IssueWorkflowStep, Project, WorkflowInsightsDays } from "../types";
 
 /**
  * Workspace workflows (MUL-7420).
@@ -16,7 +16,35 @@ export const issueWorkflowKeys = {
   list: (wsId: string) => [...issueWorkflowKeys.all(wsId), "list"] as const,
   handoffPreview: (wsId: string, issueId: string, status: string, projectId = "") =>
     [...issueWorkflowKeys.all(wsId), "handoff-preview", issueId, status, projectId] as const,
+  timeline: (wsId: string, issueId: string) => [...issueWorkflowKeys.all(wsId), "timeline", issueId] as const,
+  insights: (wsId: string, workflowId: string, days: WorkflowInsightsDays) =>
+    [...issueWorkflowKeys.all(wsId), "insights", workflowId, days] as const,
 };
+
+/**
+ * How long an issue spent in each step of its workflow. It changes with every
+ * status move, run and comment, none of which refresh it, so it is read fresh
+ * each time it is opened and refreshed while open.
+ */
+export function workflowTimelineOptions(wsId: string, issueId: string) {
+  return queryOptions({
+    queryKey: issueWorkflowKeys.timeline(wsId, issueId),
+    queryFn: () => api.getWorkflowTimeline(issueId),
+    staleTime: 0,
+    gcTime: 60_000,
+    refetchInterval: 30_000,
+  });
+}
+
+/** How the issues of a workflow moved through it. A summary: a minute stale is fine. */
+export function workflowInsightsOptions(wsId: string, workflowId: string, days: WorkflowInsightsDays) {
+  return queryOptions({
+    queryKey: issueWorkflowKeys.insights(wsId, workflowId, days),
+    queryFn: () => api.getWorkflowInsights(workflowId, days),
+    staleTime: 60_000,
+    gcTime: 5 * 60_000,
+  });
+}
 
 /**
  * What moving an issue to `status` — or into project `projectId` — would do.

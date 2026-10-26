@@ -141,6 +141,9 @@ import type {
   SetProjectWorkflowRequest,
   SetWorkflowHandoffRequest,
   WorkflowHandoffPreview,
+  WorkflowInsights,
+  WorkflowInsightsDays,
+  WorkflowTimeline,
   IssueLabelsResponse,
   LabelResourceType,
   ResourceLabelsResponse,
@@ -423,6 +426,10 @@ import {
   EMPTY_ISSUE_WORKFLOW,
   EMPTY_ISSUE_WORKFLOW_DRY_RUN,
   WorkflowHandoffPreviewSchema,
+  WorkflowTimelineSchema,
+  EMPTY_WORKFLOW_TIMELINE,
+  WorkflowInsightsSchema,
+  EMPTY_WORKFLOW_INSIGHTS,
   EMPTY_WORKFLOW_HANDOFF_PREVIEW,
   IssueWorkflowBriefPreviewSchema,
   IssuePropertySchema,
@@ -4288,6 +4295,26 @@ export class ApiClient {
     const raw = await this.fetch<unknown>(`/api/issues/${issueId}/workflow-handoff?${query.toString()}`);
     return parseWithFallback(raw, WorkflowHandoffPreviewSchema, EMPTY_WORKFLOW_HANDOFF_PREVIEW, {
       endpoint: "GET /api/issues/{id}/workflow-handoff",
+    });
+  }
+
+  /**
+   * How long an issue spent in each step of its project's workflow, from its
+   * status changes, agent runs and member comments. An issue outside any
+   * project, or one that never left the backlog, has no visits.
+   */
+  async getWorkflowTimeline(issueId: string): Promise<WorkflowTimeline> {
+    const raw = await this.fetch<unknown>(`/api/issues/${issueId}/workflow-timeline`);
+    return parseWithFallback(raw, WorkflowTimelineSchema, EMPTY_WORKFLOW_TIMELINE, {
+      endpoint: "GET /api/issues/{id}/workflow-timeline",
+    });
+  }
+
+  /** How the issues of a workflow moved through it over the last 7, 30 or 90 days. */
+  async getWorkflowInsights(workflowId: string, days: WorkflowInsightsDays): Promise<WorkflowInsights> {
+    const raw = await this.fetch<unknown>(`/api/issue-workflows/${workflowId}/insights?days=${days}`);
+    return parseWithFallback(raw, WorkflowInsightsSchema, EMPTY_WORKFLOW_INSIGHTS, {
+      endpoint: "GET /api/issue-workflows/{id}/insights",
     });
   }
 
