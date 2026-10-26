@@ -63,6 +63,7 @@ import zhHantLabels from "./zh-Hant/labels.json";
 import zhHantMembers from "./zh-Hant/members.json";
 import zhHantMyIssues from "./zh-Hant/my-issues.json";
 import zhHantSearch from "./zh-Hant/search.json";
+import zhHantWorkflows from "./zh-Hant/workflows.json";
 import zhHantInbox from "./zh-Hant/inbox.json";
 import zhHantWorkspace from "./zh-Hant/workspace.json";
 import zhHantProjects from "./zh-Hant/projects.json";
@@ -228,6 +229,7 @@ export const RESOURCES: Record<SupportedLocale, LocaleResources> = {
     members: zhHantMembers,
     "my-issues": zhHantMyIssues,
     search: zhHantSearch,
+    workflows: zhHantWorkflows,
     inbox: zhHantInbox,
     workspace: zhHantWorkspace,
     projects: zhHantProjects,

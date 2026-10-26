@@ -17,8 +17,8 @@ export {
   workflowAllowsStatus,
   projectMoveMayHandOff,
   workflowHandoffPreviewOptions,
-  workflowTimelineOptions,
-  workflowInsightsOptions,
+  issueWorkflowTimelineOptions,
+  issueWorkflowInsightsOptions,
   handoffStepCount,
 } from "./queries";
 export { useIssueWorkflows, useProjectWorkflow, useProjectWithWorkflow } from "./hooks";

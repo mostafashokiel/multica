@@ -83,7 +83,7 @@ import { useT } from "../i18n";
 import { BriefPreviewDialog, HandoffFields, savedHandoff } from "./handoff-form";
 import { stepHandlerActor, useStepHandlerLabel } from "./step-handler";
 import { WORKFLOW_TEMPLATES, type WorkflowTemplateId } from "./templates";
-import { WorkflowInsightsDialog } from "./workflow-insights-dialog";
+import { IssueWorkflowInsightsDialog } from "./workflow-insights-dialog";
 import { WorkflowDiagram, type DiagramNode } from "./workflow-diagram";
 import { ImportNotes, useWorkflowYamlExport } from "./workflow-yaml";
 import { WorkflowMappingDialog } from "./workflow-mapping-dialog";
@@ -693,7 +693,7 @@ export function WorkflowEditorPage({
         pending={pending}
         onConfirm={(mapping) => void save(mapping)}
       />
-      {workflowId && <WorkflowInsightsDialog workflowId={workflowId} open={insightsOpen} onOpenChange={setInsightsOpen} />}
+      {workflowId && <IssueWorkflowInsightsDialog workflowId={workflowId} open={insightsOpen} onOpenChange={setInsightsOpen} />}
     </div>
   );
 }

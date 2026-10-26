@@ -8,7 +8,7 @@
     "autopilots": "Autopilot",
     "agents": "Agents",
     "squads": "Squads",
-    "workflows": "Workflows",
+    "workflows": "Playbooks",
     "pipeline": "Pipeline",
     "usage": "Analytics",
     "runtimes": "Runtimes",

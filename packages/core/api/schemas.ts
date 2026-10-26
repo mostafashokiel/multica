@@ -2,10 +2,10 @@ import { z } from "zod";
 import { normalizeIssueStatusCategory } from "../issues/config/status";
 import type {
   WorkflowHandoffPreview,
-  WorkflowInsights,
-  WorkflowTimeline,
-  WorkflowVisitKind,
-  WorkflowVisitOutcome,
+  IssueWorkflowInsights,
+  IssueWorkflowTimeline,
+  IssueWorkflowVisitKind,
+  IssueWorkflowVisitOutcome,
   IssueWorkflow,
   IssueWorkflowDryRunResponse,
   IssueWorkflowHandlerType,
@@ -685,22 +685,22 @@ export const EMPTY_WORKFLOW_HANDOFF_PREVIEW: WorkflowHandoffPreview = {
 // page: it only shows less.
 const VISIT_KINDS = new Set<string>(["agent", "person", "other", "parked", "end"]);
 const VISIT_OUTCOMES = new Set<string>(["passed", "sent_back", "blocked", "waiting"]);
-const seconds = z.number().nonnegative().catch(0).default(0);
-const count = z.number().int().nonnegative().catch(0).default(0);
+const timingSeconds = z.number().nonnegative().catch(0).default(0);
+const timingCount = z.number().int().nonnegative().catch(0).default(0);
 
-const visitKind = z.string().default("other").transform((v): WorkflowVisitKind =>
-  VISIT_KINDS.has(v) ? (v as WorkflowVisitKind) : "other",
+const visitKind = z.string().default("other").transform((v): IssueWorkflowVisitKind =>
+  VISIT_KINDS.has(v) ? (v as IssueWorkflowVisitKind) : "other",
 );
 
-export const WorkflowTimelineSchema = z.object({
+export const IssueWorkflowTimelineSchema = z.object({
   started_at: z.string().nullable().default(null),
   ended_at: z.string().nullable().default(null),
   open: z.boolean().default(false),
-  elapsed_seconds: seconds,
-  agent_seconds: seconds,
-  people_seconds: seconds,
-  other_seconds: seconds,
-  reworks: count,
+  elapsed_seconds: timingSeconds,
+  agent_seconds: timingSeconds,
+  people_seconds: timingSeconds,
+  other_seconds: timingSeconds,
+  reworks: timingCount,
   visits: z.array(z.object({
     status_key: z.string(),
     kind: visitKind,
@@ -709,19 +709,19 @@ export const WorkflowTimelineSchema = z.object({
     entered_at: z.string(),
     left_at: z.string().nullable().default(null),
     open: z.boolean().default(false),
-    elapsed_seconds: seconds,
-    agent_seconds: seconds,
+    elapsed_seconds: timingSeconds,
+    agent_seconds: timingSeconds,
     agent_ids: z.array(z.string()).default([]),
-    wait_seconds: seconds,
+    wait_seconds: timingSeconds,
     answered_at: z.string().nullable().default(null),
     answered_by: z.string().default(""),
-    outcome: z.string().default("").transform((v): WorkflowVisitOutcome =>
-      VISIT_OUTCOMES.has(v) ? (v as WorkflowVisitOutcome) : "",
+    outcome: z.string().default("").transform((v): IssueWorkflowVisitOutcome =>
+      VISIT_OUTCOMES.has(v) ? (v as IssueWorkflowVisitOutcome) : "",
     ),
   }).loose()).default([]),
 }).loose();
 
-export const EMPTY_WORKFLOW_TIMELINE: WorkflowTimeline = {
+export const EMPTY_ISSUE_WORKFLOW_TIMELINE: IssueWorkflowTimeline = {
   started_at: null,
   ended_at: null,
   open: false,
@@ -733,46 +733,46 @@ export const EMPTY_WORKFLOW_TIMELINE: WorkflowTimeline = {
   visits: [],
 };
 
-export const WorkflowInsightsSchema = z.object({
+export const IssueWorkflowInsightsSchema = z.object({
   days: z.number().int().catch(30).default(30),
-  runs: count,
-  finished: count,
-  open: count,
+  runs: timingCount,
+  finished: timingCount,
+  open: timingCount,
   truncated: z.boolean().default(false),
-  median_elapsed_seconds: seconds,
-  p90_elapsed_seconds: seconds,
-  median_agent_seconds: seconds,
-  median_people_seconds: seconds,
-  median_other_seconds: seconds,
-  sent_back: count,
+  median_elapsed_seconds: timingSeconds,
+  p90_elapsed_seconds: timingSeconds,
+  median_agent_seconds: timingSeconds,
+  median_people_seconds: timingSeconds,
+  median_other_seconds: timingSeconds,
+  sent_back: timingCount,
   bottleneck_status_key: z.string().default(""),
   steps: z.array(z.object({
     status_key: z.string(),
     kind: visitKind,
-    visits: count,
-    open_visits: count,
-    median_seconds: seconds,
-    p90_seconds: seconds,
-    total_seconds: seconds,
-    sent_back: count,
+    visits: timingCount,
+    open_visits: timingCount,
+    median_seconds: timingSeconds,
+    p90_seconds: timingSeconds,
+    total_seconds: timingSeconds,
+    sent_back: timingCount,
   }).loose()).default([]),
   agents: z.array(z.object({
     agent_id: z.string(),
-    visits: count,
-    median_seconds: seconds,
-    p90_seconds: seconds,
-    total_seconds: seconds,
+    visits: timingCount,
+    median_seconds: timingSeconds,
+    p90_seconds: timingSeconds,
+    total_seconds: timingSeconds,
   }).loose()).default([]),
   people: z.array(z.object({
     user_id: z.string(),
-    answers: count,
-    median_seconds: seconds,
-    p90_seconds: seconds,
-    slowest_seconds: seconds,
+    answers: timingCount,
+    median_seconds: timingSeconds,
+    p90_seconds: timingSeconds,
+    slowest_seconds: timingSeconds,
   }).loose()).default([]),
 }).loose();
 
-export const EMPTY_WORKFLOW_INSIGHTS: WorkflowInsights = {
+export const EMPTY_ISSUE_WORKFLOW_INSIGHTS: IssueWorkflowInsights = {
   days: 30,
   runs: 0,
   finished: 0,

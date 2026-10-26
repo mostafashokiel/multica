@@ -1,6 +1,6 @@
 import { queryOptions } from "@tanstack/react-query";
 import { api } from "../api";
-import type { IssueWorkflow, IssueWorkflowStep, Project, WorkflowInsightsDays } from "../types";
+import type { IssueWorkflow, IssueWorkflowStep, Project, IssueWorkflowInsightsDays } from "../types";
 
 /**
  * Workspace workflows (MUL-7420).
@@ -17,7 +17,7 @@ export const issueWorkflowKeys = {
   handoffPreview: (wsId: string, issueId: string, status: string, projectId = "") =>
     [...issueWorkflowKeys.all(wsId), "handoff-preview", issueId, status, projectId] as const,
   timeline: (wsId: string, issueId: string) => [...issueWorkflowKeys.all(wsId), "timeline", issueId] as const,
-  insights: (wsId: string, workflowId: string, days: WorkflowInsightsDays) =>
+  insights: (wsId: string, workflowId: string, days: IssueWorkflowInsightsDays) =>
     [...issueWorkflowKeys.all(wsId), "insights", workflowId, days] as const,
 };
 
@@ -26,10 +26,10 @@ export const issueWorkflowKeys = {
  * status move, run and comment, none of which refresh it, so it is read fresh
  * each time it is opened and refreshed while open.
  */
-export function workflowTimelineOptions(wsId: string, issueId: string) {
+export function issueWorkflowTimelineOptions(wsId: string, issueId: string) {
   return queryOptions({
     queryKey: issueWorkflowKeys.timeline(wsId, issueId),
-    queryFn: () => api.getWorkflowTimeline(issueId),
+    queryFn: () => api.getIssueWorkflowTimeline(issueId),
     staleTime: 0,
     gcTime: 60_000,
     refetchInterval: 30_000,
@@ -37,10 +37,10 @@ export function workflowTimelineOptions(wsId: string, issueId: string) {
 }
 
 /** How the issues of a workflow moved through it. A summary: a minute stale is fine. */
-export function workflowInsightsOptions(wsId: string, workflowId: string, days: WorkflowInsightsDays) {
+export function issueWorkflowInsightsOptions(wsId: string, workflowId: string, days: IssueWorkflowInsightsDays) {
   return queryOptions({
     queryKey: issueWorkflowKeys.insights(wsId, workflowId, days),
-    queryFn: () => api.getWorkflowInsights(workflowId, days),
+    queryFn: () => api.getIssueWorkflowInsights(workflowId, days),
     staleTime: 60_000,
     gcTime: 5 * 60_000,
   });

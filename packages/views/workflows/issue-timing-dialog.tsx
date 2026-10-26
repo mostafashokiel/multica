@@ -3,8 +3,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { useWorkspaceId } from "@multica/core/hooks";
 import { useIssueStatuses } from "@multica/core/issue-statuses/hooks";
-import { workflowTimelineOptions } from "@multica/core/issue-workflows";
-import type { WorkflowTimeline, WorkflowVisit } from "@multica/core/types";
+import { issueWorkflowTimelineOptions } from "@multica/core/issue-workflows";
+import type { IssueWorkflowTimeline, IssueWorkflowVisit } from "@multica/core/types";
 import { useActorName } from "@multica/core/workspace/hooks";
 import {
   Dialog,
@@ -47,7 +47,7 @@ export function IssueTimingDialog({
 }) {
   const { t } = useT("issues");
   const wsId = useWorkspaceId();
-  const { data, isLoading, isError } = useQuery({ ...workflowTimelineOptions(wsId, issueId), enabled: open });
+  const { data, isLoading, isError } = useQuery({ ...issueWorkflowTimelineOptions(wsId, issueId), enabled: open });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -73,7 +73,7 @@ export function IssueTimingDialog({
   );
 }
 
-function TimelineBody({ timeline }: { timeline: WorkflowTimeline }) {
+function TimelineBody({ timeline }: { timeline: IssueWorkflowTimeline }) {
   const { t } = useT("issues");
   const format = useDurationFormat();
   const rows = timeline.visits.filter((v) => v.kind !== "end" && (v.elapsed_seconds > 0 || v.open));
@@ -128,7 +128,7 @@ function TimelineBody({ timeline }: { timeline: WorkflowTimeline }) {
   );
 }
 
-function VisitRow({ visit, timeline }: { visit: WorkflowVisit; timeline: WorkflowTimeline }) {
+function VisitRow({ visit, timeline }: { visit: IssueWorkflowVisit; timeline: IssueWorkflowTimeline }) {
   const { t } = useT("issues");
   const wsId = useWorkspaceId();
   const catalog = useIssueStatuses(wsId);

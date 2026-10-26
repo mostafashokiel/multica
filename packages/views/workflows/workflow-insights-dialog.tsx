@@ -4,8 +4,8 @@ import { useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useWorkspaceId } from "@multica/core/hooks";
 import { useIssueStatuses } from "@multica/core/issue-statuses/hooks";
-import { workflowInsightsOptions } from "@multica/core/issue-workflows";
-import type { WorkflowInsights, WorkflowInsightsDays } from "@multica/core/types";
+import { issueWorkflowInsightsOptions } from "@multica/core/issue-workflows";
+import type { IssueWorkflowInsights, IssueWorkflowInsightsDays } from "@multica/core/types";
 import { useActorName } from "@multica/core/workspace/hooks";
 import { Button } from "@multica/ui/components/ui/button";
 import {
@@ -22,7 +22,7 @@ import { useStatusLabel } from "../issues/utils/status-label";
 import { useT } from "../i18n";
 import { useDurationFormat } from "./timing-format";
 
-const PERIODS: WorkflowInsightsDays[] = [7, 30, 90];
+const PERIODS: IssueWorkflowInsightsDays[] = [7, 30, 90];
 
 /**
  * Where the time goes across the issues of one workflow (MUL-7420): how many
@@ -30,7 +30,7 @@ const PERIODS: WorkflowInsightsDays[] = [7, 30, 90];
  * holds the largest share of the time, and per-step, per-agent and per-person
  * tables. Read from the issues' own history, for issues created in the period.
  */
-export function WorkflowInsightsDialog({
+export function IssueWorkflowInsightsDialog({
   workflowId,
   open,
   onOpenChange,
@@ -41,8 +41,8 @@ export function WorkflowInsightsDialog({
 }) {
   const { t } = useT("issues");
   const wsId = useWorkspaceId();
-  const [days, setDays] = useState<WorkflowInsightsDays>(30);
-  const { data, isLoading, isError } = useQuery({ ...workflowInsightsOptions(wsId, workflowId, days), enabled: open });
+  const [days, setDays] = useState<IssueWorkflowInsightsDays>(30);
+  const { data, isLoading, isError } = useQuery({ ...issueWorkflowInsightsOptions(wsId, workflowId, days), enabled: open });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -94,7 +94,7 @@ function Stat({ label, value, detail }: { label: string; value: ReactNode; detai
 const TH = "px-2 py-1.5 text-left text-caption font-normal text-muted-foreground";
 const TD = "px-2 py-1.5 text-body tabular-nums";
 
-function InsightsBody({ insights }: { insights: WorkflowInsights }) {
+function InsightsBody({ insights }: { insights: IssueWorkflowInsights }) {
   const { t } = useT("issues");
   const wsId = useWorkspaceId();
   const catalog = useIssueStatuses(wsId);
