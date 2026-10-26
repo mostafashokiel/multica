@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Settings, Workflow } from "lucide-react";
+import { Clock, Settings, Workflow } from "lucide-react";
 import { useWorkspaceId } from "@multica/core/hooks";
 import { useIssueStatuses } from "@multica/core/issue-statuses/hooks";
 import { useProjectWithWorkflow } from "@multica/core/issue-workflows";
@@ -15,14 +15,44 @@ import { useStatusLabel } from "../issues/utils/status-label";
 import { useT } from "../i18n";
 import { useNavigation } from "../navigation";
 import { useWorkflowPermissions } from "./permissions";
+import { IssueTimingDialog } from "./issue-timing-dialog";
 import { stepHandlerActor, useStepHandlerLabel } from "./step-handler";
 
 /**
  * The workflow an issue follows through its project (MUL-7420), opening a
  * read-only card of its columns and who each hands to. It changes on the
- * project, so nothing here edits it.
+ * project, so nothing here edits it. The card also opens the issue's timeline:
+ * how long it spent in each step.
  */
-export function IssueFlowCard({ projectId, currentStatus }: { projectId: string | null; currentStatus: string }) {
+export function IssueFlowCard({
+  issueId,
+  identifier,
+  projectId,
+  currentStatus,
+}: {
+  issueId: string;
+  identifier?: string;
+  projectId: string | null;
+  currentStatus: string;
+}) {
+  const [timingOpen, setTimingOpen] = useState(false);
+  return (
+    <>
+      <FlowCardPopover projectId={projectId} currentStatus={currentStatus} onOpenTiming={() => setTimingOpen(true)} />
+      <IssueTimingDialog issueId={issueId} identifier={identifier} open={timingOpen} onOpenChange={setTimingOpen} />
+    </>
+  );
+}
+
+function FlowCardPopover({
+  projectId,
+  currentStatus,
+  onOpenTiming,
+}: {
+  projectId: string | null;
+  currentStatus: string;
+  onOpenTiming: () => void;
+}) {
   const { t } = useT("issues");
   const wsId = useWorkspaceId();
   const navigation = useNavigation();
@@ -84,8 +114,20 @@ export function IssueFlowCard({ projectId, currentStatus }: { projectId: string 
             );
           })}
         </ol>
-        {canCreateWorkflow && (
-          <div className="-mx-3 -mb-3 mt-2 border-t border-surface-border p-1">
+        <div className="-mx-3 -mb-3 mt-2 border-t border-surface-border p-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full justify-start"
+            onClick={() => {
+              setOpen(false);
+              onOpenTiming();
+            }}
+          >
+            <Clock aria-hidden className="size-3.5" />
+            {t(($) => $.workflows.timing.button)}
+          </Button>
+          {canCreateWorkflow && (
             <Button
               variant="ghost"
               size="sm"
@@ -98,8 +140,8 @@ export function IssueFlowCard({ projectId, currentStatus }: { projectId: string 
               <Settings aria-hidden className="size-3.5" />
               {t(($) => $.workflows.project.manage)}
             </Button>
-          </div>
-        )}
+          )}
+        </div>
       </PopoverContent>
     </Popover>
   );

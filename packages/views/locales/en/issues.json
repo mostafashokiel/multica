@@ -1753,6 +1753,73 @@
           "waiting": "Waiting on reporter"
         }
       }
+    },
+    "timing": {
+      "button": "Timing",
+      "title": "Timeline",
+      "loading": "Reading the history…",
+      "error": "Could not read this issue's history.",
+      "empty": "This issue has not moved through its workflow yet.",
+      "total": "Total",
+      "total_so_far": "Total so far",
+      "still_running": "still running",
+      "agents": "Agents working",
+      "people": "Waiting on people",
+      "other": "Handoffs and queueing",
+      "reworks_one": "Sent back {{count}} time",
+      "reworks_other": "Sent back {{count}} times",
+      "visit_again": "Visit {{number}}",
+      "answered_by": "answered by {{name}}",
+      "outcome": {
+        "passed": "Moved on",
+        "sent_back": "Sent back",
+        "blocked": "Blocked",
+        "waiting": "Waiting"
+      },
+      "kind": {
+        "agent": "Agent",
+        "person": "Person",
+        "other": "No handoff",
+        "parked": "Parked"
+      },
+      "note": "Agent time is what agents spent running on the issue during a step. A person's time is the wait until their first comment. The rest is handoffs, queueing and steps nobody is assigned to.",
+      "under_minute": "<1m"
+    },
+    "insights": {
+      "button": "Insights",
+      "title": "Insights",
+      "description": "Where the time goes across the issues of this workflow.",
+      "period": "Period",
+      "days_7": "Last 7 days",
+      "days_30": "Last 30 days",
+      "days_90": "Last 90 days",
+      "runs": "Issues",
+      "runs_detail": "{{finished}} finished, {{open}} running",
+      "typical_total": "Typical total",
+      "typical_none": "no issue has finished yet",
+      "sent_back": "Sent back",
+      "sent_back_detail": "times a step sent work back",
+      "bottleneck": "Bottleneck",
+      "bottleneck_detail": "the step with the largest share of the time",
+      "bottleneck_none": "nothing timed yet",
+      "steps": "Time per step",
+      "step": "Step",
+      "visits": "Visits",
+      "typical": "Typical",
+      "slowest": "Slowest 10%",
+      "share": "Share of time",
+      "step_sent_back": "Sent back",
+      "bottleneck_badge": "Bottleneck",
+      "agents": "Agents",
+      "agent": "Agent",
+      "total": "Total",
+      "people": "People at their steps",
+      "person": "Person",
+      "answers": "Answers",
+      "typical_wait": "Typical wait",
+      "empty": "No issue of this workflow was created in this period.",
+      "truncated": "Showing the newest {{count}} issues.",
+      "error": "Could not read the insights."
     }
   },
   "hover_card": {

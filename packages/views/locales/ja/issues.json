@@ -1687,6 +1687,72 @@
           "waiting": "返答待ち"
         }
       }
+    },
+    "timing": {
+      "button": "所要時間",
+      "title": "タイムライン",
+      "loading": "履歴を読み込んでいます…",
+      "error": "このタスクの履歴を読み込めませんでした。",
+      "empty": "このタスクはまだワークフローを進んでいません。",
+      "total": "合計",
+      "total_so_far": "現在までの合計",
+      "still_running": "進行中",
+      "agents": "エージェントの作業",
+      "people": "人の待ち時間",
+      "other": "引き継ぎと待機",
+      "reworks_other": "{{count}} 回差し戻し",
+      "visit_again": "{{number}} 回目",
+      "answered_by": "{{name}} が回答",
+      "outcome": {
+        "passed": "次へ進行",
+        "sent_back": "差し戻し",
+        "blocked": "ブロック",
+        "waiting": "待機中"
+      },
+      "kind": {
+        "agent": "エージェント",
+        "person": "担当者",
+        "other": "引き継ぎなし",
+        "parked": "保留"
+      },
+      "note": "エージェントの時間は、ステップ中にタスクでエージェントが実行していた時間です。人の時間は最初のコメントまでの待ち時間です。残りは引き継ぎ、待機、担当者のいないステップの時間です。",
+      "under_minute": "1分未満"
+    },
+    "insights": {
+      "button": "インサイト",
+      "title": "インサイト",
+      "description": "このワークフローのタスクで時間がかかっている箇所を示します。",
+      "period": "期間",
+      "days_7": "過去 7 日間",
+      "days_30": "過去 30 日間",
+      "days_90": "過去 90 日間",
+      "runs": "タスク",
+      "runs_detail": "完了 {{finished}} 件、進行中 {{open}} 件",
+      "typical_total": "一般的な合計時間",
+      "typical_none": "完了したタスクはまだありません",
+      "sent_back": "差し戻し",
+      "sent_back_detail": "ステップから作業が差し戻された回数",
+      "bottleneck": "ボトルネック",
+      "bottleneck_detail": "時間の割合が最も大きいステップ",
+      "bottleneck_none": "計測データがまだありません",
+      "steps": "ステップごとの時間",
+      "step": "ステップ",
+      "visits": "回数",
+      "typical": "一般的",
+      "slowest": "遅い上位 10%",
+      "share": "時間の割合",
+      "step_sent_back": "差し戻し",
+      "bottleneck_badge": "ボトルネック",
+      "agents": "エージェント",
+      "agent": "エージェント",
+      "total": "合計",
+      "people": "各ステップの担当者",
+      "person": "担当者",
+      "answers": "回答数",
+      "typical_wait": "一般的な待ち時間",
+      "empty": "この期間に作成されたこのワークフローのタスクはありません。",
+      "truncated": "最新の {{count}} 件を表示しています。",
+      "error": "インサイトを読み込めませんでした。"
     }
   },
   "hover_card": {

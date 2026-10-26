@@ -1687,6 +1687,72 @@
           "waiting": "等待反馈"
         }
       }
+    },
+    "timing": {
+      "button": "耗时",
+      "title": "时间线",
+      "loading": "正在读取历史记录…",
+      "error": "无法读取此任务的历史记录。",
+      "empty": "此任务尚未在工作流中流转。",
+      "total": "总计",
+      "total_so_far": "截至目前总计",
+      "still_running": "进行中",
+      "agents": "智能体工作",
+      "people": "等待人员",
+      "other": "交接与排队",
+      "reworks_other": "已退回 {{count}} 次",
+      "visit_again": "第 {{number}} 次",
+      "answered_by": "{{name}} 已答复",
+      "outcome": {
+        "passed": "已继续",
+        "sent_back": "已退回",
+        "blocked": "已阻塞",
+        "waiting": "等待中"
+      },
+      "kind": {
+        "agent": "智能体",
+        "person": "人员",
+        "other": "无交接",
+        "parked": "搁置"
+      },
+      "note": "智能体时间是步骤期间智能体在该任务上运行的时间。人员时间是等待其第一条评论的时间。其余是交接、排队以及无人负责的步骤。",
+      "under_minute": "不到 1 分钟"
+    },
+    "insights": {
+      "button": "洞察",
+      "title": "洞察",
+      "description": "此工作流的任务把时间花在了哪里。",
+      "period": "时间范围",
+      "days_7": "最近 7 天",
+      "days_30": "最近 30 天",
+      "days_90": "最近 90 天",
+      "runs": "任务",
+      "runs_detail": "已完成 {{finished}} 个，进行中 {{open}} 个",
+      "typical_total": "典型总耗时",
+      "typical_none": "尚无已完成的任务",
+      "sent_back": "退回",
+      "sent_back_detail": "步骤把工作退回的次数",
+      "bottleneck": "瓶颈",
+      "bottleneck_detail": "占用时间比例最大的步骤",
+      "bottleneck_none": "尚无计时数据",
+      "steps": "各步骤耗时",
+      "step": "步骤",
+      "visits": "次数",
+      "typical": "典型",
+      "slowest": "最慢 10%",
+      "share": "时间占比",
+      "step_sent_back": "退回",
+      "bottleneck_badge": "瓶颈",
+      "agents": "智能体",
+      "agent": "智能体",
+      "total": "总计",
+      "people": "各步骤的人员",
+      "person": "人员",
+      "answers": "答复数",
+      "typical_wait": "典型等待",
+      "empty": "此时间范围内没有创建此工作流的任务。",
+      "truncated": "显示最新的 {{count}} 个任务。",
+      "error": "无法读取洞察数据。"
     }
   },
   "hover_card": {

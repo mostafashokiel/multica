@@ -2763,7 +2763,7 @@ export function IssueDetail({ issueId, onDelete, onDone, defaultSidebarOpen = tr
               issue={issue}
             />
           </PropRow>
-          <IssueWorkflowPropRow projectId={issue.project_id} status={issue.status} label={t(($) => $.workflows.project.label)} />
+          <IssueWorkflowPropRow issueId={issue.id} identifier={issue.identifier} projectId={issue.project_id} status={issue.status} label={t(($) => $.workflows.project.label)} />
 
           {/* Optional props — rendered only when set on the issue OR added
               via "+ Add property" in this session. Row order follows the
@@ -4051,10 +4051,14 @@ export function IssueDetail({ issueId, onDelete, onDone, defaultSidebarOpen = tr
 
 /** The workflow the issue follows through its project (MUL-7420). */
 function IssueWorkflowPropRow({
+  issueId,
+  identifier,
   projectId,
   status,
   label,
 }: {
+  issueId: string;
+  identifier: string;
   projectId: string | null;
   status: string;
   label: string;
@@ -4064,7 +4068,7 @@ function IssueWorkflowPropRow({
   if (!workflow) return null;
   return (
     <PropRow label={label}>
-      <IssueFlowCard projectId={projectId} currentStatus={status} />
+      <IssueFlowCard issueId={issueId} identifier={identifier} projectId={projectId} currentStatus={status} />
     </PropRow>
   );
 }

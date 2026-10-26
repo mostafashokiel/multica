@@ -21,6 +21,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import {
   ChevronDown,
+  ChartColumn,
   ChevronRight,
   Copy,
   CornerDownRight,
@@ -76,6 +77,7 @@ import { useT } from "../i18n";
 import { BriefPreviewDialog, HandoffFields, savedHandoff } from "./handoff-form";
 import { stepHandlerActor, useStepHandlerLabel } from "./step-handler";
 import { WORKFLOW_TEMPLATES, type WorkflowTemplateId } from "./templates";
+import { WorkflowInsightsDialog } from "./workflow-insights-dialog";
 import { WorkflowMappingDialog } from "./workflow-mapping-dialog";
 
 /**
@@ -243,6 +245,7 @@ export function WorkflowEditorPage({
   const [mappingPlan, setMappingPlan] = useState<IssueWorkflowMappingPlan | null>(null);
   const [newName, setNewName] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
+  const [insightsOpen, setInsightsOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   useEffect(() => setDraft(baseline), [baseline]);
 
@@ -452,10 +455,16 @@ export function WorkflowEditorPage({
               </span>
             </p>
           </div>
-          {(canEdit || canDuplicate) && (
+          {(canEdit || canDuplicate || workflowId) && (
             <div className="flex shrink-0 items-center gap-2">
               {canEdit && dirty && workflowId && (
                 <span className="text-caption text-muted-foreground">{t(($) => $.workflows.editor.unsaved)}</span>
+              )}
+              {workflowId && (
+                <Button variant="outline" className="gap-1.5" onClick={() => setInsightsOpen(true)}>
+                  <ChartColumn className="size-3.5" />
+                  {t(($) => $.workflows.insights.button)}
+                </Button>
               )}
               {canDuplicate && workflowId && (
                 <Button variant="outline" className="gap-1.5" onClick={() => onOpen({ duplicateOf: workflowId })}>
@@ -616,6 +625,7 @@ export function WorkflowEditorPage({
         pending={pending}
         onConfirm={(mapping) => void save(mapping)}
       />
+      {workflowId && <WorkflowInsightsDialog workflowId={workflowId} open={insightsOpen} onOpenChange={setInsightsOpen} />}
     </div>
   );
 }

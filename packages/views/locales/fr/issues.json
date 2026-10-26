@@ -1753,6 +1753,73 @@
           "waiting": "En attente du retour"
         }
       }
+    },
+    "timing": {
+      "button": "Durées",
+      "title": "Chronologie",
+      "loading": "Lecture de l'historique…",
+      "error": "Impossible de lire l'historique de cette tâche.",
+      "empty": "Cette tâche n'a pas encore avancé dans son workflow.",
+      "total": "Total",
+      "total_so_far": "Total à ce jour",
+      "still_running": "en cours",
+      "agents": "Agents au travail",
+      "people": "Attente de personnes",
+      "other": "Passages de relais et file d'attente",
+      "reworks_one": "Renvoyé {{count}} fois",
+      "reworks_other": "Renvoyé {{count}} fois",
+      "visit_again": "Passage {{number}}",
+      "answered_by": "réponse de {{name}}",
+      "outcome": {
+        "passed": "Poursuivi",
+        "sent_back": "Renvoyé",
+        "blocked": "Bloqué",
+        "waiting": "En attente"
+      },
+      "kind": {
+        "agent": "Agent",
+        "person": "Personne",
+        "other": "Sans délégation",
+        "parked": "En attente de planification"
+      },
+      "note": "Le temps d'agent est le temps passé par les agents sur la tâche pendant une étape. Celui d'une personne est l'attente jusqu'à son premier commentaire. Le reste correspond aux passages de relais, à la file d'attente et aux étapes sans responsable.",
+      "under_minute": "<1 min"
+    },
+    "insights": {
+      "button": "Analyses",
+      "title": "Analyses",
+      "description": "Où passe le temps sur les tâches de ce workflow.",
+      "period": "Période",
+      "days_7": "7 derniers jours",
+      "days_30": "30 derniers jours",
+      "days_90": "90 derniers jours",
+      "runs": "Tâches",
+      "runs_detail": "{{finished}} terminées, {{open}} en cours",
+      "typical_total": "Total typique",
+      "typical_none": "aucune tâche n'est terminée",
+      "sent_back": "Renvoyés",
+      "sent_back_detail": "fois où une étape a renvoyé le travail",
+      "bottleneck": "Goulot d'étranglement",
+      "bottleneck_detail": "l'étape qui prend la plus grande part du temps",
+      "bottleneck_none": "rien de mesuré pour l'instant",
+      "steps": "Temps par étape",
+      "step": "Étape",
+      "visits": "Passages",
+      "typical": "Typique",
+      "slowest": "10 % les plus lents",
+      "share": "Part du temps",
+      "step_sent_back": "Renvoyés",
+      "bottleneck_badge": "Goulot",
+      "agents": "Agents",
+      "agent": "Agent",
+      "total": "Total",
+      "people": "Personnes à leurs étapes",
+      "person": "Personne",
+      "answers": "Réponses",
+      "typical_wait": "Attente typique",
+      "empty": "Aucune tâche de ce workflow n'a été créée sur cette période.",
+      "truncated": "Affichage des {{count}} tâches les plus récentes.",
+      "error": "Impossible de lire les analyses."
     }
   },
   "hover_card": {
