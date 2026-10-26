@@ -29,3 +29,20 @@ export {
   useSetProjectWorkflow,
   useSetWorkflowHandoff,
 } from "./mutations";
+export {
+  WORKFLOW_YAML_MAX_BYTES,
+  exportWorkflowYaml,
+  parseWorkflowYaml,
+  resolveWorkflowImport,
+} from "./yaml";
+export type {
+  ParseWorkflowYamlResult,
+  ResolvedWorkflowImport,
+  WorkflowDraftColumn,
+  WorkflowDraftHandoff,
+  WorkflowDraftSeed,
+  WorkflowImportNote,
+  WorkflowYamlDoc,
+  WorkflowYamlProblem,
+  WorkflowYamlRefs,
+} from "./yaml";
